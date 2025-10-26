@@ -1,0 +1,16 @@
+{
+  "name": "brdiagrama",
+  "version": "1.0.0",
+  "description": "Gerador de Diagramas de Banco de Dados",
+  "type": "module",
+  "scripts": {
+    "start": "echo 'Projeto pronto para deploy na Vercel'"
+  },
+  "keywords": ["sql", "diagram", "database", "parser"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "node-sql-parser": "^5.3.13"
+  }
+}
