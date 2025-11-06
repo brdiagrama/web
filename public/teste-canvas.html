@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Canvas Infinito - BrDiagrama</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-left: 4px solid #007acc;
+            background: #f8f9fa;
+        }
+        .test-item.success {
+            border-left-color: #28a745;
+        }
+        .test-item.error {
+            border-left-color: #dc3545;
+        }
+        .url {
+            background: #e9ecef;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Teste de Funcionalidades - Canvas Infinito</h1>
+        
+        <h2>✅ Funcionalidades Implementadas:</h2>
+        
+        <div class="test-item success">
+            <h3>1. Componentes Vue 3</h3>
+            <p>✓ DiagramCanvas.vue - Canvas SVG com zoom/pan</p>
+            <p>✓ DiagramToolbar.vue - Controles de zoom</p>
+            <p>✓ App.vue - Componente principal</p>
+        </div>
+        
+        <div class="test-item success">
+            <h3>2. Gerenciamento de Estado (Pinia)</h3>
+            <p>✓ Store para zoom e posição do canvas</p>
+            <p>✓ Sincronização entre toolbar e canvas</p>
+        </div>
+        
+        <div class="test-item success">
+            <h3>3. Biblioteca svg-pan-zoom</h3>
+            <p>✓ Zoom com roda do mouse</p>
+            <p>✓ Pan (arrastar) com mouse</p>
+            <p>✓ Limites de zoom (0.1x a 2.0x)</p>
+        </div>
+        
+        <div class="test-item success">
+            <h3>4. API de Parsing SQL</h3>
+            <p>✓ Endpoint /api/parse funcionando</p>
+            <p>✓ Parser node-sql-parser configurado</p>
+        </div>
+        
+        <h2>🎮 Como Testar:</h2>
+        
+        <div class="test-item">
+            <h3>1. Acesse a aplicação Vue</h3>
+            <p>URL: <span class="url">http://localhost:3000</span></p>
+        </div>
+        
+        <div class="test-item">
+            <h3>2. Digite SQL no editor</h3>
+            <p>Exemplo já carregado com tabelas usuarios e posts</p>
+        </div>
+        
+        <div class="test-item">
+            <h3>3. Teste o Canvas Infinito</h3>
+            <ul>
+                <li><strong>Zoom:</strong> Use a roda do mouse sobre o diagrama</li>
+                <li><strong>Pan:</strong> Clique e arraste o fundo do diagrama</li>
+                <li><strong>Slider:</strong> Use o controle de zoom na barra inferior</li>
+                <li><strong>Fit:</strong> Clique em "Ajustar à Tela" para centralizar</li>
+            </ul>
+        </div>
+        
+        <h2>📋 Checklist de Funcionalidades:</h2>
+        
+        <div class="test-item">
+            <input type="checkbox" id="zoom-wheel"> <label for="zoom-wheel">Zoom com roda do mouse funciona</label><br>
+            <input type="checkbox" id="pan-drag"> <label for="pan-drag">Pan (arrastar) funciona</label><br>
+            <input type="checkbox" id="zoom-slider"> <label for="zoom-slider">Slider de zoom sincroniza</label><br>
+            <input type="checkbox" id="fit-button"> <label for="fit-button">Botão "Ajustar à Tela" funciona</label><br>
+            <input type="checkbox" id="sql-update"> <label for="sql-update">Diagrama atualiza ao modificar SQL</label><br>
+            <input type="checkbox" id="relationships"> <label for="relationships">Linhas de relacionamento aparecem</label><br>
+        </div>
+        
+        <h2>🔧 Arquivos Principais:</h2>
+        <ul>
+            <li><code>src/components/DiagramCanvas.vue</code> - Canvas com svg-pan-zoom</li>
+            <li><code>src/components/DiagramToolbar.vue</code> - Controles de zoom</li>
+            <li><code>src/stores/diagram.js</code> - Estado global (Pinia)</li>
+            <li><code>src/App.vue</code> - Integração completa</li>
+        </ul>
+        
+        <p><strong>Nota:</strong> Se algo não estiver funcionando, verifique o console do navegador (F12) para erros.</p>
+    </div>
+</body>
+</html>
