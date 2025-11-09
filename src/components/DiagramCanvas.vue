@@ -5,18 +5,51 @@
         @wheel="handleWheelEvent"
         style="width: 100%; height: 100%; cursor: grab;"
     >
+     <!-- NOVO: Definições de padrões para o grid -->
+        <defs>
+            <pattern 
+                id="grid-pattern" 
+                :width="store.gridSize" 
+                :height="store.gridSize" 
+                patternUnits="userSpaceOnUse"
+            >
+             <circle 
+            :cx="store.gridSize / 2" 
+            :cy="store.gridSize / 2" 
+            r="1" 
+            fill="#999" 
+            opacity="0.8"
+             />
+            </pattern>
+        </defs>
+        
         <g id="background-layer">
-            <rect
-                class="diagram-background-rect"
-                width="100%"
-                height="100%"
-                fill="none"
-                style="pointer-events: all;"
-                @mousedown="enablePan"
-                @mouseup="disablePan"
-                @mouseleave="disablePan"
+         
+            <!-- Retângulo de fundo existente -->
+            <rect 
+            class="diagram-background-rect" 
+            width="100%" 
+            height="100%" 
+            fill="none"
+            style="pointer-events: all;"
+            @mousedown="enablePan"
+            @mouseup="disablePan"
+            @mouseleave="disablePan"
             />
-            </g>        <g id="viewport-layer">
+        </g>
+              <g id="viewport-layer">
+                   <!-- Grid de fundo (condicional) -->
+           <rect 
+    v-if="store.isGridVisible"
+    class="grid-background"
+    x="-10000" 
+    y="-10000"
+    width="20000" 
+    height="20000" 
+    fill="url(#grid-pattern)"
+    style="pointer-events: none;"
+/>
+            
             <slot />
         </g>
     </svg>
@@ -26,6 +59,7 @@
 import { onMounted, ref, watch } from 'vue';
 import svgPanZoom from 'svg-pan-zoom';
 import { useDiagramStore } from '@/stores/diagram';
+
 
 const store = useDiagramStore();
 

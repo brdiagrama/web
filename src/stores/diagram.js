@@ -9,6 +9,9 @@ export const useDiagramStore = defineStore('diagram', {
         zoom: 1.0, 
         // Posição da panorâmica inicial (pan)
         pan: { x: 0, y: 0 }, 
+        // NOVO: Estado do grid
+        isGridVisible: false,
+        gridSize: 20, // Tamanho da grade em pixels (espaçamento entre pontos)
         
         // CTM (Current Transformation Matrix) e outros dados complexos podem ser adicionados aqui
     }),
@@ -37,6 +40,21 @@ export const useDiagramStore = defineStore('diagram', {
         loadState({ zoom, pan }) {
             this.zoom = zoom;
             this.pan = pan;
+        },
+        
+        /**
+         * Toggle do grid
+         */
+        toggleGrid() {
+            this.isGridVisible = !this.isGridVisible;
+        },
+        
+        /**
+         * Configurar tamanho do grid
+         * @param {number} size - O novo tamanho da grade em pixels
+         */
+        setGridSize(size) {
+            this.gridSize = size;
         }
     },
 });
