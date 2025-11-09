@@ -2,7 +2,7 @@
     <svg
         ref="svgRoot"
         class="diagram-canvas"
-        @wheel.prevent="handleZoom"
+        @wheel="handleWheelEvent"
         style="width: 100%; height: 100%; cursor: grab;"
     >
         <g id="background-layer">
@@ -63,7 +63,15 @@ const disablePan = () => {
         isPanEnabled = false;
     }
 };
-
+const handleWheelEvent = (e) => {
+    // Verifica se Ctrl está pressionado
+    if (e.ctrlKey) {
+        // Previne o comportamento padrão apenas quando Ctrl estiver pressionado
+        e.preventDefault();
+        handleZoom(e);
+    }
+    // Se Ctrl não estiver pressionado, permite o scroll normal da página
+};
 // --- Funções de Zoom ---
 
 // Lida com o zoom usando a roda do mouse (scroll)
