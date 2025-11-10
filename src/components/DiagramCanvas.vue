@@ -7,20 +7,21 @@
     >
      <!-- NOVO: Definições de padrões para o grid -->
         <defs>
-            <pattern 
-                id="grid-pattern" 
-                :width="store.gridSize" 
-                :height="store.gridSize" 
-                patternUnits="userSpaceOnUse"
-            >
-             <circle 
-            :cx="store.gridSize / 2" 
-            :cy="store.gridSize / 2" 
-            r="1" 
-            fill="#999" 
-            opacity="0.8"
-             />
-            </pattern>
+            <!-- Linha 15-23 - Modificar o pattern: -->
+        <pattern 
+            id="grid-pattern" 
+            :width="store.gridSize" 
+            :height="store.gridSize" 
+            patternUnits="userSpaceOnUse"
+        >
+            <circle 
+                :cx="store.gridSize / 2" 
+                :cy="store.gridSize / 2" 
+                r="1" 
+                fill="#999" 
+                :opacity="Math.max(0.1, Math.min(0.8, store.zoom * 2))"
+            />
+        </pattern>
         </defs>
         
         <g id="background-layer">
@@ -42,10 +43,10 @@
            <rect 
     v-if="store.isGridVisible"
     class="grid-background"
-    x="-10000" 
-    y="-10000"
-    width="20000" 
-    height="20000" 
+    :x="-50000 / store.zoom" 
+    :y="-50000 / store.zoom"
+    :width="100000 / store.zoom" 
+    :height="100000 / store.zoom" 
     fill="url(#grid-pattern)"
     style="pointer-events: none;"
 />
