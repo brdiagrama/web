@@ -13,7 +13,13 @@ export const useDiagramStore = defineStore('diagram', {
         isGridVisible: false,
         gridSize: 20, // Tamanho da grade em pixels (espaçamento entre pontos)
         
-        // CTM (Current Transformation Matrix) e outros dados complexos podem ser adicionados aqui
+        // NOVO: Estado dos relacionamentos
+        relationships: {}, // Store dos relacionamentos com vértices
+        relationshipSettings: {
+            showCardinalities: true,
+            autoRouting: true,
+            snapToGrid: true
+        }
     }),
     actions: {
         /**
@@ -55,6 +61,16 @@ export const useDiagramStore = defineStore('diagram', {
          */
         setGridSize(size) {
             this.gridSize = size;
+        },
+         // NOVO: Ações para relacionamentos
+        updateRelationship(relationshipId, updates) {
+            if (this.relationships[relationshipId]) {
+                Object.assign(this.relationships[relationshipId], updates);
+            }
+        },
+        
+        setRelationships(newRelationships) {
+            this.relationships = newRelationships;
         }
     },
 });

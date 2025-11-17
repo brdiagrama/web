@@ -7,6 +7,7 @@
 // - Extrair relacionamentos entre tabelas
 // - Preparar dados para visualização no diagrama ER
 
+import { generateId } from '../utils/mathUtils.js';
 import pkg from 'node-sql-parser';
 const { Parser } = pkg;
 
@@ -96,7 +97,7 @@ export class SqlParserService {
                         
                         // Primary Key definida como constraint separada
                         // Exemplo: PRIMARY KEY (id)
-                        if (def.constraint_type === 'primary key') {
+                        if (def.constraint_type && def.constraint_type.toLowerCase() === 'primary key') {
                             const pkColumnName = def.definition[0].column;
                             const pkColumn = tableData.columns.find(c => c.name === pkColumnName);
                             if (pkColumn) pkColumn.isPk = true;
@@ -104,7 +105,7 @@ export class SqlParserService {
                         
                         // Foreign Key: cria relacionamento entre tabelas
                         // Exemplo: FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
-                        else if (def.constraint_type === 'foreign key') {
+                        else if (def.constraint_type && def.constraint_type.toLowerCase() === 'foreign key') {
                             const fkColumnName = def.definition[0].column;
                             const fkColumn = tableData.columns.find(c => c.name === fkColumnName);
                             
@@ -114,10 +115,16 @@ export class SqlParserService {
                                 fkColumn.refTable = def.reference_definition.table[0].table;
                                 
                                 // Adiciona relacionamento para desenhar linha no diagrama
+                               // Ao invés de um relacionamento simples, criar com vértices:
                                 newRelationships.push({
-                                    fromTable: tableName,        // tabela "filha"
-                                    fromColumn: fkColumnName,    // coluna FK
-                                    toTable: fkColumn.refTable,  // tabela "pai"
+                                    id: generateId(), // ID único para o relacionamento
+                                    fromTable: tableName,       // tabela "filha"
+                                    fromColumn: fkColumnName,      // coluna FK
+                                    toTable: fkColumn.refTable,     // tabela "pai"
+                                    toColumn: 'id', // Extrato da referência SQL
+                                    cardinality: 'one-to-many', // Detectado do SQL
+                                    vertices: [], // Array de pontos de controle (será auto-calculado)
+                                    auto: true // Flag para recálculo automático
                                 });
                             }
                         }

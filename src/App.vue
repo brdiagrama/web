@@ -16,19 +16,8 @@
         class="canvas-container"
       >        <!-- Definições SVG -->
         <defs>
-          <marker 
-            id="arrowhead" 
-            markerWidth="10" 
-            markerHeight="7" 
-            refX="9" 
-            refY="3.5" 
-            orient="auto"
-          >
-            <polygon 
-              points="0 0, 10 3.5, 0 7" 
-              fill="#5c6773" 
-            />
-          </marker>
+         
+         
         </defs>
           <!-- Debug: Mostrar informações dos dados -->
         <text v-if="!tables || Object.keys(tables).length === 0" x="50" y="50" fill="#666" font-size="14">
@@ -38,14 +27,20 @@
         <!-- Conteúdo do diagrama será renderizado aqui -->
         <g v-if="tables && Object.keys(tables).length > 0">
           <!-- Renderiza relacionamentos (linhas) -->
-          <g class="relationships">
-            <path 
-              v-for="(rel, index) in relationships" 
-              :key="index"
-              :d="calculatePath(rel)"
-              class="relationship-line"
-            />
-          </g>
+         <!-- Renderiza relacionamentos (linhas) -->
+        <g class="relationships">
+          <RelationshipLine
+            v-for="(rel, index) in relationships"
+            :key="rel.id || index"
+            :relationship="rel"
+            :from-table="tables[rel.fromTable]"
+            :to-table="tables[rel.toTable]"
+            :table-width="tableWidth"
+            :header-height="headerHeight"
+            :row-height="rowHeight"
+            @update="updateRelationship"
+          />
+        </g>
           
           <!-- Renderiza tabelas -->
           <g class="tables">            <g 
@@ -105,6 +100,7 @@ import { ref, computed, onMounted } from 'vue';
 import DiagramCanvas from './components/DiagramCanvas.vue';
 import DiagramToolbar from './components/DiagramToolbar.vue';
 import { MockApiService } from './services/mockApi.service.js';
+import RelationshipLine from './components/RelationshipLine.vue';
 
 // Refs dos componentes
 const diagramCanvasRef = ref(null);
@@ -199,6 +195,7 @@ const calculatePath = (rel) => {
 };
 
 // Função para atualizar o diagrama via API
+// Função para atualizar o diagrama via API
 const updateDiagram = async () => {
   if (!sqlCode.value.trim()) {
     tables.value = {};
@@ -227,10 +224,23 @@ const updateDiagram = async () => {
         y: oldTable?.y || newTables[tableName].y,
       };
     }
-      tables.value = updatedTables;
-    relationships.value = newRelationships;
+            tables.value = updatedTables;
+    
+    // Preserva vértices customizados dos relacionamentos existentes
+    const updatedRelationships = newRelationships.map(newRel => {
+      const existing = relationships.value.find(r => r.id === newRel.id);
+      return {
+        ...newRel,
+        vertices: existing?.vertices || [],
+        auto: existing?.auto !== false
+      };
+    });
+    
+    relationships.value = updatedRelationships;
     
     console.log('🎨 Tabelas atualizadas no estado:', tables.value);
+    console.log('🔗 Relacionamentos atualizados:', relationships.value);
+    console.log('📊 Total de relacionamentos:', relationships.value.length);
     
   } catch (error) {
     console.error("❌ Erro ao processar diagrama:", error);
@@ -291,6 +301,30 @@ const endDrag = () => {
   document.removeEventListener('mouseup', endDrag);
 };
 
+// --- Funções para Relacionamentos Avançados ---
+
+const updateRelationship = (relationshipId, updates) => {
+  const rel = relationships.value.find(r => r.id === relationshipId);
+  if (rel) {
+    Object.assign(rel, updates);
+  }
+};
+
+const snapToGrid = (value) => {
+  const gridSize = 20; // ou usar da store
+  return Math.round(value / gridSize) * gridSize;
+};
+
+const screenToSVG = (screenX, screenY) => {
+  const svgElement = diagramCanvasRef.value?.svgRoot;
+  if (!svgElement) return { x: screenX, y: screenY };
+  
+  const ctm = svgElement.getScreenCTM();
+  return {
+    x: (screenX - ctm.e) / ctm.a,
+    y: (screenY - ctm.f) / ctm.d
+  };
+};
 // Inicialização
 onMounted(() => {
   sqlCode.value = defaultSql;
@@ -299,6 +333,24 @@ onMounted(() => {
 </script>
 
 <style scoped>
+:root {
+  /* Tema Claro (padrão) */
+  --ref-color: #d3d3d3;
+  --ref-highlight-color: #619bcc;
+  --control-point-color: #000000;
+  --control-point-stroke: #619bcc;
+}
+
+/* Tema Escuro (opcional futuro) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ref-color: #9b9ca4;
+    --ref-highlight-color: #3ea8de;
+    --control-point-color: #d7d7d9;
+    --control-point-stroke: #3ea8de;
+  }
+}
+
 .app {
   display: flex;
   height: 100vh;
