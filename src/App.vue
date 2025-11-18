@@ -273,6 +273,11 @@ const startDrag = (event, tableName) => {
   const svgElement = diagramCanvasRef.value?.svgRoot;
   if (!svgElement) return;
 
+  //Trazer tabela para frente
+  const tableGroup = event.currentTarget; // O elemento <g> da tabela clicada
+  const tablesLayer = tableGroup.parentNode; // O container <g class="tables">
+  tablesLayer.appendChild(tableGroup); // Move para o final (renderiza por último = fica na frente)
+ 
   dragState.value.isDragging = true;
   dragState.value.draggedTable = tableName;
 
