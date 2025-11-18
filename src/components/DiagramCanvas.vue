@@ -32,12 +32,12 @@
         <circle cx="5" cy="5" r="3" fill="#fff" stroke="#7f8c8d" stroke-width="1.5" transform="scale(0.7)" />
         </marker>
 
-        <marker id="crowsFootHover" markerWidth="5" markerHeight="12" refX="0" refY="6" orient="auto">
-        <path d="M0 6 L12 6 M12 0 L0 6 L12 12" fill="none" stroke="#2980b9" stroke-width="2" transform="scale(0.7)"/>
+        <marker id="crowsFootHover" markerWidth="5" markerHeight="12" refX="0" refY="4" orient="auto">
+        <path d="M0 6 L12 6 M12 0 L0 6 L12 12" fill="none" stroke="#2980b9" stroke-width="2" transform="scale(0.5) rotate(180 6 7)"/>
         </marker>
         
-        <marker id="oneBarHover" markerWidth="10" markerHeight="10" refX="10" refY="5" orient="auto">
-        <circle cx="5" cy="5" r="3" fill="#fff" stroke="#2980b9" stroke-width="2" transform="scale(0.7)"/>
+        <marker id="oneBarHover" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
+        <circle cx="5" cy="5" r="3" fill="#fff" stroke="#2980b9" stroke-width="2" transform="scale(0.6)"/>
         </marker>
 
         <!-- Zero ou Um (0..1) - Círculo duplo -->
