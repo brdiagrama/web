@@ -4,11 +4,30 @@
     <path 
       :d="pathData"
       class="connector"
-      marker-start="url(#crowsFoot)"
-      marker-end="url(#oneBar)"
+      :marker-start="markerStart"
+      :marker-end="markerEnd"
       @mouseenter="onHover"
       @mouseleave="onUnhover"
     />
+     <!--Labels de Cardinalidade -->
+    <text 
+      :x="labelPositions.start.x" 
+      :y="labelPositions.start.y" 
+      class="cardinality-label"
+      :class="{ 'cardinality-hover': isHovered }"
+    >
+      {{ cardinalityStart }}
+    </text>
+    
+    <text 
+      :x="labelPositions.end.x" 
+      :y="labelPositions.end.y" 
+      class="cardinality-label"
+      :class="{ 'cardinality-hover': isHovered }"
+    >
+      {{ cardinalityEnd }}
+    </text>
+
   </g>
 </template>
 
@@ -47,18 +66,97 @@ const isHovered = ref(false)
 
 // Funções de hover para trocar markers
 const onHover = (event) => {
-  const path = event.target
-  path.setAttribute('marker-start', 'url(#crowsFootHover)')
-  path.setAttribute('marker-end', 'url(#oneBarHover)')
   isHovered.value = true
+  // Markers são atualizados automaticamente via computed property
+}
+const onUnhover = (event) => {
+  isHovered.value = false
+  // Markers são atualizados automaticamente via computed property
+}
+// Computed properties para cardinalidade
+
+// Determina markers baseado na cardinalidade
+const markerStart = computed(() => {
+  const cardinality = props.relationship.cardinality || 'one-to-many'
+  const base = getMarkerForCardinality(cardinality, 'start')
+  return isHovered.value ? `url(#${base}Hover)` : `url(#${base})`
+})
+
+const markerEnd = computed(() => {
+  const cardinality = props.relationship.cardinality || 'one-to-many'
+  const base = getMarkerForCardinality(cardinality, 'end')
+  return isHovered.value ? `url(#${base}Hover)` : `url(#${base})`
+})
+
+// Mapeia cardinalidade para markers corretos
+const getMarkerForCardinality = (cardinality, side) => {
+  const map = {
+    'one-to-one': { start: 'oneBar', end: 'oneBar' },
+    'one-to-many': { start: 'crowsFoot', end: 'oneBar' },
+    'many-to-many': { start: 'crowsFoot', end: 'crowsFoot' },
+    'zero-to-one': { start: 'zeroOrOne', end: 'exactlyOne' },
+    'zero-to-many': { start: 'zeroOrMany', end: 'exactlyOne' },
+    'one-to-zero-or-one': { start: 'oneBar', end: 'zeroOrOne' },
+  }
+  return map[cardinality]?.[side] || 'crowsFoot'
 }
 
-const onUnhover = (event) => {
-  const path = event.target
-  path.setAttribute('marker-start', 'url(#crowsFoot)')
-  path.setAttribute('marker-end', 'url(#oneBar)')
-  isHovered.value = false
-}
+// Texto da cardinalidade (0..1, 1, N, *)
+const cardinalityStart = computed(() => {
+  const cardinality = props.relationship.cardinality || 'one-to-many'
+  const map = {
+    'one-to-one': '1',
+    'one-to-many': 'N',
+    'many-to-many': 'N',
+    'zero-to-one': '0..1',
+    'zero-to-many': '*',
+    'one-to-zero-or-one': '1',
+  }
+  return map[cardinality] || 'N'
+})
+
+const cardinalityEnd = computed(() => {
+  const cardinality = props.relationship.cardinality || 'one-to-many'
+  const map = {
+    'one-to-one': '1',
+    'one-to-many': '1',
+    'many-to-many': 'N',
+    'zero-to-one': '1',
+    'zero-to-many': '1',
+    'one-to-zero-or-one': '0..1',
+  }
+  return map[cardinality] || '1'
+})
+
+// Calcula posições dos labels de cardinalidade
+const labelPositions = computed(() => {
+  const t1 = props.fromTable
+  const t2 = props.toTable
+  
+  if (!t1 || !t2) return { start: { x: 0, y: 0 }, end: { x: 0, y: 0 } }
+  
+  const y1 = t1.y + getColumnOffset(t1, props.relationship.fromCol)
+  const y2 = t2.y + getColumnOffset(t2, props.relationship.toCol)
+  
+  let startX, endX
+  
+  // Mesma lógica de posicionamento do path
+  if (t1.x + props.tableWidth < t2.x - 50) {
+    startX = t1.x + props.tableWidth + 10
+    endX = t2.x - 25
+  } else if (t1.x > t2.x + props.tableWidth + 50) {
+    startX = t1.x - 25
+    endX = t2.x + props.tableWidth + 10
+  } else {
+    startX = t1.x + props.tableWidth + 10
+    endX = t2.x + props.tableWidth + 10
+  }
+  
+  return {
+    start: { x: startX, y: y1 - 8 }, // 8px acima da linha
+    end: { x: endX, y: y2 - 8 }
+  }
+})
 
 // Calcula offset Y da coluna dentro da tabela (já ordenada no App.vue)
 const getColumnOffset = (table, columnName) => {
@@ -119,6 +217,20 @@ const pathData = computed(() => {
 </script>
 
 <style scoped>
+
+/* Garante que markers sejam visíveis fora dos bounds da linha */
+:deep(svg) {
+  overflow: visible;
+}
+
+/* Estilos conforme o index.html anexado */
+.connector {
+  fill: none;
+  stroke: #7f8c8d;
+  stroke-width: 2px;
+  transition: stroke 0.2s;
+  cursor: pointer;
+}
 /* Estilos conforme o index.html anexado */
 .connector {
   fill: none;
@@ -131,5 +243,21 @@ const pathData = computed(() => {
 .connector:hover {
   stroke: #2980b9;
   stroke-width: 3px;
+}
+
+/* Estilos para cardinalidade */
+.cardinality-label {
+  font-size: 11px;
+  fill: #7f8c8d;
+  font-weight: 600;
+  font-family: 'Segoe UI', sans-serif;
+  pointer-events: none;
+  user-select: none;
+  transition: fill 0.2s;
+}
+
+.cardinality-label.cardinality-hover {
+  fill: #2980b9;
+  font-weight: 700;
 }
 </style>

@@ -24,21 +24,55 @@
         </pattern>
         
         <!-- Markers para relacionamentos (Crow's Foot Notation) -->
-        <marker id="crowsFoot" markerWidth="12" markerHeight="12" refX="12" refY="6" orient="auto">
-          <path d="M0 6 L12 6 M12 0 L0 6 L12 12" fill="none" stroke="#7f8c8d" stroke-width="1.5"/>
+       <marker id="crowsFoot" markerWidth="10" markerHeight="12" refX="0" refY="4" orient="auto">
+        <path d="M0 6 L12 6 M12 0 L0 6 L12 12" fill="none" stroke="#7f8c8d" stroke-width="1.5" transform="scale(0.5) rotate(180 6 7)"/>
         </marker>
         
-        <marker id="oneBar" markerWidth="10" markerHeight="10" refX="0" refY="5" orient="auto">
-          <circle cx="5" cy="5" r="3" fill="#fff" stroke="#7f8c8d" stroke-width="1.5"/>
+        <marker id="oneBar" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
+        <circle cx="5" cy="5" r="3" fill="#fff" stroke="#7f8c8d" stroke-width="1.5" transform="scale(0.7)" />
         </marker>
 
-        <marker id="crowsFootHover" markerWidth="12" markerHeight="12" refX="12" refY="6" orient="auto">
-          <path d="M0 6 L12 6 M12 0 L0 6 L12 12" fill="none" stroke="#2980b9" stroke-width="2"/>
+        <marker id="crowsFootHover" markerWidth="5" markerHeight="12" refX="0" refY="6" orient="auto">
+        <path d="M0 6 L12 6 M12 0 L0 6 L12 12" fill="none" stroke="#2980b9" stroke-width="2" transform="scale(0.7)"/>
         </marker>
         
-        <marker id="oneBarHover" markerWidth="10" markerHeight="10" refX="0" refY="5" orient="auto">
-           <circle cx="5" cy="5" r="3" fill="#fff" stroke="#2980b9" stroke-width="2"/>
+        <marker id="oneBarHover" markerWidth="10" markerHeight="10" refX="10" refY="5" orient="auto">
+        <circle cx="5" cy="5" r="3" fill="#fff" stroke="#2980b9" stroke-width="2" transform="scale(0.7)"/>
         </marker>
+
+        <!-- Zero ou Um (0..1) - Círculo duplo -->
+        <marker id="zeroOrOne" markerWidth="14" markerHeight="10" refX="14" refY="5" orient="auto">
+        <circle cx="3" cy="5" r="2.5" fill="#fff" stroke="#7f8c8d" stroke-width="1.5" transform="scale(0.7)"/>
+        <circle cx="11" cy="5" r="2.5" fill="#fff" stroke="#7f8c8d" stroke-width="1.5" transform="scale(0.7)"/>
+        </marker>
+
+        <marker id="zeroOrOneHover" markerWidth="14" markerHeight="10" refX="14" refY="5" orient="auto">
+        <circle cx="3" cy="5" r="2.5" fill="#fff" stroke="#2980b9" stroke-width="2" transform="scale(0.7)"/>
+         <circle cx="11" cy="5" r="2.5" fill="#fff" stroke="#2980b9" stroke-width="2" transform="scale(0.7)"/>
+        </marker>
+
+        <!-- Exatamente Um (1) - Barra dupla vertical -->
+        <marker id="exactlyOne" markerWidth="10" markerHeight="12" refX="10" refY="6" orient="auto">
+        <line x1="3" y1="0" x2="3" y2="12" stroke="#7f8c8d" stroke-width="1.5" transform="scale(0.7)"/>
+        <line x1="7" y1="0" x2="7" y2="12" stroke="#7f8c8d" stroke-width="1.5" transform="scale(0.7)"/>
+        </marker>
+
+        <marker id="exactlyOneHover" markerWidth="10" markerHeight="12" refX="10" refY="6" orient="auto">
+        <line x1="3" y1="0" x2="3" y2="12" stroke="#2980b9" stroke-width="2" transform="scale(0.7)"/>
+        <line x1="7" y1="0" x2="7" y2="12" stroke="#2980b9" stroke-width="2" transform="scale(0.7)"/>
+        </marker>
+
+        <!-- Zero ou Muitos (0..*) - Círculo + Crow's Foot -->
+        <marker id="zeroOrMany" markerWidth="18" markerHeight="12" refX="0" refY="6" orient="auto">
+        <circle cx="3" cy="6" r="2.5" fill="#fff" stroke="#7f8c8d" stroke-width="1.5" transform="scale(0.7)"/>
+        <path d="M7 6 L18 6 M18 0 L12 6 L18 12" fill="none" stroke="#7f8c8d" stroke-width="1.5" transform="scale(0.7)"/>
+        </marker>
+
+        <marker id="zeroOrManyHover" markerWidth="18" markerHeight="12" refX="0" refY="6" orient="auto">
+        <circle cx="3" cy="6" r="2.5" fill="#fff" stroke="#2980b9" stroke-width="2" transform="scale(0.7)"/>
+        <path d="M7 6 L18 6 M18 0 L12 6 L18 12" fill="none" stroke="#2980b9" stroke-width="2" transform="scale(0.7)"/>
+        </marker>
+
         </defs>
         
         <g id="background-layer">

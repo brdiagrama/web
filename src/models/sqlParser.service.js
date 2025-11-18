@@ -36,6 +36,26 @@ export class SqlParserService {
      *   ]
      * }
      */
+    //  Função auxiliar para detectar cardinalidade
+    static detectCardinality(fkColumn, foreignKeyDef) {
+        // Verifica constraints da coluna FK
+        const isNullable = fkColumn.nullable !== false; // se NOT NULL
+        const isUnique = fkColumn.unique || false;
+        
+        // Lógica de detecção:
+        // - FK única + NOT NULL = one-to-one
+        // - FK única + NULL = zero-to-one
+        // - FK normal + NOT NULL = one-to-many
+        // - FK normal + NULL = zero-to-many
+        
+        if (isUnique && isNullable) return 'one-to-one';
+        if (isUnique && !isNullable) return 'zero-to-one';
+        if (!isUnique && isNullable) return 'one-to-many';
+        if (!isUnique && !isNullable) return 'zero-to-many';
+        
+        // Padrão: one-to-many (FK comum)
+        return 'one-to-many';
+    }
     static parse(sql) {
         // Instancia o parser da biblioteca node-sql-parser
         const parser = new Parser();
@@ -79,13 +99,17 @@ export class SqlParserService {
                             type: def.definition.dataType,
                             isPk: false,  // será marcado true se for PRIMARY KEY
                             isFk: false,  // será marcado true se for FOREIGN KEY
-                            refTable: null // preenchido com nome da tabela referenciada (se FK)
+                            refTable: null, // preenchido com nome da tabela referenciada (se FK)
+                            nullable: true, //  padrão é permitir NULL
+                            unique: false   //  padrão não é única
                         };
                         
                         // Verifica se a coluna tem constraints inline (ex: id INT PRIMARY KEY)
                         if (def.constraints) {
                             def.constraints.forEach(c => {
                                 if (c.constraint_type === 'primary key') column.isPk = true;
+                                if (c.constraint_type === 'not null') column.nullable = false; 
+                                if (c.constraint_type === 'unique') column.unique = true;
                             });
                         }
                         
@@ -124,7 +148,7 @@ export class SqlParserService {
                                     fromCol: fkColumnName,      // coluna FK
                                     toTable: fkColumn.refTable,     // tabela "pai"
                                     toCol: toColumnName, // Coluna referenciada (PK)
-                                    cardinality: 'one-to-many', // Detectado do SQL
+                                  cardinality: SqlParserService.detectCardinality(fkColumn, def), // Detectado do SQL
                                     vertices: [], // Array de pontos de controle (será auto-calculado)
                                     auto: true // Flag para recálculo automático
                                 });
