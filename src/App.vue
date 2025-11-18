@@ -51,40 +51,61 @@
               style="cursor: move;"
               @mousedown="(event) => startDrag(event, table.name)"
             >
-              <!-- Retângulo da tabela -->
+              <!-- Retângulo base da tabela -->
               <rect 
                 :width="tableWidth"
                 :height="getTableHeight(table)"
                 class="table-rect"
-                rx="5"
+                rx="6"
               />
               
-              <!-- Cabeçalho da tabela -->
-              <rect 
-                :width="tableWidth"
-                :height="headerHeight"
+              <!-- Cabeçalho da tabela com path customizado -->
+              <path 
+                :d="`M0 6 Q0 0 6 0 L${tableWidth-6} 0 Q${tableWidth} 0 ${tableWidth} 6 L${tableWidth} ${headerHeight} L0 ${headerHeight} Z`"
                 class="table-header-rect"
-                rx="5"
               />
               
               <text 
                 :x="15"
-                :y="20"
-                class="table-header"
+                :y="22"
+                class="table-title"
               >
                 {{ table.name }}
               </text>
               
-              <!-- Colunas -->
-              <text 
-                v-for="(col, colIndex) in table.columns" 
-                :key="colIndex"
-                :x="15"
-                :y="headerHeight + 20 + colIndex * rowHeight"
-                :class="getColumnClass(col)"
-              >
-                {{ formatColumn(col) }}
-              </text>
+              <!-- Colunas com formato melhorado -->
+              <g v-for="(col, colIndex) in table.columns" :key="colIndex">
+                <!-- Ícone PK/FK -->
+                <text 
+                  :x="15"
+                  :y="headerHeight + 20 + colIndex * rowHeight"
+                  :class="col.isPk ? 'pk-icon' : (col.isFk ? 'fk-icon' : '')"
+                  font-size="10"
+                  font-weight="bold"
+                >
+                  {{ col.isPk ? 'PK' : (col.isFk ? 'FK' : '') }}
+                </text>
+                
+                <!-- Nome da coluna -->
+                <text 
+                  :x="col.isPk || col.isFk ? 40 : 15"
+                  :y="headerHeight + 20 + colIndex * rowHeight"
+                  class="col-text"
+                  :font-weight="col.isPk ? 'bold' : 'normal'"
+                >
+                  {{ col.name }}
+                </text>
+                
+                <!-- Tipo da coluna -->
+                <text 
+                  :x="tableWidth - 15"
+                  :y="headerHeight + 20 + colIndex * rowHeight"
+                  class="col-type"
+                  text-anchor="end"
+                >
+                  {{ col.type }}
+                </text>
+              </g>
             </g>
           </g>
         </g>
@@ -128,25 +149,45 @@ const debugMessage = computed(() => {
   return '';
 });
 
-// Constantes para renderização
-const tableWidth = 200;
-const headerHeight = 30;
-const rowHeight = 22;
+// Ordena colunas: PK primeiro, depois FK, depois as demais
+const sortColumns = (columns) => {
+  if (!columns) return [];
+  
+  const pk = columns.filter(c => c.isPk);
+  const fk = columns.filter(c => c.isFk && !c.isPk);
+  const others = columns.filter(c => !c.isPk && !c.isFk);
+  
+  return [...pk, ...fk, ...others];
+};
+
+// Constantes para renderização (conforme index.html anexado)
+const tableWidth = 220;
+const headerHeight = 35;
+const rowHeight = 28;
 
 // Exemplo inicial de SQL
-const defaultSql = `CREATE TABLE usuarios (
-    id INT PRIMARY KEY,
-    nome VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE
+const defaultSql = `CREATE TABLE users (
+  id INT PRIMARY KEY,
+  username VARCHAR(50),
+  email VARCHAR(100),
+  created_at TIMESTAMP
 );
 
 CREATE TABLE posts (
-    id INT PRIMARY KEY,
-    titulo VARCHAR(255) NOT NULL,
-    conteudo TEXT,
-    usuario_id INT,
-    CONSTRAINT fk_usuario
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+  id INT PRIMARY KEY,
+  user_id INT,
+  title VARCHAR(200),
+  body TEXT,
+  status VARCHAR(20),
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE TABLE follows (
+  follower_id INT,
+  followed_id INT,
+  created_at TIMESTAMP,
+  FOREIGN KEY (follower_id) REFERENCES users(id),
+  FOREIGN KEY (followed_id) REFERENCES users(id)
 );`;
 
 // Função debounce para evitar muitas chamadas da API
@@ -158,41 +199,12 @@ const debounce = (func, delay) => {
   };
 };
 
-// Calcula a altura total de uma tabela
+// Calcula a altura total de uma tabela (conforme index.html)
 const getTableHeight = (table) => {
-  return headerHeight + table.columns.length * rowHeight + 10;
+  return headerHeight + (table.columns.length * rowHeight) + 10;
 };
 
-// Determina as classes CSS da coluna baseado nas propriedades
-const getColumnClass = (col) => {
-  const classes = ['column-text'];
-  if (col.isPk) classes.push('column-pk');
-  if (col.isFk) classes.push('column-fk');
-  return classes.join(' ');
-};
-
-// Formata o texto da coluna com ícones
-const formatColumn = (col) => {
-  let content = `${col.name} (${col.type})`;
-  if (col.isPk) content = '🔑 ' + content;
-  if (col.isFk) content = '🔗 ' + content;
-  return content;
-};
-
-// Calcula o path SVG para uma linha de relacionamento
-const calculatePath = (rel) => {
-  const fromTable = tables.value[rel.fromTable];
-  const toTable = tables.value[rel.toTable];
-  
-  if (!fromTable || !toTable) return '';
-  
-  const x1 = fromTable.x + tableWidth / 2;
-  const y1 = fromTable.y + getTableHeight(fromTable) / 2;
-  const x2 = toTable.x + tableWidth / 2;
-  const y2 = toTable.y + getTableHeight(toTable) / 2;
-  
-  return `M ${x1} ${y1} C ${x1 + 100} ${y1}, ${x2 - 100} ${y2}, ${x2} ${y2}`;
-};
+// Funções de formatação removidas - agora usa renderização direta no template
 
 // Função para atualizar o diagrama via API
 // Função para atualizar o diagrama via API
@@ -214,12 +226,13 @@ const updateDiagram = async () => {
 
     const { tables: newTables, relationships: newRelationships } = await response.json();
     
-    // Preserva posições das tabelas existentes
+    // Preserva posições das tabelas existentes e ordena colunas
     const updatedTables = {};
     for (const tableName in newTables) {
       const oldTable = tables.value[tableName];
       updatedTables[tableName] = {
         ...newTables[tableName],
+        columns: sortColumns(newTables[tableName].columns),
         x: oldTable?.x || newTables[tableName].x,
         y: oldTable?.y || newTables[tableName].y,
       };
@@ -239,6 +252,10 @@ const updateDiagram = async () => {
     relationships.value = updatedRelationships;
     
     console.log('🎨 Tabelas atualizadas no estado:', tables.value);
+    console.log('📋 Ordem das colunas:', Object.entries(tables.value).map(([name, table]) => ({
+      tabela: name,
+      colunas: table.columns.map(c => `${c.name} ${c.isPk ? '[PK]' : ''} ${c.isFk ? '[FK]' : ''}`)
+    })));
     console.log('🔗 Relacionamentos atualizados:', relationships.value);
     console.log('📊 Total de relacionamentos:', relationships.value.length);
     
@@ -391,7 +408,9 @@ onMounted(() => {
 .canvas-panel {
   flex: 1;
   position: relative;
-  background-color: #fdfdfd;
+  background: #f0f2f5;
+  background-image: radial-gradient(#dfe6e9 1px, transparent 1px);
+  background-size: 20px 20px;
   border-left: 2px solid #444;
 }
 
@@ -400,44 +419,61 @@ onMounted(() => {
   height: 100%;
 }
 
-/* Estilos SVG para o diagrama */
+/* Estilos SVG para o diagrama (baseado no index.html anexado) */
 :deep(.table-rect) {
   fill: #ffffff;
-  stroke: #dfe6f0;
-  stroke-width: 1.5px;
-  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+  stroke: #dfe6e9;
+  stroke-width: 1px;
+  filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.1));
 }
 
 :deep(.table-header-rect) {
-  fill: #f0f4f8;
+  fill: #2c3e50;
 }
 
-:deep(.table-header) {
+:deep(.table-title) {
+  fill: #ffffff;
   font-weight: bold;
   font-size: 14px;
+  pointer-events: none;
+}
+
+:deep(.col-text) {
+  font-size: 12px;
   fill: #333;
+  pointer-events: none;
 }
 
-:deep(.column-text) {
-  font-size: 13px;
-  fill: #444;
+:deep(.col-type) {
+  font-size: 11px;
+  fill: #95a5a6;
+  pointer-events: none;
 }
 
-:deep(.column-pk) {
-  fill: #c792ea;
+:deep(.pk-icon) {
+  fill: #e74c3c;
+  font-size: 10px;
   font-weight: bold;
 }
 
-:deep(.column-fk) {
-  fill: #89ddff;
-  font-style: italic;
+:deep(.fk-icon) {
+  fill: #3498db;
+  font-size: 10px;
+  font-weight: bold;
 }
 
-:deep(.relationship-line) {
-  stroke: #5c6773;
-  stroke-width: 2px;
+/* Estilos para as linhas de relacionamento */
+:deep(.connector) {
   fill: none;
-  marker-end: url(#arrowhead);
+  stroke: #7f8c8d;
+  stroke-width: 2px;
+  transition: stroke 0.2s;
+}
+
+:deep(.connector:hover) {
+  stroke: #2980b9;
+  stroke-width: 3px;
+  cursor: pointer;
 }
 
 :deep(.table-group) {

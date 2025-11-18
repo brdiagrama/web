@@ -114,14 +114,16 @@ export class SqlParserService {
                                 // Extrai nome da tabela referenciada (a tabela "pai")
                                 fkColumn.refTable = def.reference_definition.table[0].table;
                                 
+                                // Extrai a coluna referenciada (normalmente é o PK da tabela pai)
+                                const toColumnName = def.reference_definition.definition?.[0]?.column || 'id';
+                                
                                 // Adiciona relacionamento para desenhar linha no diagrama
-                               // Ao invés de um relacionamento simples, criar com vértices:
                                 newRelationships.push({
                                     id: generateId(), // ID único para o relacionamento
                                     fromTable: tableName,       // tabela "filha"
-                                    fromColumn: fkColumnName,      // coluna FK
+                                    fromCol: fkColumnName,      // coluna FK
                                     toTable: fkColumn.refTable,     // tabela "pai"
-                                    toColumn: 'id', // Extrato da referência SQL
+                                    toCol: toColumnName, // Coluna referenciada (PK)
                                     cardinality: 'one-to-many', // Detectado do SQL
                                     vertices: [], // Array de pontos de controle (será auto-calculado)
                                     auto: true // Flag para recálculo automático

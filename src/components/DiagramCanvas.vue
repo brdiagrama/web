@@ -22,6 +22,23 @@
                 :opacity="Math.max(0.1, Math.min(0.8, store.zoom * 2))"
             />
         </pattern>
+        
+        <!-- Markers para relacionamentos (Crow's Foot Notation) -->
+        <marker id="crowsFoot" markerWidth="12" markerHeight="12" refX="12" refY="6" orient="auto">
+          <path d="M0 6 L12 6 M12 0 L0 6 L12 12" fill="none" stroke="#7f8c8d" stroke-width="1.5"/>
+        </marker>
+        
+        <marker id="oneBar" markerWidth="10" markerHeight="10" refX="0" refY="5" orient="auto">
+          <circle cx="5" cy="5" r="3" fill="#fff" stroke="#7f8c8d" stroke-width="1.5"/>
+        </marker>
+
+        <marker id="crowsFootHover" markerWidth="12" markerHeight="12" refX="12" refY="6" orient="auto">
+          <path d="M0 6 L12 6 M12 0 L0 6 L12 12" fill="none" stroke="#2980b9" stroke-width="2"/>
+        </marker>
+        
+        <marker id="oneBarHover" markerWidth="10" markerHeight="10" refX="0" refY="5" orient="auto">
+           <circle cx="5" cy="5" r="3" fill="#fff" stroke="#2980b9" stroke-width="2"/>
+        </marker>
         </defs>
         
         <g id="background-layer">
