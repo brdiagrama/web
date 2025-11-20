@@ -5,7 +5,7 @@ import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [vue()],
-  base: '/',
+  base: '/', // Manter para garantia de assets absolutos
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
@@ -13,7 +13,6 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-
   },
   build: {
     outDir: 'dist',

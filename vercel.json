@@ -5,15 +5,13 @@
       "source": "/api/parse",
       "destination": "/api/parse.js"
     },
-
     {
       "source": "/editor.html",
-      "destination": "/dist/public/editor.html"
+      "destination": "/public/editor.html"
     },
-
     {
-      "source": "/assets/(.*)", 
-      "destination": "/dist/assets/$1" 
+      "source": "/assets/(.*)",
+      "destination": "/assets/$1"
     }
   ]
 }
