@@ -35,18 +35,31 @@ npm run build
 ```
 src/
 ├── components/
-│   ├── DiagramCanvas.vue    # Canvas SVG com zoom/pan
-│   └── DiagramToolbar.vue   # Controles de zoom
+│   ├── DiagramCanvas.vue      # Canvas SVG com zoom/pan e grid infinito
+│   ├── DiagramToolbar.vue     # Controles de zoom e ajuste de tela
+│   └── RelationshipLine.vue   # Componente para linhas de relacionamento com cardinalidade
+├── models/
+│   └── sqlParser.service.js   # Parser SQL para extrair tabelas e relacionamentos
+├── services/
+│   └── mockApi.service.js     # Mock da API para desenvolvimento local
 ├── stores/
-│   └── diagram.js           # Estado global (Pinia)
-├── App.vue                  # Componente principal
-└── main.js                  # Ponto de entrada
+│   └── diagram.js             # Estado global (Pinia) - tabelas, zoom, posições
+├── utils/
+│   ├── geometry.js            # Funções de ancoragem e posicionamento de linhas
+│   └── mathUtils.js           # Utilitários matemáticos (distância, grid, IDs)
+├── assets/
+│   └── styles/
+│       └── variables.css      # Variáveis CSS globais
+├── App.vue                    # Componente principal com editor e canvas
+└── main.js                    # Ponto de entrada da aplicação
 
 api/
-└── parse.js                 # API de parsing SQL
+└── parse.js                   # API serverless de parsing SQL (Vercel)
 
-public/
-└── editor.html             # Versão HTML pura (legado)
+editor.html                    # Versão HTML pura standalone (legado)
+index.html                     # Template HTML principal
+vite.config.js                 # Configuração do Vite
+vercel.json                    # Configuração de deploy Vercel
 ```
 
 ## Como Usar

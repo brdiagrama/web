@@ -14,6 +14,7 @@
       <DiagramCanvas 
         ref="diagramCanvasRef"
         class="canvas-container"
+        @selectionArea="handleSelectionArea"
       >        <!-- Definições SVG -->
         <defs>
          
@@ -48,6 +49,7 @@
               :key="table.name"
               :transform="`translate(${table.x}, ${table.y})`"
               class="table-group"
+              :class="{ 'selected': selectedTables.has(table.name) }"
               style="cursor: move;"
               @mousedown="(event) => startDrag(event, table.name)"
             >
@@ -56,6 +58,7 @@
                 :width="tableWidth"
                 :height="getTableHeight(table)"
                 class="table-rect"
+                :class="{ 'selected': selectedTables.has(table.name) }"
                 rx="6"
               />
               
@@ -146,6 +149,9 @@ const dragState = ref({
   draggedTable: null,
   offset: { x: 0, y: 0 }
 });
+
+// Estado de seleção múltipla
+const selectedTables = ref(new Set());
 
 // Debug message
 const debugMessage = computed(() => {
@@ -268,11 +274,46 @@ const updateDiagram = async () => {
 // Handler com debounce para mudanças no SQL
 const handleSqlChange = debounce(updateDiagram, 500);
 
+// --- Funções de Seleção Múltipla ---
+
+const handleSelectionArea = (area) => {
+  // Limpar seleção anterior
+  selectedTables.value.clear();
+  
+  // Verificar quais tabelas estão dentro da área de seleção
+  for (const tableName in tables.value) {
+    const table = tables.value[tableName];
+    const tableHeight = getTableHeight(table);
+    
+    // Verificar se a tabela intersecta com a área de seleção
+    const tableX1 = table.x;
+    const tableY1 = table.y;
+    const tableX2 = table.x + tableWidth;
+    const tableY2 = table.y + tableHeight;
+    
+    // Verifica interseção
+    const intersects = !(area.x2 < tableX1 || area.x1 > tableX2 || 
+                         area.y2 < tableY1 || area.y1 > tableY2);
+    
+    if (intersects) {
+      selectedTables.value.add(tableName);
+    }
+  }
+  
+  console.log('Tabelas selecionadas:', Array.from(selectedTables.value));
+};
+
 // --- Funções de Drag and Drop ---
 
 const startDrag = (event, tableName) => {
   const svgElement = diagramCanvasRef.value?.svgRoot;
   if (!svgElement) return;
+
+  // Se a tabela clicada não está na seleção, limpa a seleção e seleciona apenas ela
+  if (!selectedTables.value.has(tableName)) {
+    selectedTables.value.clear();
+    selectedTables.value.add(tableName);
+  }
 
   //Trazer tabela para frente
   const tableGroup = event.currentTarget; // O elemento <g> da tabela clicada
@@ -307,12 +348,18 @@ const handleDrag = (event) => {
   const newX = (event.clientX - ctm.e) / ctm.a - dragState.value.offset.x;
   const newY = (event.clientY - ctm.f) / ctm.d - dragState.value.offset.y;
 
-  // Atualiza a posição da tabela
-  const tableName = dragState.value.draggedTable;
-  if (tables.value[tableName]) {
-    tables.value[tableName].x = newX;
-    tables.value[tableName].y = newY;
-  }
+  // Calcula o delta de movimento
+  const draggedTable = tables.value[dragState.value.draggedTable];
+  const deltaX = newX - draggedTable.x;
+  const deltaY = newY - draggedTable.y;
+
+  // Move todas as tabelas selecionadas
+  selectedTables.value.forEach(tableName => {
+    if (tables.value[tableName]) {
+      tables.value[tableName].x += deltaX;
+      tables.value[tableName].y += deltaY;
+    }
+  });
 };
 
 const endDrag = () => {
@@ -405,5 +452,16 @@ onMounted(() => {
 .canvas-container {
   width: 100%;
   height: 100%;
+}
+
+/* Estilos para seleção múltipla */
+:deep(.table-group.selected .table-rect) {
+  stroke: #3b82f6;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.4));
+}
+
+:deep(.table-rect) {
+  transition: stroke 0.2s, stroke-width 0.2s, filter 0.2s;
 }
 </style>

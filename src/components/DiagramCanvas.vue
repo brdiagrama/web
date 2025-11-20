@@ -1,19 +1,19 @@
 <template>
-  <svg
-    ref="svgRoot"
-    class="diagram-canvas"
-    @wheel="handleWheelEvent"
-    style="width: 100%; height: 100%; cursor: grab"
-  >
-    <!-- NOVO: Definições de padrões para o grid -->
-    <defs>
-      <!-- Linha 15-23 - Modificar o pattern: -->
-      <pattern
-        id="grid-pattern"
-        :width="store.gridSize"
-        :height="store.gridSize"
-        patternUnits="userSpaceOnUse"
-      >
+    <svg
+        ref="svgRoot"
+        class="diagram-canvas"
+        @wheel="handleWheelEvent"
+        :style="{ width: '100%', height: '100%', cursor: currentCursor }"
+    >
+     <!-- NOVO: Definições de padrões para o grid -->
+        <defs>
+            <!-- Linha 15-23 - Modificar o pattern: -->
+        <pattern 
+            id="grid-pattern" 
+            :width="store.gridSize" 
+            :height="store.gridSize" 
+            patternUnits="userSpaceOnUse"
+        >
         <circle
           :cx="store.gridSize / 2"
           :cy="store.gridSize / 2"
@@ -24,6 +24,7 @@
       </pattern>
 
       <!-- Markers para relacionamentos (Crow's Foot Notation) -->
+     <!-- Markers para relacionamentos (Crow's Foot Notation) -->
       <marker
         id="crowsFoot"
         markerWidth="10"
@@ -387,48 +388,81 @@
         />
       </marker>
     </defs>
-
-    <g id="background-layer">
-      <!-- Retângulo de fundo existente -->
-      <rect
-        class="diagram-background-rect"
-        width="100%"
-        height="100%"
-        fill="none"
-        style="pointer-events: all"
-        @mousedown="enablePan"
-        @mouseup="disablePan"
-        @mouseleave="disablePan"
-      />
-    </g>
-    <g id="viewport-layer">
-      <!-- Grid de fundo (condicional) -->
-      <rect
-        v-if="store.isGridVisible"
-        class="grid-background"
-        :x="-50000 / store.zoom"
-        :y="-50000 / store.zoom"
-        :width="100000 / store.zoom"
-        :height="100000 / store.zoom"
-        fill="url(#grid-pattern)"
-        style="pointer-events: none"
-      />
-
-      <slot />
-    </g>
-  </svg>
+        
+        <g id="background-layer">
+         
+            <!-- Retângulo de fundo existente -->
+            <rect 
+            class="diagram-background-rect" 
+            width="100%" 
+            height="100%" 
+            fill="none"
+            style="pointer-events: all;"
+            @mousedown="handleMouseDown"
+            @mouseup="handleMouseUp"
+            @mouseleave="handleMouseLeave"
+            />
+        </g>
+              <g id="viewport-layer">
+                   <!-- Grid de fundo (condicional) -->
+           <rect 
+    v-if="store.isGridVisible"
+    class="grid-background"
+    :x="-50000 / store.zoom" 
+    :y="-50000 / store.zoom"
+    :width="100000 / store.zoom" 
+    :height="100000 / store.zoom" 
+    fill="url(#grid-pattern)"
+    style="pointer-events: none;"
+/>
+            
+            <slot />
+            
+            <!-- Retângulo de seleção -->
+            <rect
+                v-if="selectionBox.visible"
+                :x="Math.min(selectionBox.startX, selectionBox.endX)"
+                :y="Math.min(selectionBox.startY, selectionBox.endY)"
+                :width="Math.abs(selectionBox.endX - selectionBox.startX)"
+                :height="Math.abs(selectionBox.endY - selectionBox.startY)"
+                fill="rgba(59, 130, 246, 0.1)"
+                stroke="#3b82f6"
+                stroke-width="1"
+                stroke-dasharray="5,5"
+                style="pointer-events: none;"
+            />
+        </g>
+    </svg>
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from "vue";
-import svgPanZoom from "svg-pan-zoom";
-import { useDiagramStore } from "@/stores/diagram";
+import { onMounted, onUnmounted, ref, watch } from 'vue';
+import svgPanZoom from 'svg-pan-zoom';
+import { useDiagramStore } from '@/stores/diagram';
+
+const emit = defineEmits(['selectionArea']);
 
 const store = useDiagramStore();
 
 const svgRoot = ref(null);
 const panZoomInstance = ref(null);
 let isPanEnabled = false;
+let isMiddleMouseDown = false;
+
+// Estado do cursor
+const currentCursor = ref('default');
+
+// Estado do retângulo de seleção
+const selectionBox = ref({
+    visible: false,
+    startX: 0,
+    startY: 0,
+    endX: 0,
+    endY: 0
+});
+
+let isSelecting = false;
+let startPoint = { x: 0, y: 0 };
 
 // Função para salvar o estado de zoom e pan na store
 const saveState = () => {
@@ -443,23 +477,103 @@ const saveState = () => {
 
 // --- Funções de Panorâmica (Arrastar) ---
 
+const handleMouseDown = (e) => {
+    // Botão do meio do mouse (scroll) = button 1
+    if (e.button === 1) {
+        e.preventDefault();
+        isMiddleMouseDown = true;
+        enablePan();
+    }
+    // Botão esquerdo (button 0) - iniciar seleção
+    else if (e.button === 0) {
+        const rect = svgRoot.value.getBoundingClientRect();
+        const pan = panZoomInstance.value.getPan();
+        const zoom = panZoomInstance.value.getZoom();
+        
+        // Converter coordenadas da tela para coordenadas do SVG
+        startPoint.x = (e.clientX - rect.left - pan.x) / zoom;
+        startPoint.y = (e.clientY - rect.top - pan.y) / zoom;
+        
+        isSelecting = true;
+        selectionBox.value = {
+            visible: true,
+            startX: startPoint.x,
+            startY: startPoint.y,
+            endX: startPoint.x,
+            endY: startPoint.y
+        };
+        
+        // Adicionar listener de mousemove
+        svgRoot.value.addEventListener('mousemove', handleMouseMove);
+    }
+};
+
+const handleMouseMove = (e) => {
+    if (!isSelecting) return;
+    
+    const rect = svgRoot.value.getBoundingClientRect();
+    const pan = panZoomInstance.value.getPan();
+    const zoom = panZoomInstance.value.getZoom();
+    
+    // Atualizar posição final do retângulo
+    selectionBox.value.endX = (e.clientX - rect.left - pan.x) / zoom;
+    selectionBox.value.endY = (e.clientY - rect.top - pan.y) / zoom;
+};
+
+const handleMouseUp = (e) => {
+    if (e.button === 1 && isMiddleMouseDown) {
+        isMiddleMouseDown = false;
+        disablePan();
+    }
+    else if (e.button === 0 && isSelecting) {
+        // Finalizar seleção
+        isSelecting = false;
+        svgRoot.value.removeEventListener('mousemove', handleMouseMove);
+        
+        // Aqui você pode emitir um evento com as coordenadas do retângulo
+        // para que o componente pai possa selecionar as tabelas dentro da área
+        const selectionArea = {
+            x1: Math.min(selectionBox.value.startX, selectionBox.value.endX),
+            y1: Math.min(selectionBox.value.startY, selectionBox.value.endY),
+            x2: Math.max(selectionBox.value.startX, selectionBox.value.endX),
+            y2: Math.max(selectionBox.value.startY, selectionBox.value.endY)
+        };
+        
+        // Emit event para o componente pai
+        emit('selectionArea', selectionArea);
+        
+        // Esconder o retângulo
+        setTimeout(() => {
+            selectionBox.value.visible = false;
+        }, 100);
+    }
+};
+
+const handleMouseLeave = () => {
+    if (isMiddleMouseDown) {
+        isMiddleMouseDown = false;
+        disablePan();
+    }
+};
+
 const enablePan = () => {
-  if (panZoomInstance.value) {
-    // Altera o cursor para indicar que é possível arrastar
-    svgRoot.value.style.cursor = "grabbing";
-    panZoomInstance.value.enablePan();
-    isPanEnabled = true;
-  }
+    if (panZoomInstance.value) {
+        // Altera o cursor para indicar que é possível arrastar
+        currentCursor.value = 'grabbing';
+        panZoomInstance.value.enablePan();
+        isPanEnabled = true;
+    }
 };
 
 const disablePan = () => {
-  if (panZoomInstance.value && isPanEnabled) {
-    // Restaura o cursor
-    svgRoot.value.style.cursor = "grab";
-    panZoomInstance.value.disablePan();
-    isPanEnabled = false;
-  }
+    if (panZoomInstance.value && isPanEnabled) {
+        // Restaura o cursor
+        currentCursor.value = 'default';
+        panZoomInstance.value.disablePan();
+        isPanEnabled = false;
+    }
 };
+
 const handleWheelEvent = (e) => {
   // Verifica se Ctrl está pressionado
   if (e.ctrlKey) {
@@ -469,6 +583,7 @@ const handleWheelEvent = (e) => {
   }
   // Se Ctrl não estiver pressionado, permite o scroll normal da página
 };
+
 // --- Funções de Zoom ---
 
 // Lida com o zoom usando a roda do mouse (scroll)
@@ -558,15 +673,32 @@ onMounted(() => {
         // Carrega o estado inicial
         panZoomInstance.value.zoom(store.zoom);
         panZoomInstance.value.pan(store.pan);
-
+        
         // Adiciona listeners para salvar o estado
         panZoomInstance.value.setOnPan(saveState);
         panZoomInstance.value.setOnZoom(saveState);
+        
+        // Listener global para capturar mouseup fora do SVG
+        window.addEventListener('mouseup', (e) => {
+            if (e.button === 1 && isMiddleMouseDown) {
+                isMiddleMouseDown = false;
+                disablePan();
+            }
+        });
+        
       } catch (error) {
-        console.error("Erro ao inicializar svg-pan-zoom:", error);
+        console.error('Erro ao inicializar svg-pan-zoom:', error);
       }
     }, 100);
   }
+});
+
+onUnmounted(() => {
+    // Limpar listeners globais
+    window.removeEventListener('mouseup', handleMouseUp);
+    if (svgRoot.value) {
+        svgRoot.value.removeEventListener('mousemove', handleMouseMove);
+    }
 });
 
 // --- Métodos Expostos (Acessíveis pelo componente pai) ---
@@ -639,7 +771,7 @@ defineExpose({
 }
 
 .table-group {
-  cursor: move;
+  cursor: move !important;
   transition: filter 0.2s ease;
 }
 
@@ -648,6 +780,6 @@ defineExpose({
 }
 
 .table-group:active {
-  cursor: grabbing;
+  cursor: grabbing !important;
 }
 </style>
