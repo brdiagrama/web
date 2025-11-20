@@ -4,6 +4,11 @@
     {
       "source": "/api/parse",
       "destination": "/api/parse.js"
+    },
+    
+    {
+      "source": "/editor.html",
+      "destination": "/editor.html"
     }
   ]
 }
