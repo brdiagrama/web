@@ -113,7 +113,7 @@ const getMarkerForCardinality = (cardinality, side) => {
     "one-to-one": { start: "oneBarStart", end: "oneBarEnd" },
     "one-to-many": { start: "oneOrMany", end: "oneBarEnd" },
     "many-to-many": { start: "crowsFoot", end: "crowsFoot" },
-    "zero-to-one": { start: "zeroOrOne", end: "oneBar" },
+    "zero-to-one": { start: "zeroOrOne", end: "oneBarEnd" },
     "zero-to-many": { start: "zeroOrMany", end: "oneBar" },
   };
   return map[cardinality]?.[side] || "oneBar";
@@ -167,6 +167,8 @@ const labelPositions = computed(() => {
   let startX, endX;
   const yOffset = -15; // 15px acima da linha
 
+
+  
   // --- CENÁRIO 1: T1 à esquerda de T2 (Rotas em Z) ---
   if (t1Right + 40 < t2Left) {
     // Lado 'start' (FK) fica à direita da tabela, perto do ícone
@@ -178,8 +180,13 @@ const labelPositions = computed(() => {
 
   // --- CENÁRIO 2: T1 à direita de T2 (Rotas em Z invertido) ---
   else if (t1Left > t2Right + 40) {
-    // Lado 'start' (FK) fica à esquerda da tabela
-    startX = t1Left - 20;
+    const isWideMarker = props.relationship.cardinality === "zero-to-one";
+
+    // Se for wide usa 45, senão usa o padrão 20
+    const offset = isWideMarker ? 45 : 20;
+
+    // Lado 'start' (FK) fica à esquerda da tabela com o recuo calculado
+    startX = t1Left - offset;
 
     // Lado 'end' (PK) fica à direita da tabela
     endX = t2Right + 4;

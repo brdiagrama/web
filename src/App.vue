@@ -456,9 +456,11 @@ onMounted(() => {
 
 /* Estilos para seleção múltipla */
 :deep(.table-group.selected .table-rect) {
-  stroke: #3b82f6;
+  stroke: #192747ff;
   stroke-width: 2.5;
-  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.4));
+   filter:
+    drop-shadow(0 0 2px rgba(59, 130, 246, 0.3))
+    drop-shadow(0 0 4px rgba(59, 130, 246, 0.35));
 }
 
 :deep(.table-rect) {
