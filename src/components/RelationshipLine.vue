@@ -217,21 +217,11 @@ const pathData = computed(() => {
 </script>
 
 <style scoped>
-
 /* Garante que markers sejam visíveis fora dos bounds da linha */
 :deep(svg) {
   overflow: visible;
 }
 
-/* Estilos conforme o index.html anexado */
-.connector {
-  fill: none;
-  stroke: #7f8c8d;
-  stroke-width: 2px;
-  transition: stroke 0.2s;
-  cursor: pointer;
-}
-/* Estilos conforme o index.html anexado */
 .connector {
   fill: none;
   stroke: #7f8c8d;
@@ -245,7 +235,6 @@ const pathData = computed(() => {
   stroke-width: 3px;
 }
 
-/* Estilos para cardinalidade */
 .cardinality-label {
   font-size: 11px;
   fill: #7f8c8d;

@@ -258,6 +258,8 @@ const updateDiagram = async () => {
     })));
     console.log('🔗 Relacionamentos atualizados:', relationships.value);
     console.log('📊 Total de relacionamentos:', relationships.value.length);
+    console.log('tables', tables.value);
+console.log('relationships', relationships.value);
     
   } catch (error) {
     console.error("❌ Erro ao processar diagrama:", error);
@@ -355,24 +357,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-:root {
-  /* Tema Claro (padrão) */
-  --ref-color: #d3d3d3;
-  --ref-highlight-color: #619bcc;
-  --control-point-color: #000000;
-  --control-point-stroke: #619bcc;
-}
-
-/* Tema Escuro (opcional futuro) */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ref-color: #9b9ca4;
-    --ref-highlight-color: #3ea8de;
-    --control-point-color: #d7d7d9;
-    --control-point-stroke: #3ea8de;
-  }
-}
-
 .app {
   display: flex;
   height: 100vh;
@@ -422,75 +406,5 @@ onMounted(() => {
 .canvas-container {
   width: 100%;
   height: 100%;
-}
-
-/* Estilos SVG para o diagrama (baseado no index.html anexado) */
-:deep(.table-rect) {
-  fill: #ffffff;
-  stroke: #dfe6e9;
-  stroke-width: 1px;
-  filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.1));
-}
-
-:deep(.table-header-rect) {
-  fill: #2c3e50;
-}
-
-:deep(.table-title) {
-  fill: #ffffff;
-  font-weight: bold;
-  font-size: 14px;
-  pointer-events: none;
-}
-
-:deep(.col-text) {
-  font-size: 12px;
-  fill: #333;
-  pointer-events: none;
-}
-
-:deep(.col-type) {
-  font-size: 11px;
-  fill: #95a5a6;
-  pointer-events: none;
-}
-
-:deep(.pk-icon) {
-  fill: #e74c3c;
-  font-size: 10px;
-  font-weight: bold;
-}
-
-:deep(.fk-icon) {
-  fill: #3498db;
-  font-size: 10px;
-  font-weight: bold;
-}
-
-/* Estilos para as linhas de relacionamento */
-:deep(.connector) {
-  fill: none;
-  stroke: #7f8c8d;
-  stroke-width: 2px;
-  transition: stroke 0.2s;
-}
-
-:deep(.connector:hover) {
-  stroke: #2980b9;
-  stroke-width: 3px;
-  cursor: pointer;
-}
-
-:deep(.table-group) {
-  cursor: move;
-  transition: filter 0.2s ease;
-}
-
-:deep(.table-group:hover) {
-  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.15));
-}
-
-:deep(.table-group:active) {
-  cursor: grabbing;
 }
 </style>

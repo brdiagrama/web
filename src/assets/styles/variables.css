@@ -1,0 +1,16 @@
+:root {
+  /* Tema Claro (padrão) */
+  --ref-color: #d3d3d3;
+  --ref-highlight-color: #619bcc;
+  --control-point-color: #000000;
+  --control-point-stroke: #619bcc;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ref-color: #9b9ca4;
+    --ref-highlight-color: #3ea8de;
+    --control-point-color: #d7d7d9;
+    --control-point-stroke: #3ea8de;
+  }
+}

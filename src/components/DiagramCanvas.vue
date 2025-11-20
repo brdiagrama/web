@@ -270,3 +270,70 @@ defineExpose({
 });
 
 </script>
+
+<style>
+.diagram-background-rect {
+  /* Retângulo de fundo do SVG */
+  fill: none;
+}
+
+.grid-background {
+  /* Grid de fundo do SVG */
+  pointer-events: none;
+}
+
+.table-rect {
+  fill: #ffffff;
+  stroke: #dfe6e9;
+  stroke-width: 1px;
+  filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.1));
+}
+
+.table-header-rect {
+  fill: #2c3e50;
+}
+
+.table-title {
+  fill: #ffffff;
+  font-weight: bold;
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.col-text {
+  font-size: 12px;
+  fill: #333;
+  pointer-events: none;
+}
+
+.col-type {
+  font-size: 11px;
+  fill: #95a5a6;
+  pointer-events: none;
+}
+
+.pk-icon {
+  fill: #e74c3c;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.fk-icon {
+  fill: #3498db;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.table-group {
+  cursor: move;
+  transition: filter 0.2s ease;
+}
+
+.table-group:hover {
+  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.15));
+}
+
+.table-group:active {
+  cursor: grabbing;
+}
+</style>

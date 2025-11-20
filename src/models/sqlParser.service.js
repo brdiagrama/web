@@ -75,90 +75,92 @@ export class SqlParserService {
         const statements = Array.isArray(astList) ? astList : [astList];
 
         // Processa cada statement SQL (cada CREATE TABLE vira uma tabela)
+        // Parâmetros de layout
+        const maxPerRow = 5; // Máximo de tabelas por linha
+        const xSpacing = 300; // Espaço horizontal entre tabelas
+        const ySpacing = 180; // Espaço vertical entre linhas
+
+        let tableIndex = 0;
         statements.forEach(ast => {
-            // Filtra apenas statements de criação de tabela
             if (ast.type === 'create' && ast.keyword === 'table') {
                 const tableName = ast.table[0].table;
-                
-                // Estrutura da tabela que será renderizada no SVG
+
+                // Calcula posição baseada no índice
+                const row = Math.floor(tableIndex / maxPerRow);
+                const col = tableIndex % maxPerRow;
+                const x = 50 + col * xSpacing;
+                const y = 50 + row * ySpacing;
+
                 const tableData = {
                     name: tableName,
                     columns: [],
-                    // Posição inicial aleatória no canvas (evita sobreposição)
-                    x: Math.random() * 400 + 50,
-                    y: Math.random() * 300 + 50,
+                    x,
+                    y,
                 };
 
-                // Itera sobre cada definição dentro do CREATE TABLE (colunas + constraints)
+                // Detecta PK por constraint separada
+                let pkConstraintName = null;
+
                 ast.create_definitions.forEach(def => {
-                    
-                    // CASO 1: Definição de COLUNA
                     if (def.resource === 'column') {
                         const column = {
                             name: def.column.column,
                             type: def.definition.dataType,
-                            isPk: false,  // será marcado true se for PRIMARY KEY
-                            isFk: false,  // será marcado true se for FOREIGN KEY
-                            refTable: null, // preenchido com nome da tabela referenciada (se FK)
-                            nullable: true, //  padrão é permitir NULL
-                            unique: false   //  padrão não é única
+                            isPk: false,
+                            isFk: false,
+                            refTable: null,
+                            nullable: true,
+                            unique: false
                         };
-                        
-                        // Verifica se a coluna tem constraints inline (ex: id INT PRIMARY KEY)
+                        // Detecta PK inline pelo AST
+                        if (def.primary_key && def.primary_key.toLowerCase() === 'primary key') {
+                            column.isPk = true;
+                        }
                         if (def.constraints) {
                             def.constraints.forEach(c => {
-                                if (c.constraint_type === 'primary key') column.isPk = true;
-                                if (c.constraint_type === 'not null') column.nullable = false; 
-                                if (c.constraint_type === 'unique') column.unique = true;
+                                if (c.constraint_type && c.constraint_type.toLowerCase() === 'primary key') column.isPk = true;
+                                if (c.constraint_type && c.constraint_type.toLowerCase() === 'not null') column.nullable = false;
+                                if (c.constraint_type && c.constraint_type.toLowerCase() === 'unique') column.unique = true;
                             });
                         }
-                        
+                        if (def.definition && def.definition.primaryKey === true) {
+                            column.isPk = true;
+                        }
+                        if (pkConstraintName && column.name === pkConstraintName) {
+                            column.isPk = true;
+                        }
                         tableData.columns.push(column);
-                    } 
-                    
-                    // CASO 2: Definição de CONSTRAINT (PK ou FK declaradas separadas das colunas)
-                    else if (def.resource === 'constraint') {
-                        
-                        // Primary Key definida como constraint separada
-                        // Exemplo: PRIMARY KEY (id)
+                    } else if (def.resource === 'constraint') {
                         if (def.constraint_type && def.constraint_type.toLowerCase() === 'primary key') {
-                            const pkColumnName = def.definition[0].column;
-                            const pkColumn = tableData.columns.find(c => c.name === pkColumnName);
-                            if (pkColumn) pkColumn.isPk = true;
-                        } 
-                        
-                        // Foreign Key: cria relacionamento entre tabelas
-                        // Exemplo: FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
-                        else if (def.constraint_type && def.constraint_type.toLowerCase() === 'foreign key') {
+                            pkConstraintName = def.definition[0].column;
+                        } else if (def.constraint_type && def.constraint_type.toLowerCase() === 'foreign key') {
                             const fkColumnName = def.definition[0].column;
                             const fkColumn = tableData.columns.find(c => c.name === fkColumnName);
-                            
                             if (fkColumn) {
                                 fkColumn.isFk = true;
-                                // Extrai nome da tabela referenciada (a tabela "pai")
                                 fkColumn.refTable = def.reference_definition.table[0].table;
-                                
-                                // Extrai a coluna referenciada (normalmente é o PK da tabela pai)
                                 const toColumnName = def.reference_definition.definition?.[0]?.column || 'id';
-                                
-                                // Adiciona relacionamento para desenhar linha no diagrama
                                 newRelationships.push({
-                                    id: generateId(), // ID único para o relacionamento
-                                    fromTable: tableName,       // tabela "filha"
-                                    fromCol: fkColumnName,      // coluna FK
-                                    toTable: fkColumn.refTable,     // tabela "pai"
-                                    toCol: toColumnName, // Coluna referenciada (PK)
-                                  cardinality: SqlParserService.detectCardinality(fkColumn, def), // Detectado do SQL
-                                    vertices: [], // Array de pontos de controle (será auto-calculado)
-                                    auto: true // Flag para recálculo automático
+                                    id: generateId(),
+                                    fromTable: tableName,
+                                    fromCol: fkColumnName,
+                                    toTable: fkColumn.refTable,
+                                    toCol: toColumnName,
+                                    cardinality: SqlParserService.detectCardinality(fkColumn, def),
+                                    vertices: [],
+                                    auto: true
                                 });
                             }
                         }
                     }
                 });
-                
-                // Adiciona tabela processada ao resultado final
+                // Se PK foi definida por constraint, marca a coluna correspondente
+                if (pkConstraintName) {
+                    const pkColumn = tableData.columns.find(c => c.name === pkConstraintName);
+                    if (pkColumn) pkColumn.isPk = true;
+                }
                 newTables[tableName] = tableData;
+                tableIndex++;
             }
         });
         
