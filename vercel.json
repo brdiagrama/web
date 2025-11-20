@@ -9,6 +9,11 @@
     {
       "source": "/editor.html",
       "destination": "/public/editor.html"
+    },
+
+    {
+      "source": "/assets/(.*)", 
+      "destination": "/assets/$1" 
     }
   ]
 }
