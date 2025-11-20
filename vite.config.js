@@ -5,7 +5,6 @@ import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [vue()],
-  base: '/', // Manter para garantia de assets absolutos
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
@@ -19,8 +18,8 @@ export default defineConfig({
     assetsDir: 'assets',
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html'), 
-        editor: resolve(__dirname, 'public/editor.html'), 
+        main: resolve(__dirname, 'index.html'),
+        editor: resolve(__dirname, 'editor.html'), 
       },
     },
   },
