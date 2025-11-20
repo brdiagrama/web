@@ -8,12 +8,12 @@
 
     {
       "source": "/editor.html",
-      "destination": "/public/editor.html"
+      "destination": "/dist/public/editor.html"
     },
 
     {
       "source": "/assets/(.*)", 
-      "destination": "/assets/$1" 
+      "destination": "/dist/assets/$1" 
     }
   ]
 }
