@@ -172,47 +172,82 @@ const getColumnOffset = (table, columnName) => {
 
 // Calcula o path da linha com curva bezier (lógica do index.html)
 const pathData = computed(() => {
-  const t1 = props.fromTable // Tabela com FK (crow's foot)
-  const t2 = props.toTable   // Tabela com PK (one bar)
+  const t1 = props.fromTable
+  const t2 = props.toTable
   
   if (!t1 || !t2) return ''
-  
+
   // Coordenadas Y das colunas
   const y1 = t1.y + getColumnOffset(t1, props.relationship.fromCol)
   const y2 = t2.y + getColumnOffset(t2, props.relationship.toCol)
   
-  let x1, x2, anchor1, anchor2
-  
-  // Lógica de posicionamento (mesma do index.html)
-  // Se T1 está à esquerda de T2
-  if (t1.x + props.tableWidth < t2.x - 50) {
-    x1 = t1.x + props.tableWidth // Sai da direita de T1
-    x2 = t2.x                     // Entra na esquerda de T2
-    anchor1 = 1
-    anchor2 = -1
+  // Configuração do raio base
+  const defaultRadius = 12 
+  const deltaY = Math.abs(y2 - y1)
+  const dirY = y1 < y2 ? 1 : -1
+  const r = Math.min(defaultRadius, deltaY / 2)
+
+  // Limites das tabelas (Bounding Box)
+  const t1Right = t1.x + props.tableWidth
+  const t2Right = t2.x + props.tableWidth
+  const t1Left = t1.x
+  const t2Left = t2.x
+
+  // Margem de segurança para a linha não colar na tabela
+  const gap = 40 
+
+  // --- LÓGICA DE ROTEAMENTO ---
+
+  // CENÁRIO 1: T1 totalmente à esquerda de T2 (Normal)
+  // Verifica se há espaço suficiente no meio para não colidir
+  if (t1Right + gap < t2Left) {
+    const x1 = t1Right
+    const x2 = t2Left
+    const midX = (x1 + x2) / 2
+    
+    return `M ${x1} ${y1} 
+            L ${midX - r} ${y1} 
+            Q ${midX} ${y1} ${midX} ${y1 + (r * dirY)}
+            L ${midX} ${y2 - (r * dirY)}
+            Q ${midX} ${y2} ${midX + r} ${y2}
+            L ${x2} ${y2}`
   }
-  // Se T1 está à direita de T2
-  else if (t1.x > t2.x + props.tableWidth + 50) {
-    x1 = t1.x                     // Sai da esquerda de T1
-    x2 = t2.x + props.tableWidth  // Entra na direita de T2
-    anchor1 = -1
-    anchor2 = 1
-  }
-  // Caso de sobreposição ou vertical
-  else {
-    x1 = t1.x + props.tableWidth
-    x2 = t2.x + props.tableWidth
-    anchor1 = 1
-    anchor2 = 1
+  
+  // CENÁRIO 2: T1 totalmente à direita de T2 (Invertido)
+  else if (t1Left > t2Right + gap) {
+    const x1 = t1Left
+    const x2 = t2Right
+    const midX = (x1 + x2) / 2
+    
+    return `M ${x1} ${y1} 
+            L ${midX + r} ${y1} 
+            Q ${midX} ${y1} ${midX} ${y1 + (r * dirY)}
+            L ${midX} ${y2 - (r * dirY)}
+            Q ${midX} ${y2} ${midX - r} ${y2}
+            L ${x2} ${y2}`
   }
   
-  // Curva de Bezier Cúbica
-  const dist = Math.abs(x2 - x1) * 0.5
-  const cp1x = x1 + (dist * anchor1) // Control point 1
-  const cp2x = x2 + (dist * anchor2) // Control point 2
-  
-  return `M ${x1} ${y1} C ${cp1x} ${y1}, ${cp2x} ${y2}, ${x2} ${y2}`
+  // CENÁRIO 3: Sobreposição Vertical (O SEU CASO ATUAL)
+  // As tabelas estão uma em cima da outra ou muito próximas horizontalmente.
+  // A linha deve sair pela direita de ambas e fazer um "C" ou colchete.
+else {
+    const maxX = Math.max(t1Right, t2Right)
+    // Zona segura à direita das tabelas
+    const relationshipIndex = props.relationship.index || 0
+    const safeX = maxX + 30 + (relationshipIndex * 20)
+
+    const startX = t1Right
+    const endX = t2Right
+
+    return `M ${startX} ${y1}
+            L ${safeX - r} ${y1}
+            Q ${safeX} ${y1} ${safeX} ${y1 + (r * dirY)}
+            L ${safeX} ${y2 - (r * dirY)}
+            Q ${safeX} ${y2} ${safeX - r} ${y2}
+            L ${endX} ${y2}`
+  }
 })
+
 
 </script>
 
