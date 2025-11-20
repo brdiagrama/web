@@ -76,15 +76,24 @@
               <!-- Colunas com formato melhorado -->
               <g v-for="(col, colIndex) in table.columns" :key="colIndex">
                 <!-- Ícone PK/FK -->
-                <text 
-                  :x="15"
-                  :y="headerHeight + 20 + colIndex * rowHeight"
-                  :class="col.isPk ? 'pk-icon' : (col.isFk ? 'fk-icon' : '')"
-                  font-size="10"
-                  font-weight="bold"
-                >
-                  {{ col.isPk ? 'PK' : (col.isFk ? 'FK' : '') }}
-                </text>
+              <text 
+                :x="15"
+                :y="headerHeight + 20 + colIndex * rowHeight"
+                font-size="10"
+                font-weight="bold"
+                
+                :class="{ 
+                  // Prioridade 1: É FK? (Isso inclui o caso PK+FK)
+                  'fk-icon': col.isFk, 
+                  // Prioridade 2: É PK, mas não é FK?
+                  'pk-icon': col.isPk && !col.isFk
+                }"
+              >
+                {{ 
+                  // Lógica visual simplificada:
+                  col.isFk ? 'FK' : (col.isPk ? 'PK' : '') 
+                }}
+              </text>
                 
                 <!-- Nome da coluna -->
                 <text 
@@ -250,16 +259,6 @@ const updateDiagram = async () => {
     });
     
     relationships.value = updatedRelationships;
-    
-    console.log('🎨 Tabelas atualizadas no estado:', tables.value);
-    console.log('📋 Ordem das colunas:', Object.entries(tables.value).map(([name, table]) => ({
-      tabela: name,
-      colunas: table.columns.map(c => `${c.name} ${c.isPk ? '[PK]' : ''} ${c.isFk ? '[FK]' : ''}`)
-    })));
-    console.log('🔗 Relacionamentos atualizados:', relationships.value);
-    console.log('📊 Total de relacionamentos:', relationships.value.length);
-    console.log('tables', tables.value);
-console.log('relationships', relationships.value);
     
   } catch (error) {
     console.error("❌ Erro ao processar diagrama:", error);
