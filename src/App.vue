@@ -40,6 +40,7 @@
               :header-height="headerHeight"
               :row-height="rowHeight"
               :selected-tables="selectedTables"
+              :hovered-column="hoveredColumn"
               @update="updateRelationship"
             />
           </g>
@@ -67,12 +68,45 @@
               />
               <text :x="15" :y="22" class="table-title">{{ table.name }}</text>
               <g v-for="(col, colIndex) in table.columns" :key="colIndex">
+                <!-- Retângulo invisível para aumentar área de hover -->
+                <rect
+                  v-if="col.isPk || col.isFk"
+                  :x="0"
+                  :y="headerHeight + colIndex * rowHeight"
+                  :width="tableWidth - 1"
+                  :height="rowHeight"
+                  fill="transparent"
+                  class="column-hover-area"
+                  @mouseenter="handleColumnHover({ 
+                    tableName: table.name, 
+                    columnName: col.name, 
+                    isHovering: true, 
+                    isPk: col.isPk, 
+                    isFk: col.isFk, 
+                    refTable: col.refTable 
+                  })"
+                  @mouseleave="handleColumnHover({ isHovering: false })"
+                />
+                
+                <!-- Background highlight - AGORA COLADO NO HEADER -->
+                <rect
+                  v-if="(col.isPk || col.isFk) && (isColumnHovered(table.name, col.name) || isTableColumnHighlighted(table.name, col))"
+                  :x="0"
+                  :y="headerHeight + colIndex * rowHeight"
+                  :width="tableWidth - 0"
+                  :height="rowHeight"
+                  :fill="col.isPk ? '#fef2f2' : '#eff6ff'"
+                  rx="3"
+                  style="pointer-events: none"
+                />
+                
                 <text
                   :x="15"
                   :y="headerHeight + 20 + colIndex * rowHeight"
                   font-size="10"
                   font-weight="bold"
                   :class="{ 'fk-icon': col.isFk, 'pk-icon': col.isPk && !col.isFk }"
+                  style="pointer-events: none"
                 >
                   {{ col.isFk ? "FK" : col.isPk ? "PK" : "" }}
                 </text>
@@ -81,6 +115,7 @@
                   :y="headerHeight + 20 + colIndex * rowHeight"
                   class="col-text"
                   :font-weight="col.isPk ? 'bold' : 'normal'"
+                  style="pointer-events: none"
                 >
                   {{ col.name }}
                 </text>
@@ -89,6 +124,7 @@
                   :y="headerHeight + 20 + colIndex * rowHeight"
                   class="col-type"
                   text-anchor="end"
+                  style="pointer-events: none"
                 >
                   {{ col.type }}
                 </text>
@@ -107,6 +143,7 @@
               :header-height="headerHeight"
               :row-height="rowHeight"
               :selected-tables="selectedTables"
+              :hovered-column="hoveredColumn"
               @update="updateRelationship"
             />
           </g>
@@ -134,12 +171,45 @@
               />
               <text :x="15" :y="22" class="table-title">{{ table.name }}</text>
               <g v-for="(col, colIndex) in table.columns" :key="colIndex">
+                <!-- Retângulo invisível para aumentar área de hover -->
+                <rect
+                  v-if="col.isPk || col.isFk"
+                  :x="0"
+                  :y="headerHeight + colIndex * rowHeight"
+                  :width="tableWidth"
+                  :height="rowHeight"
+                  fill="transparent"
+                  class="column-hover-area"
+                  @mouseenter="handleColumnHover({ 
+                    tableName: table.name, 
+                    columnName: col.name, 
+                    isHovering: true, 
+                    isPk: col.isPk, 
+                    isFk: col.isFk, 
+                    refTable: col.refTable 
+                  })"
+                  @mouseleave="handleColumnHover({ isHovering: false })"
+                />
+                
+                <!-- Background highlight - AGORA COLADO NO HEADER -->
+                <rect
+                  v-if="(col.isPk || col.isFk) && (isColumnHovered(table.name, col.name) || isTableColumnHighlighted(table.name, col))"
+                  :x="2"
+                  :y="headerHeight + colIndex * rowHeight"
+                  :width="tableWidth - 3.4"
+                  :height="rowHeight"
+                  :fill="col.isPk ? '#fef2f2' : '#eff6ff'"
+                  rx="3"
+                  style="pointer-events: none"
+                />
+                
                 <text
                   :x="15"
                   :y="headerHeight + 20 + colIndex * rowHeight"
                   font-size="10"
                   font-weight="bold"
                   :class="{ 'fk-icon': col.isFk, 'pk-icon': col.isPk && !col.isFk }"
+                  style="pointer-events: none"
                 >
                   {{ col.isFk ? "FK" : col.isPk ? "PK" : "" }}
                 </text>
@@ -148,6 +218,7 @@
                   :y="headerHeight + 20 + colIndex * rowHeight"
                   class="col-text"
                   :font-weight="col.isPk ? 'bold' : 'normal'"
+                  style="pointer-events: none"
                 >
                   {{ col.name }}
                 </text>
@@ -156,6 +227,7 @@
                   :y="headerHeight + 20 + colIndex * rowHeight"
                   class="col-type"
                   text-anchor="end"
+                  style="pointer-events: none"
                 >
                   {{ col.type }}
                 </text>
@@ -221,6 +293,67 @@ const dragState = ref({
 
 // Estado de seleção múltipla
 const selectedTables = ref(new Set());
+const hoveredColumn = ref(null);
+
+const isTableColumnHighlighted = (tableName, column) => {
+  if (!selectedTables.value.has(tableName)) return false;
+  if (!column.isPk && !column.isFk) return false;
+
+  // Se for PK, verifica se há FKs relacionadas em tabelas selecionadas
+  if (column.isPk) {
+    return relationships.value.some(rel => 
+      rel.toTable === tableName && 
+      rel.toCol === column.name &&
+      selectedTables.value.has(rel.fromTable)
+    );
+  }
+
+  // Se for FK, verifica se a PK de destino está em tabela selecionada
+  if (column.isFk) {
+    return relationships.value.some(rel => 
+      rel.fromTable === tableName && 
+      rel.fromCol === column.name &&
+      selectedTables.value.has(rel.toTable)
+    );
+  }
+
+  return false;
+};
+
+const highlightedColumns = computed(() => {
+  const highlighted = new Set();
+  
+  if (!hoveredColumn.value) return highlighted;
+
+  const { tableName, columnName, isFk, isPk } = hoveredColumn.value;
+  
+  // Adiciona a coluna atual
+  highlighted.add(`${tableName}.${columnName}`);
+
+  // Se for FK, encontra a PK de destino
+  if (isFk) {
+    relationships.value.forEach(rel => {
+      if (rel.fromTable === tableName && rel.fromCol === columnName) {
+        highlighted.add(`${rel.toTable}.${rel.toCol}`);
+      }
+    });
+  }
+
+  // Se for PK, encontra todas as FKs que apontam para ela
+  if (isPk) {
+    relationships.value.forEach(rel => {
+      if (rel.toTable === tableName && rel.toCol === columnName) {
+        highlighted.add(`${rel.fromTable}.${rel.fromCol}`);
+      }
+    });
+  }
+
+  return highlighted;
+});
+
+const isColumnHovered = (tableName, columnName) => {
+  return highlightedColumns.value.has(`${tableName}.${columnName}`);
+};
 
 // Debug message
 const debugMessage = computed(() => {
@@ -247,7 +380,7 @@ const sortColumns = (columns) => {
 // Constantes para renderização (conforme index.html anexado)
 const tableWidth = 220;
 const headerHeight = 35;
-const rowHeight = 28;
+const rowHeight = 32;
 
 // Exemplo inicial de SQL
 const defaultSql = `CREATE TABLE users (
@@ -285,7 +418,7 @@ const debounce = (func, delay) => {
 
 // Calcula a altura total de uma tabela (conforme index.html)
 const getTableHeight = (table) => {
-  return headerHeight + table.columns.length * rowHeight + 10;
+  return headerHeight + table.columns.length * rowHeight + 5;
 };
 
 // Funções de formatação removidas - agora usa renderização direta no template
@@ -373,6 +506,10 @@ const handleSelectionArea = (area) => {
   }
 
   console.log("Tabelas selecionadas:", Array.from(selectedTables.value));
+};
+
+const handleColumnHover = (data) => {
+  hoveredColumn.value = data.isHovering ? data : null;
 };
 
 // --- Funções de Drag and Drop ---
@@ -527,5 +664,24 @@ onMounted(() => {
 
 :deep(.table-rect) {
   transition: stroke 0.2s, stroke-width 0.2s, filter 0.2s;
+}
+
+:deep(.column-hover-area) {
+  cursor: pointer;
+  transition: fill 0.15s;
+}
+
+:deep(.column-hover-area:hover) {
+  fill: rgba(25, 39, 71, 0.05);
+}
+
+:deep(.hoverable-column:hover .col-text) {
+  fill: #192747;
+  font-weight: 600;
+}
+
+:deep(.hoverable-column:hover .pk-icon),
+:deep(.hoverable-column:hover .fk-icon) {
+  filter: drop-shadow(0 0 2px currentColor);
 }
 </style>

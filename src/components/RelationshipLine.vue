@@ -69,6 +69,10 @@ const props = defineProps({
     type: Set,
     default: () => new Set(),
   },
+  hoveredColumn: {
+      type: Object,
+    default: null,
+  },
 });
 
 // Estado do hover
@@ -77,11 +81,35 @@ const relationshipGroup = ref(null);
 let hoverTimeout = null;
 
 const isActive = computed(() => {
-  return (
-    isHovered.value ||
+  // 1. Hover direto na linha
+  if (isHovered.value) return true;
+
+  // 2. Tabelas selecionadas
+  if (
     props.selectedTables.has(props.relationship.fromTable) ||
     props.selectedTables.has(props.relationship.toTable)
-  );
+  ) {
+    return true;
+  }
+
+  // 3. Hover em coluna relacionada
+    if (props.hoveredColumn) {
+    const { tableName, columnName, isFk, isPk } = props.hoveredColumn;
+    const rel = props.relationship;
+
+    const isRelated =
+      (isFk && tableName === rel.fromTable && columnName === rel.fromCol) ||
+      (isPk && tableName === rel.toTable && columnName === rel.toCol);
+
+    // 🔥 NOVO: Trazer para frente quando hover em coluna relacionada
+    if (isRelated && relationshipGroup.value?.parentNode) {
+      relationshipGroup.value.parentNode.appendChild(relationshipGroup.value);
+    }
+
+    return isRelated;
+  }
+
+  return false;
 });
 
 
@@ -360,11 +388,6 @@ const pathData = computed(() => {
   transition: transform 0.15s ease-out;
   /* Define o centro da transformação para a linha não "deslocar" */
   transform-origin: center center;
-}
-
-/* Quando o JS ativa o hover (isHovered = true) */
-.relationship-line.is-active {
-  /* 1. Efeito de Scale (Animação) */
 }
 
 /* 2. Destaque Visual no Hover (Triggered by .is-active no pai) */
