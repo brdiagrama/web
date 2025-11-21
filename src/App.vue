@@ -63,9 +63,11 @@
                 rx="6"
               />
               <path
-                :d="`M0 6 Q0 0 6 0 L${
-                  getTableWidth(table) - 6
-                } 0 Q${getTableWidth(table)} 0 ${getTableWidth(table)} 6 L${getTableWidth(table)} ${headerHeight} L0 ${headerHeight} Z`"
+                :d="`M0 6 Q0 0 6 0 L${getTableWidth(table) - 6} 0 Q${getTableWidth(
+                  table
+                )} 0 ${getTableWidth(table)} 6 L${getTableWidth(
+                  table
+                )} ${headerHeight} L0 ${headerHeight} Z`"
                 class="table-header-rect"
               />
               <text :x="15" :y="22" class="table-title">{{ table.name }}</text>
@@ -79,29 +81,37 @@
                   :height="rowHeight"
                   fill="transparent"
                   class="column-hover-area"
-                  @mouseenter="handleColumnHover({ 
-                    tableName: table.name, 
-                    columnName: col.name, 
-                    isHovering: true, 
-                    isPk: col.isPk, 
-                    isFk: col.isFk, 
-                    refTable: col.refTable 
-                  })"
+                  @mouseenter="
+                    handleColumnHover({
+                      tableName: table.name,
+                      columnName: col.name,
+                      isHovering: true,
+                      isPk: col.isPk,
+                      isFk: col.isFk,
+                      refTable: col.refTable,
+                    })
+                  "
                   @mouseleave="handleColumnHover({ isHovering: false })"
                 />
-                
+
                 <!-- Background highlight - AGORA COLADO NO HEADER -->
                 <rect
-                  v-if="(col.isPk || col.isFk) && (isColumnHovered(table.name, col.name) || isTableColumnHighlighted(table.name, col))"
-                  :x="0"
+                  v-if="
+                    (col.isPk || col.isFk) &&
+                    (isColumnHovered(table.name, col.name) ||
+                      isTableColumnHighlighted(table.name, col))
+                  "
+                  :x="0.6"
                   :y="headerHeight + colIndex * rowHeight"
-                  :width="getTableWidth(table) - 0"
-                  :height="rowHeight"
+                  :width="getTableWidth(table) - 1.2"
+                  :height="
+                    colIndex === table.columns.length - 1 ? rowHeight - 0.6 : rowHeight
+                  "
                   :fill="col.isPk ? '#fef2f2' : '#eff6ff'"
-                  rx="3"
+                  :rx="colIndex === table.columns.length - 1 ? 10 : 0"
                   style="pointer-events: none"
                 />
-                
+
                 <text
                   :x="15"
                   :y="headerHeight + 20 + colIndex * rowHeight"
@@ -130,6 +140,35 @@
                 >
                   {{ col.type }}
                 </text>
+                <g
+                  v-if="
+                    (col.isPk || col.isFk) &&
+                    (isColumnHovered(table.name, col.name) ||
+                      isTableColumnHighlighted(table.name, col))
+                  "
+                  style="pointer-events: none"
+                >
+                  <!-- Linha superior (sempre renderiza) -->
+                  <line
+                    :x1="0.6"
+                    :y1="headerHeight + colIndex * rowHeight"
+                    :x2="getTableWidth(table) - 0.6"
+                    :y2="headerHeight + colIndex * rowHeight"
+                    :stroke="col.isPk ? '#fca5a5' : '#93c5fd'"
+                    stroke-width="1.1"
+                  />
+
+                  <!-- Linha inferior (só se NÃO for a última coluna) -->
+                  <line
+                    v-if="colIndex < table.columns.length - 1"
+                    :x1="0.6"
+                    :y1="headerHeight + (colIndex + 1) * rowHeight"
+                    :x2="getTableWidth(table) - 0.6"
+                    :y2="headerHeight + (colIndex + 1) * rowHeight"
+                    :stroke="col.isPk ? '#fca5a5' : '#93c5fd'"
+                    stroke-width="1.1"
+                  />
+                </g>
               </g>
             </g>
           </g>
@@ -168,9 +207,11 @@
                 rx="6"
               />
               <path
-                :d="`M0 6 Q0 0 6 0 L${
-                  getTableWidth(table) - 6
-                } 0 Q${getTableWidth(table)} 0 ${getTableWidth(table)} 6 L${getTableWidth(table)} ${headerHeight} L0 ${headerHeight} Z`"
+                :d="`M0 6 Q0 0 6 0 L${getTableWidth(table) - 6} 0 Q${getTableWidth(
+                  table
+                )} 0 ${getTableWidth(table)} 6 L${getTableWidth(
+                  table
+                )} ${headerHeight} L0 ${headerHeight} Z`"
                 class="table-header-rect"
               />
               <text :x="15" :y="22" class="table-title">{{ table.name }}</text>
@@ -184,29 +225,37 @@
                   :height="rowHeight"
                   fill="transparent"
                   class="column-hover-area"
-                  @mouseenter="handleColumnHover({ 
-                    tableName: table.name, 
-                    columnName: col.name, 
-                    isHovering: true, 
-                    isPk: col.isPk, 
-                    isFk: col.isFk, 
-                    refTable: col.refTable 
-                  })"
+                  @mouseenter="
+                    handleColumnHover({
+                      tableName: table.name,
+                      columnName: col.name,
+                      isHovering: true,
+                      isPk: col.isPk,
+                      isFk: col.isFk,
+                      refTable: col.refTable,
+                    })
+                  "
                   @mouseleave="handleColumnHover({ isHovering: false })"
                 />
-                
+
                 <!-- Background highlight - AGORA COLADO NO HEADER -->
                 <rect
-                  v-if="(col.isPk || col.isFk) && (isColumnHovered(table.name, col.name) || isTableColumnHighlighted(table.name, col))"
+                  v-if="
+                    (col.isPk || col.isFk) &&
+                    (isColumnHovered(table.name, col.name) ||
+                      isTableColumnHighlighted(table.name, col))
+                  "
                   :x="2"
                   :y="headerHeight + colIndex * rowHeight"
                   :width="getTableWidth(table) - 3.4"
-                  :height="rowHeight"
+                  :height="
+                    colIndex === table.columns.length - 1 ? rowHeight - 2 : rowHeight
+                  "
                   :fill="col.isPk ? '#fef2f2' : '#eff6ff'"
-                  rx="3"
+                  :rx="colIndex === table.columns.length - 1 ? 6 : 3"
                   style="pointer-events: none"
                 />
-                
+
                 <text
                   :x="15"
                   :y="headerHeight + 20 + colIndex * rowHeight"
@@ -235,6 +284,36 @@
                 >
                   {{ col.type }}
                 </text>
+
+                <g
+                  v-if="
+                    (col.isPk || col.isFk) &&
+                    (isColumnHovered(table.name, col.name) ||
+                      isTableColumnHighlighted(table.name, col))
+                  "
+                  style="pointer-events: none"
+                >
+                  <!-- Linha superior (sempre renderiza) -->
+                  <line
+                    :x1="1.28"
+                    :y1="headerHeight + colIndex * rowHeight"
+                    :x2="getTableWidth(table) - 1.28"
+                    :y2="headerHeight + colIndex * rowHeight"
+                    :stroke="col.isPk ? '#fca5a5' : '#93c5fd'"
+                    stroke-width="2"
+                  />
+
+                  <!-- Linha inferior (só se NÃO for a última coluna) -->
+                  <line
+                    v-if="colIndex < table.columns.length - 1"
+                    :x1="1.28"
+                    :y1="headerHeight + (colIndex + 1) * rowHeight"
+                    :x2="getTableWidth(table) - 1.28"
+                    :y2="headerHeight + (colIndex + 1) * rowHeight"
+                    :stroke="col.isPk ? '#fca5a5' : '#93c5fd'"
+                    stroke-width="2"
+                  />
+                </g>
               </g>
             </g>
           </g>
@@ -305,19 +384,21 @@ const isTableColumnHighlighted = (tableName, column) => {
 
   // Se for PK, verifica se há FKs relacionadas em tabelas selecionadas
   if (column.isPk) {
-    return relationships.value.some(rel => 
-      rel.toTable === tableName && 
-      rel.toCol === column.name &&
-      selectedTables.value.has(rel.fromTable)
+    return relationships.value.some(
+      (rel) =>
+        rel.toTable === tableName &&
+        rel.toCol === column.name &&
+        selectedTables.value.has(rel.fromTable)
     );
   }
 
   // Se for FK, verifica se a PK de destino está em tabela selecionada
   if (column.isFk) {
-    return relationships.value.some(rel => 
-      rel.fromTable === tableName && 
-      rel.fromCol === column.name &&
-      selectedTables.value.has(rel.toTable)
+    return relationships.value.some(
+      (rel) =>
+        rel.fromTable === tableName &&
+        rel.fromCol === column.name &&
+        selectedTables.value.has(rel.toTable)
     );
   }
 
@@ -326,17 +407,17 @@ const isTableColumnHighlighted = (tableName, column) => {
 
 const highlightedColumns = computed(() => {
   const highlighted = new Set();
-  
+
   if (!hoveredColumn.value) return highlighted;
 
   const { tableName, columnName, isFk, isPk } = hoveredColumn.value;
-  
+
   // Adiciona a coluna atual
   highlighted.add(`${tableName}.${columnName}`);
 
   // Se for FK, encontra a PK de destino
   if (isFk) {
-    relationships.value.forEach(rel => {
+    relationships.value.forEach((rel) => {
       if (rel.fromTable === tableName && rel.fromCol === columnName) {
         highlighted.add(`${rel.toTable}.${rel.toCol}`);
       }
@@ -345,7 +426,7 @@ const highlightedColumns = computed(() => {
 
   // Se for PK, encontra todas as FKs que apontam para ela
   if (isPk) {
-    relationships.value.forEach(rel => {
+    relationships.value.forEach((rel) => {
       if (rel.toTable === tableName && rel.toCol === columnName) {
         highlighted.add(`${rel.fromTable}.${rel.fromCol}`);
       }
@@ -385,28 +466,26 @@ const sortColumns = (columns) => {
 const headerHeight = 35;
 const rowHeight = 32;
 
-const MIN_TABLE_WIDTH = 220; 
-const HORIZONTAL_PADDING = 30; 
+const MIN_TABLE_WIDTH = 220;
+const HORIZONTAL_PADDING = 30;
 
 const getTableWidth = (table) => {
   let maxWidth = MIN_TABLE_WIDTH;
-  
-  
-  const nameLength = table.name.length * 8 + HORIZONTAL_PADDING; 
-  maxWidth = Math.max(maxWidth, nameLength); 
 
- 
-  table.columns.forEach(col => {
+  const nameLength = table.name.length * 8 + HORIZONTAL_PADDING;
+  maxWidth = Math.max(maxWidth, nameLength);
+
+  table.columns.forEach((col) => {
     const colNameLength = col.name.length * 7 + (col.isPk || col.isFk ? 40 : 0);
-    
+
     const colTypeLength = col.type.length * 7;
-    
+
     const totalRowWidth = colNameLength + colTypeLength + HORIZONTAL_PADDING + 20;
-    
+
     maxWidth = Math.max(maxWidth, totalRowWidth);
   });
-  
-  return Math.ceil(maxWidth); 
+
+  return Math.ceil(maxWidth);
 };
 
 // Exemplo inicial de SQL

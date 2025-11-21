@@ -723,8 +723,15 @@ defineExpose({
 }
 
 .table-group:hover {
-  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));
+  filter: drop-shadow(0 6px 12px #0041d826);
 }
+
+.table-group:hover .table-rect {
+  stroke: #192747;     /* cor da borda ao passar o mouse */
+  stroke-width: 1px;   /* opcional: engrossar */
+}
+
+
 
 .table-group:active {
   cursor: grabbing !important;
