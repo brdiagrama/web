@@ -36,7 +36,9 @@
               :relationship="rel"
               :from-table="tables[rel.fromTable]"
               :to-table="tables[rel.toTable]"
-              :table-width="tableWidth"
+              :table-width="getTableWidth(tables[rel.fromTable])"
+              :from-table-width="getTableWidth(tables[rel.fromTable])"
+              :to-table-width="getTableWidth(tables[rel.toTable])"
               :header-height="headerHeight"
               :row-height="rowHeight"
               :selected-tables="selectedTables"
@@ -55,15 +57,15 @@
               @mousedown="(event) => startDrag(event, table.name)"
             >
               <rect
-                :width="tableWidth"
+                :width="getTableWidth(table)"
                 :height="getTableHeight(table)"
                 class="table-rect"
                 rx="6"
               />
               <path
                 :d="`M0 6 Q0 0 6 0 L${
-                  tableWidth - 6
-                } 0 Q${tableWidth} 0 ${tableWidth} 6 L${tableWidth} ${headerHeight} L0 ${headerHeight} Z`"
+                  getTableWidth(table) - 6
+                } 0 Q${getTableWidth(table)} 0 ${getTableWidth(table)} 6 L${getTableWidth(table)} ${headerHeight} L0 ${headerHeight} Z`"
                 class="table-header-rect"
               />
               <text :x="15" :y="22" class="table-title">{{ table.name }}</text>
@@ -73,7 +75,7 @@
                   v-if="col.isPk || col.isFk"
                   :x="0"
                   :y="headerHeight + colIndex * rowHeight"
-                  :width="tableWidth - 1"
+                  :width="getTableWidth(table) - 1"
                   :height="rowHeight"
                   fill="transparent"
                   class="column-hover-area"
@@ -93,7 +95,7 @@
                   v-if="(col.isPk || col.isFk) && (isColumnHovered(table.name, col.name) || isTableColumnHighlighted(table.name, col))"
                   :x="0"
                   :y="headerHeight + colIndex * rowHeight"
-                  :width="tableWidth - 0"
+                  :width="getTableWidth(table) - 0"
                   :height="rowHeight"
                   :fill="col.isPk ? '#fef2f2' : '#eff6ff'"
                   rx="3"
@@ -120,7 +122,7 @@
                   {{ col.name }}
                 </text>
                 <text
-                  :x="tableWidth - 15"
+                  :x="getTableWidth(table) - 15"
                   :y="headerHeight + 20 + colIndex * rowHeight"
                   class="col-type"
                   text-anchor="end"
@@ -139,7 +141,9 @@
               :relationship="rel"
               :from-table="tables[rel.fromTable]"
               :to-table="tables[rel.toTable]"
-              :table-width="tableWidth"
+              :table-width="getTableWidth(tables[rel.fromTable])"
+              :from-table-width="getTableWidth(tables[rel.fromTable])"
+              :to-table-width="getTableWidth(tables[rel.toTable])"
               :header-height="headerHeight"
               :row-height="rowHeight"
               :selected-tables="selectedTables"
@@ -158,15 +162,15 @@
               @mousedown="(event) => startDrag(event, table.name)"
             >
               <rect
-                :width="tableWidth"
+                :width="getTableWidth(table)"
                 :height="getTableHeight(table)"
                 class="table-rect selected"
                 rx="6"
               />
               <path
                 :d="`M0 6 Q0 0 6 0 L${
-                  tableWidth - 6
-                } 0 Q${tableWidth} 0 ${tableWidth} 6 L${tableWidth} ${headerHeight} L0 ${headerHeight} Z`"
+                  getTableWidth(table) - 6
+                } 0 Q${getTableWidth(table)} 0 ${getTableWidth(table)} 6 L${getTableWidth(table)} ${headerHeight} L0 ${headerHeight} Z`"
                 class="table-header-rect"
               />
               <text :x="15" :y="22" class="table-title">{{ table.name }}</text>
@@ -176,7 +180,7 @@
                   v-if="col.isPk || col.isFk"
                   :x="0"
                   :y="headerHeight + colIndex * rowHeight"
-                  :width="tableWidth"
+                  :width="getTableWidth(table)"
                   :height="rowHeight"
                   fill="transparent"
                   class="column-hover-area"
@@ -196,7 +200,7 @@
                   v-if="(col.isPk || col.isFk) && (isColumnHovered(table.name, col.name) || isTableColumnHighlighted(table.name, col))"
                   :x="2"
                   :y="headerHeight + colIndex * rowHeight"
-                  :width="tableWidth - 3.4"
+                  :width="getTableWidth(table) - 3.4"
                   :height="rowHeight"
                   :fill="col.isPk ? '#fef2f2' : '#eff6ff'"
                   rx="3"
@@ -223,7 +227,7 @@
                   {{ col.name }}
                 </text>
                 <text
-                  :x="tableWidth - 15"
+                  :x="getTableWidth(table) - 15"
                   :y="headerHeight + 20 + colIndex * rowHeight"
                   class="col-type"
                   text-anchor="end"
@@ -378,9 +382,32 @@ const sortColumns = (columns) => {
 };
 
 // Constantes para renderização (conforme index.html anexado)
-const tableWidth = 220;
 const headerHeight = 35;
 const rowHeight = 32;
+
+const MIN_TABLE_WIDTH = 220; 
+const HORIZONTAL_PADDING = 30; 
+
+const getTableWidth = (table) => {
+  let maxWidth = MIN_TABLE_WIDTH;
+  
+  
+  const nameLength = table.name.length * 8 + HORIZONTAL_PADDING; 
+  maxWidth = Math.max(maxWidth, nameLength); 
+
+ 
+  table.columns.forEach(col => {
+    const colNameLength = col.name.length * 7 + (col.isPk || col.isFk ? 40 : 0);
+    
+    const colTypeLength = col.type.length * 7;
+    
+    const totalRowWidth = colNameLength + colTypeLength + HORIZONTAL_PADDING + 20;
+    
+    maxWidth = Math.max(maxWidth, totalRowWidth);
+  });
+  
+  return Math.ceil(maxWidth); 
+};
 
 // Exemplo inicial de SQL
 const defaultSql = `CREATE TABLE users (
@@ -418,7 +445,7 @@ const debounce = (func, delay) => {
 
 // Calcula a altura total de uma tabela (conforme index.html)
 const getTableHeight = (table) => {
-  return headerHeight + table.columns.length * rowHeight + 5;
+  return headerHeight + table.columns.length * rowHeight + 0;
 };
 
 // Funções de formatação removidas - agora usa renderização direta no template
@@ -489,7 +516,7 @@ const handleSelectionArea = (area) => {
     // Verificar se a tabela intersecta com a área de seleção
     const tableX1 = table.x;
     const tableY1 = table.y;
-    const tableX2 = table.x + tableWidth;
+    const tableX2 = table.x + getTableWidth(table);
     const tableY2 = table.y + tableHeight;
 
     // Verifica interseção

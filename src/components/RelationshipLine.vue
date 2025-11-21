@@ -53,9 +53,13 @@ const props = defineProps({
     type: Object,
     required: true,
   },
-  tableWidth: {
+  fromTableWidth: {
     type: Number,
-    default: 220,
+    required: true, // Agora é obrigatório
+  },
+  toTableWidth: {
+    type: Number,
+    required: true, // Agora é obrigatório
   },
   headerHeight: {
     type: Number,
@@ -192,8 +196,8 @@ const labelPositions = computed(() => {
   const y2 = t2.y + getColumnOffset(t2, props.relationship.toCol);
 
   // ZONA DE CÁLCULO
-  const t1Right = t1.x + props.tableWidth;
-  const t2Right = t2.x + props.tableWidth;
+  const t1Right = t1.x + props.fromTableWidth;
+  const t2Right = t2.x + props.toTableWidth;
   const t1Left = t1.x;
   const t2Left = t2.x;
 
@@ -277,8 +281,8 @@ const pathData = computed(() => {
   const r = Math.min(defaultRadius, deltaY / 2);
 
   // Limites das tabelas (Bounding Box)
-  const t1Right = t1.x + props.tableWidth;
-  const t2Right = t2.x + props.tableWidth;
+  const t1Right = t1.x + props.fromTableWidth;
+  const t2Right = t2.x + props.toTableWidth;
   const t1Left = t1.x;
   const t2Left = t2.x;
 
