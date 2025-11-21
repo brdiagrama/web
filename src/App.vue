@@ -108,7 +108,7 @@
                     colIndex === table.columns.length - 1 ? rowHeight - 0.6 : rowHeight
                   "
                   :fill="col.isPk ? '#fef2f2' : '#eff6ff'"
-                  :rx="colIndex === table.columns.length - 1 ? 10 : 0"
+                  :rx="colIndex === table.columns.length - 1 ? 4 : 0"
                   style="pointer-events: none"
                 />
 
