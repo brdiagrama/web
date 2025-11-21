@@ -14,6 +14,8 @@
       :marker-end="markerEnd"
     />
 
+    <path v-show="isActive" :d="pathData" class="connector-flow" />
+
     <!--Labels de Cardinalidade -->
     <text
       :x="labelPositions.start.x"
@@ -376,5 +378,32 @@ const pathData = computed(() => {
 .cardinality-label {
   /* ... */
   transition: opacity 0.2s, transform 0.2s;
+}
+
+/* Animação Keyframe: Cria o movimento infinito */
+@keyframes flowDash {
+  to {
+    stroke-dashoffset: 40px; /* O valor negativo puxa para frente (do start pro end) */
+  }
+}
+
+.connector-flow {
+  fill: none;
+  stroke: #4facfe;
+  stroke-width: 2px;
+  pointer-events: none;
+  
+  stroke-dasharray: 3 10; 
+  
+  animation: flowDash 2.5s linear infinite;
+
+  opacity: 0.8;
+}
+
+/* Ajuste fino para quando estiver ativo */
+.relationship-line.is-active .connector-visual {
+  stroke: #192747; 
+  stroke-width: 3px; 
+  filter: drop-shadow(0 0 2px rgba(25, 39, 71, 0.5));
 }
 </style>
