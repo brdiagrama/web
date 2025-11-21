@@ -93,6 +93,88 @@ export class SqlParserService {
         return true; // É herança!
     }
 
+    static calculateOffsets(relationships) {
+        const ports = {};
+
+        // 1. Definição do Mapa de Marcadores (Tem que ser igual ao do Frontend)
+        // Isso serve para saber se visualmente os ícones são iguais ou diferentes
+        const getMarkerType = (cardinality, side) => {
+            const map = {
+                "one-to-one": { start: "oneBarStart", end: "oneBarEnd" },
+                "one-to-many": { start: "oneOrMany", end: "oneBarEnd" },
+                "zero-to-one": { start: "zeroOrOne", end: "oneBarEnd" },
+
+                // Nossos casos personalizados
+                "zero-to-many": { start: "zeroOrMany", end: "exactlyOne" },
+                "optional-many": { start: "zeroOrMany", end: "zeroOrOne" },
+
+                "inheritance": { start: "zeroOrOne", end: "exactlyOne" },
+                "many-to-many": { start: "crowsFoot", end: "crowsFoot" }
+            };
+            const type = map[cardinality] || map["one-to-many"];
+            return side === 'source' ? type.start : type.end;
+        };
+
+        // 2. Agrupar conexões por "porta" (Tabela + Coluna + Lado)
+        relationships.forEach(rel => {
+            const keySource = `${rel.fromTable}_${rel.fromCol}_source`;
+            const keyTarget = `${rel.toTable}_${rel.toCol}_target`;
+
+            if (!ports[keySource]) ports[keySource] = [];
+            if (!ports[keyTarget]) ports[keyTarget] = [];
+
+            ports[keySource].push(rel);
+            ports[keyTarget].push(rel);
+        });
+
+        // 3. Processar cada porta
+        Object.entries(ports).forEach(([key, group]) => {
+            if (group.length > 0) {
+                const isSource = key.includes('_source');
+
+                // --- SUB-AGRUPAMENTO INTELIGENTE ---
+                // Agrupa as relações baseadas no TIPO VISUAL do marcador
+                const markerGroups = {};
+
+                group.forEach(rel => {
+                    // Descobre qual desenho vai aparecer nesta ponta
+                    const marker = getMarkerType(rel.cardinality, isSource ? 'source' : 'target');
+
+                    if (!markerGroups[marker]) markerGroups[marker] = [];
+                    markerGroups[marker].push(rel);
+                });
+
+                // Lista de tipos de marcadores únicos presentes nesta porta
+                const uniqueMarkers = Object.keys(markerGroups).sort();
+
+                // Se tivermos marcadores diferentes, precisamos separar as linhas.
+                // Se todos forem iguais, count será 1 e gap será 0 (tudo junto).
+                const count = uniqueMarkers.length;
+                const gap = 20; // Distância entre GRUPOS de tipos diferentes
+                const totalHeight = (count - 1) * gap;
+                let currentY = -totalHeight / 2;
+
+                uniqueMarkers.forEach(marker => {
+                    const relsInThisGroup = markerGroups[marker];
+
+                    // Aplica o MESMO offset para todas as linhas que têm o MESMO marcador
+                    relsInThisGroup.forEach(rel => {
+                        if (key === `${rel.fromTable}_${rel.fromCol}_source`) {
+                            rel.sourceOffsetY = currentY;
+                        } else {
+                            rel.targetOffsetY = currentY;
+                        }
+                    });
+
+                    // Só avança o Y se mudarmos de tipo de marcador
+                    currentY += gap;
+                });
+            }
+        });
+
+        return relationships;
+    }
+
     static parse(sql) {
         const parser = new Parser();
         const newTables = {};
@@ -206,7 +288,9 @@ export class SqlParserService {
                                 toCol: toColumnName,
                                 cardinality: SqlParserService.detectCardinality(fkColumn, tableData, fkColumn.refTable, newTables),
                                 vertices: [],
-                                auto: true
+                                auto: true,
+                                sourceOffsetY: 0,
+                                targetOffsetY: 0
                             });
                         }
                     }
@@ -233,6 +317,8 @@ export class SqlParserService {
                 rel.cardinality = 'many-to-many';
             }
         });
+
+        SqlParserService.calculateOffsets(newRelationships);
 
         return { tables: newTables, relationships: newRelationships };
     }

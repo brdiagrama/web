@@ -198,8 +198,11 @@ const labelPositions = computed(() => {
   if (!t1 || !t2) return { start: { x: 0, y: 0 }, end: { x: 0, y: 0 } };
 
   // Y do ponto de conexão (centro da coluna)
-  const y1 = t1.y + getColumnOffset(t1, props.relationship.fromCol);
-  const y2 = t2.y + getColumnOffset(t2, props.relationship.toCol);
+const sourceOffset = props.relationship.sourceOffsetY || 0;
+const targetOffset = props.relationship.targetOffsetY || 0;
+
+const y1 = t1.y + getColumnOffset(t1, props.relationship.fromCol) + sourceOffset;
+const y2 = t2.y + getColumnOffset(t2, props.relationship.toCol) + targetOffset;
 
   // ZONA DE CÁLCULO
   const t1Right = t1.x + props.fromTableWidth;
@@ -280,10 +283,11 @@ const pathData = computed(() => {
 
   if (!t1 || !t2) return "";
 
+  const sourceOffset = props.relationship.sourceOffsetY || 0;
+const targetOffset = props.relationship.targetOffsetY || 0;
   // Coordenadas Y das colunas
-  const y1 = t1.y + getColumnOffset(t1, props.relationship.fromCol);
-  const y2 = t2.y + getColumnOffset(t2, props.relationship.toCol);
-
+ const y1 = t1.y + getColumnOffset(t1, props.relationship.fromCol) + sourceOffset;
+const y2 = t2.y + getColumnOffset(t2, props.relationship.toCol) + targetOffset;
   // Configuração do raio base
   const defaultRadius = 12;
   const deltaY = Math.abs(y2 - y1);
