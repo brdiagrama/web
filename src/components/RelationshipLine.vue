@@ -1,9 +1,5 @@
 <template>
-  <g
-    class="relationship-line"
-    ref="relationshipGroup"
-    :class="{ 'is-active': isHovered }"
-  >
+  <g class="relationship-line" ref="relationshipGroup" :class="{ 'is-active': isActive }">
     <path
       :d="pathData"
       class="connector-hitbox"
@@ -23,7 +19,7 @@
       :x="labelPositions.start.x"
       :y="labelPositions.start.y"
       class="cardinality-label"
-      :class="{ 'cardinality-hover': isHovered }"
+      :class="{ 'cardinality-hover': isActive }"
     >
       {{ cardinalityStart }}
     </text>
@@ -32,7 +28,7 @@
       :x="labelPositions.end.x"
       :y="labelPositions.end.y"
       class="cardinality-label"
-      :class="{ 'cardinality-hover': isHovered }"
+      :class="{ 'cardinality-hover': isActive }"
     >
       {{ cardinalityEnd }}
     </text>
@@ -67,6 +63,10 @@ const props = defineProps({
     type: Number,
     default: 28,
   },
+  selectedTables: {
+    type: Set,
+    default: () => new Set(),
+  },
 });
 
 // Estado do hover
@@ -74,14 +74,20 @@ const isHovered = ref(false);
 const relationshipGroup = ref(null);
 let hoverTimeout = null;
 
+const isActive = computed(() => {
+  return (
+    isHovered.value ||
+    props.selectedTables.has(props.relationship.fromTable) ||
+    props.selectedTables.has(props.relationship.toTable)
+  );
+});
+
+
 // Funções de hover para trocar markers
 const onHover = () => {
-  // 1. Limpa qualquer timeout pendente (se o mouse voltar rapidamente)
   clearTimeout(hoverTimeout);
-
-  // 2. Define o estado (e Z-index via parent.appendChild) imediatamente
   isHovered.value = true;
-  if (relationshipGroup.value) {
+  if (relationshipGroup.value?.parentNode) {
     relationshipGroup.value.parentNode.appendChild(relationshipGroup.value);
   }
 };
@@ -93,18 +99,17 @@ const onUnhover = () => {
   }, 50); // 💡 Atraso de 50ms
 };
 // Computed properties para cardinalidade
-
 // Determina markers baseado na cardinalidade
 const markerStart = computed(() => {
   const cardinality = props.relationship.cardinality || "one-to-many";
   const base = getMarkerForCardinality(cardinality, "start");
-  return isHovered.value ? `url(#${base}Hover)` : `url(#${base})`;
+  return isActive.value ? `url(#${base}Hover)` : `url(#${base})`;
 });
 
 const markerEnd = computed(() => {
   const cardinality = props.relationship.cardinality || "one-to-many";
   const base = getMarkerForCardinality(cardinality, "end");
-  return isHovered.value ? `url(#${base}Hover)` : `url(#${base})`;
+  return isActive.value ? `url(#${base}Hover)` : `url(#${base})`;
 });
 
 // Mapeia cardinalidade para markers corretos
@@ -112,9 +117,9 @@ const getMarkerForCardinality = (cardinality, side) => {
   const map = {
     "one-to-one": { start: "oneBarStart", end: "oneBarEnd" },
     "one-to-many": { start: "oneOrMany", end: "oneBarEnd" },
-    "many-to-many": { start: "crowsFoot", end: "crowsFoot" },
+    "many-to-many": { start: "crowsFoot", end: "" },
     "zero-to-one": { start: "zeroOrOne", end: "oneBarEnd" },
-    "zero-to-many": { start: "zeroOrMany", end: "oneBar" },
+    "zero-to-many": { start: "zeroOrMany", end: "" },
   };
   return map[cardinality]?.[side] || "oneBar";
 };
@@ -167,8 +172,6 @@ const labelPositions = computed(() => {
   let startX, endX;
   const yOffset = -15; // 15px acima da linha
 
-
-  
   // --- CENÁRIO 1: T1 à esquerda de T2 (Rotas em Z) ---
   if (t1Right + 40 < t2Left) {
     // Lado 'start' (FK) fica à direita da tabela, perto do ícone
