@@ -9,13 +9,13 @@
             :class="['toolbar-btn', 'grid-btn', { active: store.isGridVisible }]"
             title="Mostrar/Ocultar Grade"
         >
-            <svg width="16" height="16" viewBox="0 0 16 16">
-                <!-- Ícone de grade pontilhada -->
-                <circle cx="2" cy="2" r="0.5" fill="currentColor"/>
-                <circle cx="6" cy="2" r="0.5" fill="currentColor"/>
-                <circle cx="10" cy="2" r="0.5" fill="currentColor"/>
-                <circle cx="14" cy="2" r="0.5" fill="currentColor"/>
-                <!-- ... mais pontos para formar a grade -->
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor">
+                <!-- Linhas verticais -->
+                <line x1="6" y1="2" x2="6" y2="16" stroke-width="2"/>
+                <line x1="12" y1="2" x2="12" y2="16" stroke-width="2"/>
+                <!-- Linhas horizontais -->
+                <line x1="2" y1="6" x2="16" y2="6" stroke-width="2"/>
+                <line x1="2" y1="12" x2="16" y2="12" stroke-width="2"/>
             </svg>
         </button>
            
@@ -176,18 +176,26 @@ const fitDiagram = () => {
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
+    width: 75px;
+    height: 36px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 7px;
 }
 
 .grid-btn.active {
-    background-color: #007acc;
-    color: white;
+    background-color: #e8f4ff;
+    border-color: #007acc;
+    color: #007acc;
 }
 
 .grid-btn:hover {
     background-color: #f0f0f0;
+    border-color: #999;
 }
 
 .grid-btn.active:hover {
-    background-color: #005a9e;
+    background-color: #d0e8ff;
+    border-color: #005a9e;
 }
 </style>
