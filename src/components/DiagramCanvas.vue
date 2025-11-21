@@ -797,7 +797,7 @@ defineExpose({
 }
 
 .pk-icon {
-  fill: #e74c3c;
+  fill: #1ABC9C;
   font-size: 10px;
   font-weight: bold;
 }

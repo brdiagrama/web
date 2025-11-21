@@ -107,7 +107,7 @@
                   :height="
                     colIndex === table.columns.length - 1 ? rowHeight - 0.6 : rowHeight
                   "
-                  :fill="col.isPk ? '#fef2f2' : '#eff6ff'"
+                  :fill="col.isPk ? '#EDFEFC' : '#eff6ff'"
                   :rx="colIndex === table.columns.length - 1 ? 4 : 0"
                   style="pointer-events: none"
                 />
@@ -154,7 +154,7 @@
                     :y1="headerHeight + colIndex * rowHeight"
                     :x2="getTableWidth(table) - 0.6"
                     :y2="headerHeight + colIndex * rowHeight"
-                    :stroke="col.isPk ? '#fca5a5' : '#93c5fd'"
+                    :stroke="col.isPk ? '#70D8CC' : '#93c5fd'"
                     stroke-width="1.1"
                   />
 
@@ -165,7 +165,7 @@
                     :y1="headerHeight + (colIndex + 1) * rowHeight"
                     :x2="getTableWidth(table) - 0.6"
                     :y2="headerHeight + (colIndex + 1) * rowHeight"
-                    :stroke="col.isPk ? '#fca5a5' : '#93c5fd'"
+                    :stroke="col.isPk ? '#70D8CC' : '#93c5fd'"
                     stroke-width="1.1"
                   />
                 </g>
@@ -251,7 +251,7 @@
                   :height="
                     colIndex === table.columns.length - 1 ? rowHeight - 2 : rowHeight
                   "
-                  :fill="col.isPk ? '#fef2f2' : '#eff6ff'"
+                  :fill="col.isPk ? '#EDFEFC' : '#eff6ff'"
                   :rx="colIndex === table.columns.length - 1 ? 6 : 3"
                   style="pointer-events: none"
                 />
@@ -299,7 +299,7 @@
                     :y1="headerHeight + colIndex * rowHeight"
                     :x2="getTableWidth(table) - 1.28"
                     :y2="headerHeight + colIndex * rowHeight"
-                    :stroke="col.isPk ? '#fca5a5' : '#93c5fd'"
+                    :stroke="col.isPk ? '#70D8CC' : '#93c5fd'"
                     stroke-width="2"
                   />
 
@@ -310,7 +310,7 @@
                     :y1="headerHeight + (colIndex + 1) * rowHeight"
                     :x2="getTableWidth(table) - 1.28"
                     :y2="headerHeight + (colIndex + 1) * rowHeight"
-                    :stroke="col.isPk ? '#fca5a5' : '#93c5fd'"
+                    :stroke="col.isPk ? '#70D8CC' : '#93c5fd'"
                     stroke-width="2"
                   />
                 </g>
