@@ -1,91 +1,81 @@
-// MODEL - Camada de Regras de Negócio
-// src/models/sqlParser.service.js
-// 
-// Responsabilidades:
-// - Parsear SQL (CREATE TABLE) para estrutura JSON
-// - Identificar colunas, tipos de dados, PKs e FKs
-// - Extrair relacionamentos entre tabelas
-// - Preparar dados para visualização no diagrama ER
-
 import { generateId } from '../utils/mathUtils.js';
 import pkg from 'node-sql-parser';
 const { Parser } = pkg;
 
-/**
- * Service que processa SQL e extrai metadados para diagramas ER.
- * 
- * Usa biblioteca node-sql-parser para transformar SQL em AST (Abstract Syntax Tree),
- * permitindo análise estruturada das definições de tabelas.
- */
 export class SqlParserService {
-    
-    /**
-     * Método principal: recebe SQL bruto e retorna estrutura para diagrama.
-     * 
-     * @param {string} sql - Uma ou mais declarações CREATE TABLE em SQL
-     * @returns {object} { tables: {...}, relationships: [...] }
-     * 
-     * Exemplo de retorno:
-     * {
-     *   tables: {
-     *     "usuarios": { name: "usuarios", columns: [...], x: 100, y: 50 },
-     *     "pedidos": { name: "pedidos", columns: [...], x: 350, y: 50 }
-     *   },
-     *   relationships: [
-     *     { fromTable: "pedidos", fromColumn: "usuario_id", toTable: "usuarios" }
-     *   ]
-     * }
-     */
-    //  Função auxiliar para detectar cardinalidade
-    static detectCardinality(fkColumn, foreignKeyDef) {
-        // Verifica constraints da coluna FK
-        const isNullable = fkColumn.nullable !== false; // se NOT NULL
-        const isUnique = fkColumn.unique || false;
-        
-        // Lógica de detecção:
-        // - FK única + NOT NULL = one-to-one
-        // - FK única + NULL = zero-to-one
-        // - FK normal + NOT NULL = one-to-many
-        // - FK normal + NULL = zero-to-many
-        
-        if (isUnique && isNullable) return 'one-to-one';
-        if (isUnique && !isNullable) return 'zero-to-one';
-        if (!isUnique && isNullable) return 'one-to-many';
-        if (!isUnique && !isNullable) return 'zero-to-many';
-        
-        // Padrão: one-to-many (FK comum)
-        return 'one-to-many';
+
+    static detectCardinality(fkColumn) {
+        const isNullable = fkColumn.nullable !== false;
+        const isUnique = fkColumn.unique === true;
+
+        if (isUnique) {
+            if (!isNullable) {
+                return 'one-to-one';
+            } else {
+                return 'zero-to-one';
+            }
+        } else {
+            if (!isNullable) {
+                return 'one-to-many';
+            } else {
+                return 'zero-to-many';
+            }
+        }
     }
+
+    static isJunctionTable(tableData) {
+        // Uma tabela associativa pura geralmente tem poucas colunas (2 ou 3 se tiver created_at)
+        // Se tiver muitas colunas, pode ser uma entidade fraca, então cuidado com validação muito estrita.
+        if (tableData.columns.length < 2) return false;
+
+        let fkCount = 0;
+        let pkCount = 0;
+
+        for (const col of tableData.columns) {
+            if (col.isFk) fkCount++;
+            if (col.isPk) pkCount++;
+        }
+
+        // REGRA N:N PURA:
+        // 1. Todas as colunas da PK devem ser também FKs.
+        // 2. Deve ter pelo menos 2 FKs que compõem a PK.
+        // No seu caso (id_aluno, id_curso), ambos são PK e ambos são FK.
+
+        // Vamos verificar se todas as colunas que são FKs também são PKs
+        const allFksArePks = tableData.columns
+            .filter(c => c.isFk)
+            .every(c => c.isPk);
+
+        // E se a quantidade de colunas bate com a quantidade de PKs (para ser pura)
+        // Ou se você aceita colunas extras, apenas verifique se tem 2 FKs que são PKs.
+
+        // Para o seu SQL exato:
+        return fkCount >= 2 && allFksArePks && pkCount === fkCount;
+    }
+
     static parse(sql) {
-        // Instancia o parser da biblioteca node-sql-parser
         const parser = new Parser();
         const newTables = {};
         const newRelationships = [];
 
-        // Validação básica: SQL vazio retorna estrutura vazia
         if (!sql.trim()) {
             return { tables: {}, relationships: [] };
         }
 
-        // Converte SQL em AST (Abstract Syntax Tree)
-        // O AST é uma representação em árvore do código SQL, permitindo navegação estruturada
         const astList = parser.astify(sql, { database: 'MySQL' });
-        
-        // astify pode retornar um único statement ou array (quando há múltiplos CREATE TABLE)
         const statements = Array.isArray(astList) ? astList : [astList];
 
-        // Processa cada statement SQL (cada CREATE TABLE vira uma tabela)
-        // Parâmetros de layout
-        const maxPerRow = 5; // Máximo de tabelas por linha
-        const xSpacing = 300; // Espaço horizontal entre tabelas
-        const ySpacing = 180; // Espaço vertical entre linhas
+        const maxPerRow = 5;
+        const xSpacing = 300;
+        const ySpacing = 180;
 
         let tableIndex = 0;
+
+        // --- FASE 1: Mapear Tabelas e Colunas ---
         statements.forEach(ast => {
             if (ast.type === 'create' && ast.keyword === 'table') {
                 const tableName = ast.table[0].table;
 
-                // Calcula posição baseada no índice
                 const row = Math.floor(tableIndex / maxPerRow);
                 const col = tableIndex % maxPerRow;
                 const x = 50 + col * xSpacing;
@@ -98,9 +88,6 @@ export class SqlParserService {
                     y,
                 };
 
-                // Detecta PK por constraint separada
-                let pkConstraintName = null;
-
                 ast.create_definitions.forEach(def => {
                     if (def.resource === 'column') {
                         const column = {
@@ -112,59 +99,101 @@ export class SqlParserService {
                             nullable: true,
                             unique: false
                         };
-                        // Detecta PK inline pelo AST
-                        if (def.primary_key && def.primary_key.toLowerCase() === 'primary key') {
-                            column.isPk = true;
-                        }
+
+                        // Constraints Inline
+                        if (def.primary_key && def.primary_key.toLowerCase() === 'primary key') column.isPk = true;
+                        if (def.unique && def.unique.toLowerCase() === 'unique') column.unique = true;
+                        if (def.nullable && def.nullable.type === 'not null') column.nullable = false;
+                        if (def.definition && def.definition.primaryKey === true) column.isPk = true;
+
+                        // Constraints Array
                         if (def.constraints) {
                             def.constraints.forEach(c => {
-                                if (c.constraint_type && c.constraint_type.toLowerCase() === 'primary key') column.isPk = true;
-                                if (c.constraint_type && c.constraint_type.toLowerCase() === 'not null') column.nullable = false;
-                                if (c.constraint_type && c.constraint_type.toLowerCase() === 'unique') column.unique = true;
+                                if (c.constraint_type) {
+                                    const type = c.constraint_type.toLowerCase();
+                                    if (type === 'primary key') column.isPk = true;
+                                    if (type === 'not null') column.nullable = false;
+                                    if (type === 'unique') column.unique = true;
+                                }
                             });
                         }
-                        if (def.definition && def.definition.primaryKey === true) {
-                            column.isPk = true;
-                        }
-                        if (pkConstraintName && column.name === pkConstraintName) {
-                            column.isPk = true;
-                        }
+
                         tableData.columns.push(column);
+
                     } else if (def.resource === 'constraint') {
-                        if (def.constraint_type && def.constraint_type.toLowerCase() === 'primary key') {
-                            pkConstraintName = def.definition[0].column;
-                        } else if (def.constraint_type && def.constraint_type.toLowerCase() === 'foreign key') {
-                            const fkColumnName = def.definition[0].column;
-                            const fkColumn = tableData.columns.find(c => c.name === fkColumnName);
-                            if (fkColumn) {
-                                fkColumn.isFk = true;
-                                fkColumn.refTable = def.reference_definition.table[0].table;
-                                const toColumnName = def.reference_definition.definition?.[0]?.column || 'id';
-                                newRelationships.push({
-                                    id: generateId(),
-                                    fromTable: tableName,
-                                    fromCol: fkColumnName,
-                                    toTable: fkColumn.refTable,
-                                    toCol: toColumnName,
-                                    cardinality: SqlParserService.detectCardinality(fkColumn, def),
-                                    vertices: [],
-                                    auto: true
-                                });
-                            }
+                        const type = def.constraint_type ? def.constraint_type.toLowerCase() : '';
+
+                        if (type === 'primary key') {
+                            // --- CORREÇÃO AQUI: Iterar sobre TODAS as colunas da PK composta ---
+                            def.definition.forEach(pkDef => {
+                                const col = tableData.columns.find(c => c.name === pkDef.column);
+                                if (col) col.isPk = true;
+                            });
+                        } else if (type === 'unique') {
+                            const uniqueColName = def.definition[0].column;
+                            const col = tableData.columns.find(c => c.name === uniqueColName);
+                            if (col) col.unique = true;
                         }
                     }
                 });
-                // Se PK foi definida por constraint, marca a coluna correspondente
-                if (pkConstraintName) {
-                    const pkColumn = tableData.columns.find(c => c.name === pkConstraintName);
-                    if (pkColumn) pkColumn.isPk = true;
-                }
+
                 newTables[tableName] = tableData;
                 tableIndex++;
             }
         });
-        
-        // Retorna estrutura pronta para ser renderizada pela View
+
+        // --- FASE 2: Mapear Relacionamentos (Inicialmente como 1:N) ---
+        statements.forEach(ast => {
+            if (ast.type === 'create' && ast.keyword === 'table') {
+                const tableName = ast.table[0].table;
+                const tableData = newTables[tableName];
+
+                ast.create_definitions.forEach(def => {
+                    if (def.resource === 'constraint' && def.constraint_type && def.constraint_type.toLowerCase() === 'foreign key') {
+                        const fkColumnName = def.definition[0].column;
+                        const fkColumn = tableData.columns.find(c => c.name === fkColumnName);
+
+                        if (fkColumn) {
+                            fkColumn.isFk = true;
+                            fkColumn.refTable = def.reference_definition.table[0].table;
+                            const toColumnName = def.reference_definition.definition?.[0]?.column || 'id';
+
+                            newRelationships.push({
+                                id: generateId(),
+                                fromTable: tableName,
+                                fromCol: fkColumnName,
+                                toTable: fkColumn.refTable,
+                                toCol: toColumnName,
+                                cardinality: SqlParserService.detectCardinality(fkColumn),
+                                vertices: [],
+                                auto: true
+                            });
+                        }
+                    }
+                });
+            }
+        });
+
+        // --- FASE 3: Detecção e Reversão para Muitos-para-Muitos (N:N) ---
+        const junctionTableNames = [];
+
+        // 1. Identificar tabelas associativas
+        for (const [name, data] of Object.entries(newTables)) {
+            if (SqlParserService.isJunctionTable(data)) {
+                junctionTableNames.push(name);
+                data.isJunction = true;
+            }
+        }
+
+        // 2. Marcar os relacionamentos que apontam PARA uma tabela associativa como N:N
+        newRelationships.forEach(rel => {
+            // Se o destino (fromTable) é uma tabela associativa
+            if (junctionTableNames.includes(rel.fromTable)) {
+                // Muda a cardinalidade para many-to-many (pé de galinha dos dois lados)
+                rel.cardinality = 'many-to-many';
+            }
+        });
+
         return { tables: newTables, relationships: newRelationships };
     }
 }
