@@ -140,14 +140,14 @@
         id="zeroOrOne"
         markerWidth="14"
         markerHeight="12"
-        refX="-1"
+        refX="-2.5"
         refY="4.21"
         orient="auto"
       >
         <line
-          x1="2"
+          x1="1.5"
           y1="0"
-          x2="2"
+          x2="1.5"
           y2="12"
           stroke="#7f8c8d"
           stroke-width="1.5"
@@ -169,14 +169,14 @@
         id="zeroOrOneHover"
         markerWidth="14"
         markerHeight="12"
-        refX="-1"
+        refX="-2.5"
         refY="4.21"
         orient="auto"
       >
         <line
-          x1="3"
+          x1="1.5"
           y1="0"
-          x2="3"
+          x2="1.5"
           y2="12"
           stroke="#192747"
           stroke-width="1.5"
@@ -194,13 +194,69 @@
         />
       </marker>
 
+      <marker
+        id="zeroOrOneEnd"
+        markerWidth="14"
+        markerHeight="12"
+        refX="13"
+        refY="4.21"
+        orient="auto"
+      >
+        <circle
+          cx="7.5"
+          cy="6"
+          r="2.5"
+          fill="#fff"
+          stroke="#7f8c8d"
+          stroke-width="1.5"
+          transform="scale(0.7)"
+        />
+        <line
+          x1="13.5"
+          y1="0"
+          x2="13.5"
+          y2="12"
+          stroke="#7f8c8d"
+          stroke-width="1.5"
+          transform="scale(0.7)"
+        />
+      </marker>
+
+      <marker
+        id="zeroOrOneEndHover"
+        markerWidth="14"
+        markerHeight="12"
+        refX="13"
+        refY="4.21"
+        orient="auto"
+      >
+        <circle
+          cx="7.5"
+          cy="6"
+          r="2.5"
+          fill="#fff"
+          stroke="#192747"
+          stroke-width="1.5"
+          transform="scale(0.7)"
+        />
+        <line
+          x1="13.5"
+          y1="0"
+          x2="13.5"
+          y2="12"
+          stroke="#192747"
+          stroke-width="1.5"
+          transform="scale(0.7)"
+        />
+      </marker>
+
       <!-- Exatamente Um (1) - Barra dupla vertical -->
       <marker
         id="exactlyOne"
         markerWidth="10"
         markerHeight="12"
         refX="10"
-        refY="6"
+        refY="4.2"
         orient="auto"
       >
         <line
@@ -228,7 +284,7 @@
         markerWidth="10"
         markerHeight="12"
         refX="10"
-        refY="6"
+        refY="4.2"
         orient="auto"
       >
         <line
@@ -236,7 +292,7 @@
           y1="0"
           x2="3"
           y2="12"
-          stroke="#2980b9"
+          stroke="#192747"
           stroke-width="1.5"
           transform="scale(0.7)"
         />
@@ -245,7 +301,7 @@
           y1="0"
           x2="7"
           y2="12"
-          stroke="#2980b9"
+          stroke="#192747"
           stroke-width="1.5"
           transform="scale(0.7)"
         />
@@ -336,6 +392,41 @@
           stroke="#192747"
           stroke-width="1.05"
           fill="none"
+        />
+      </marker>
+
+      <!-- Herança: Triângulo (lado da filha/subclasse) -->
+      <marker
+        id="twoBars"
+        markerWidth="12"
+        markerHeight="12"
+        refX="0"
+        refY="4.65"
+        orient="auto"
+      >
+        <path
+          d="M0 6 L10 0 L10 12 Z"
+          fill="#fff"
+          stroke="#7f8c8d"
+          stroke-width="1.5"
+          transform="scale(0.7)"
+        />
+      </marker>
+
+      <marker
+        id="twoBarsHover"
+        markerWidth="12"
+        markerHeight="12"
+        refX="0"
+        refY="4.65"
+        orient="auto"
+      >
+        <path
+          d="M0 6 L10 0 L10 12 Z"
+          fill="#fff"
+          stroke="#192747"
+          stroke-width="2"
+          transform="scale(0.7)"
         />
       </marker>
     </defs>
@@ -727,11 +818,9 @@ defineExpose({
 }
 
 .table-group:hover .table-rect {
-  stroke: #192747;     /* cor da borda ao passar o mouse */
-  stroke-width: 1px;   /* opcional: engrossar */
+  stroke: #192747; /* cor da borda ao passar o mouse */
+  stroke-width: 1px; /* opcional: engrossar */
 }
-
-
 
 .table-group:active {
   cursor: grabbing !important;

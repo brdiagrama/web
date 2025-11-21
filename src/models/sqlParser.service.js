@@ -4,10 +4,14 @@ const { Parser } = pkg;
 
 export class SqlParserService {
 
-    static detectCardinality(fkColumn) {
+    static detectCardinality(fkColumn, tableData, refTableName, newTables) {
+        if (SqlParserService.isInheritanceRelationship(tableData, fkColumn, refTableName, newTables)) {
+            return 'inheritance';
+        }
+
+        // Lógica original
         const isNullable = fkColumn.nullable !== false;
         const isUnique = fkColumn.unique === true;
-
         if (isUnique) {
             if (!isNullable) {
                 return 'one-to-one';
@@ -16,11 +20,20 @@ export class SqlParserService {
             }
         } else {
             if (!isNullable) {
-                return 'one-to-many';
-            } else {
+                // CASO PADRÃO (Teste 1): FK Obrigatória (NOT NULL)
+                // Retorna 'zero-to-many' porque no seu mapa ele desenha:
+                // Pai: || (exactlyOne)
+                // Filho: o< (zeroOrMany)
                 return 'zero-to-many';
+            } else {
+                // CASO OPCIONAL (Teste 2): FK Opcional (NULLABLE)
+                // Retorna o NOVO TIPO que criamos
+                // Pai: o| (zeroOrOne)
+                // Filho: o< (zeroOrMany)
+                return 'optional-many';
             }
         }
+
     }
 
     static isJunctionTable(tableData) {
@@ -51,6 +64,33 @@ export class SqlParserService {
 
         // Para o seu SQL exato:
         return fkCount >= 2 && allFksArePks && pkCount === fkCount;
+    }
+
+    static isInheritanceRelationship(tableData, fkColumn, refTableName, newTables) {
+        // Condições para herança:
+        // 1. A coluna FK deve ser a PK da tabela
+        // 2. A coluna FK deve referenciar a PK da tabela pai
+        // 3. Não pode ter outras FKs (senão seria tabela associativa)
+
+        if (!fkColumn.isPk || !fkColumn.isFk) return false;
+
+        // Conta quantas FKs a tabela tem
+        const fkCount = tableData.columns.filter(c => c.isFk).length;
+        if (fkCount > 1) return false;
+
+        // Verifica se a FK é a única PK da tabela
+        const pkColumns = tableData.columns.filter(c => c.isPk);
+        if (pkColumns.length !== 1) return false;
+
+        // Verifica se a coluna referenciada também é PK na tabela pai
+        const refTable = newTables[refTableName];
+        if (!refTable) return false;
+
+        // Aqui pode-se checar se a coluna referenciada é PK na tabela pai
+        // (Ajuste se necessário para seu modelo de dados)
+        // const refColumn = refTable.columns.find(c => c.name === fkColumn.refTable);
+
+        return true; // É herança!
     }
 
     static parse(sql) {
@@ -164,7 +204,7 @@ export class SqlParserService {
                                 fromCol: fkColumnName,
                                 toTable: fkColumn.refTable,
                                 toCol: toColumnName,
-                                cardinality: SqlParserService.detectCardinality(fkColumn),
+                                cardinality: SqlParserService.detectCardinality(fkColumn, tableData, fkColumn.refTable, newTables),
                                 vertices: [],
                                 auto: true
                             });

@@ -153,7 +153,9 @@ const getMarkerForCardinality = (cardinality, side) => {
     "one-to-many": { start: "oneOrMany", end: "oneBarEnd" },
     "many-to-many": { start: "crowsFoot", end: "" },
     "zero-to-one": { start: "zeroOrOne", end: "oneBarEnd" },
-    "zero-to-many": { start: "zeroOrMany", end: "" },
+    "zero-to-many": { start: "zeroOrMany", end: "exactlyOne" },
+    "optional-many": { start: "zeroOrMany", end: "zeroOrOneEnd" },
+    "inheritance": { start: "zeroOrOne", end: "exactlyOne" },
   };
   return map[cardinality]?.[side] || "oneBar";
 };
@@ -166,8 +168,10 @@ const cardinalityStart = computed(() => {
     "one-to-many": "N",
     "many-to-many": "N",
     "zero-to-one": "0..1",
-    "zero-to-many": "*",
+    "zero-to-many": "N",
     "one-to-zero-or-one": "1",
+    "inheritance": "0..1",
+    "optional-many": "N",
   };
   return map[cardinality] || "N";
 });
@@ -181,6 +185,8 @@ const cardinalityEnd = computed(() => {
     "zero-to-one": "1",
     "zero-to-many": "1",
     "one-to-zero-or-one": "0..1",
+    "inheritance": "1",
+    "optional-many": "0..1",
   };
   return map[cardinality] || "1";
 });
@@ -208,16 +214,20 @@ const labelPositions = computed(() => {
 
   // --- CENÁRIO 1: T1 à esquerda de T2 (Rotas em Z) ---
   if (t1Right + 40 < t2Left) {
+    const isWideMarker = props.relationship.cardinality === "optional-many";
+
+    const offset = isWideMarker ? 30 : 20;
     // Lado 'start' (FK) fica à direita da tabela, perto do ícone
     startX = t1Right + 4;
 
     // Lado 'end' (PK) fica à esquerda da tabela, perto do ícone
-    endX = t2Left - 15;
+    endX = t2Left - offset - 15;
   }
 
   // --- CENÁRIO 2: T1 à direita de T2 (Rotas em Z invertido) ---
   else if (t1Left > t2Right + 40) {
-    const isWideMarker = props.relationship.cardinality === "zero-to-one";
+    const isWideMarker = props.relationship.cardinality === "zero-to-one" ||
+      props.relationship.cardinality === "inheritance"; 
 
     // Se for wide usa 45, senão usa o padrão 20
     const offset = isWideMarker ? 45 : 20;
