@@ -1,353 +1,393 @@
 <template>
   <div class="app">
-    <div
-      class="editor-panel"
-      :class="{ 'no-transition': isResizing, 'panel-hidden': !isEditorVisible }"
-      :style="{ width: isEditorVisible ? editorWidth + 'px' : '0px' }"
-    >
-      <div class="editor-header">
-        <h1>Editor SQL</h1>
-        <button class="icon-btn" @click="toggleEditor" title="Ocultar Editor">❮</button>
+    <div class="main-content">
+      <div
+        class="editor-panel"
+        :class="{ 'no-transition': isResizing, 'panel-hidden': !isEditorVisible }"
+        :style="{ width: isEditorVisible ? editorWidth + 'px' : '0px' }"
+      >
+        <div class="editor-header">
+          <h1>Editor SQL</h1>
+
+          <button
+            v-if="errorCount > 0 || warningCount > 0"
+            class="problems-badge"
+            :class="{ 'has-errors': errorCount > 0, 'has-warnings': errorCount === 0 }"
+            @click="toggleProblemsPanel"
+            :title="`${errorCount} erro(s), ${warningCount} aviso(s)`"
+          >
+            <XCircle v-if="errorCount > 0" :size="14" class="badge-icon error-icon" />
+            <AlertTriangle v-else :size="14" class="badge-icon warning-icon" />
+
+            <span class="badge-count">
+              {{ errorCount + warningCount }}
+            </span>
+          </button>
+
+          <button class="icon-btn" @click="toggleEditor" title="Ocultar Editor">❮</button>
+        </div>
+
+        <SqlEditor
+          v-model="sqlCode"
+          :markers="[...validationResult.errors, ...validationResult.warnings]"
+          @update:model-value="handleSqlChange"
+          @editor-ready="handleEditorReady"
+        />
       </div>
 
-      <SqlEditor v-model="sqlCode" @update:model-value="handleSqlChange" editor-ready="handleEditorReady" />
-    </div>
+      <div v-if="!isEditorVisible" class="collapsed-sidebar" @click="toggleEditor">
+        <button class="icon-btn expand-btn" title="Abrir Editor">❯</button>
+      </div>
 
-    <div v-if="!isEditorVisible" class="collapsed-sidebar" @click="toggleEditor">
-      <button class="icon-btn expand-btn" title="Abrir Editor">❯</button>
-    </div>
+      <div v-show="isEditorVisible" class="resizer-handle" @mousedown="startResize"></div>
 
-    <div v-show="isEditorVisible" class="resizer-handle" @mousedown="startResize"></div>
-
-    <div class="canvas-panel">
-      <DiagramCanvas
-        ref="diagramCanvasRef"
-        class="canvas-container"
-        @selectionArea="handleSelectionArea"
-        @selectionSelecting="handleSelectionArea"
-      >
-        <!-- Definições SVG -->
-        <defs> </defs>
-        <!-- Debug: Mostrar informações dos dados -->
-        <text
-          v-if="!tables || Object.keys(tables).length === 0"
-          x="50"
-          y="50"
-          fill="#666"
-          font-size="14"
+      <div class="canvas-panel">
+        <DiagramCanvas
+          ref="diagramCanvasRef"
+          class="canvas-container"
+          @selectionArea="handleSelectionArea"
+          @selectionSelecting="handleSelectionArea"
         >
-          {{ debugMessage }}
-        </text>
-        <g v-if="tables && Object.keys(tables).length > 0">
-          <g class="relationships-back" ref="relationshipsBack">
-            <RelationshipLine
-              v-for="(rel, index) in inactiveRelationships"
-              :key="rel.id || index"
-              :relationship="rel"
-              :from-table="tables[rel.fromTable]"
-              :to-table="tables[rel.toTable]"
-              :table-width="getTableWidth(tables[rel.fromTable])"
-              :from-table-width="getTableWidth(tables[rel.fromTable])"
-              :to-table-width="getTableWidth(tables[rel.toTable])"
-              :header-height="headerHeight"
-              :row-height="rowHeight"
-              :selected-tables="selectedTables"
-              :hovered-column="hoveredColumn"
-              @update="updateRelationship"
-            />
-          </g>
-
-          <g class="tables-unselected">
-            <g
-              v-for="table in unselectedTablesList"
-              :key="table.name"
-              :transform="`translate(${table.x}, ${table.y})`"
-              class="table-group"
-              style="cursor: grab"
-              @mousedown="(event) => startDrag(event, table.name)"
-            >
-              <rect
-                :width="getTableWidth(table)"
-                :height="getTableHeight(table)"
-                class="table-rect"
-                rx="6"
+          <!-- Definições SVG -->
+          <defs> </defs>
+          <!-- Debug: Mostrar informações dos dados -->
+          <text
+            v-if="!tables || Object.keys(tables).length === 0"
+            x="50"
+            y="50"
+            fill="#666"
+            font-size="14"
+          >
+            {{ debugMessage }}
+          </text>
+          <g v-if="tables && Object.keys(tables).length > 0">
+            <g class="relationships-back" ref="relationshipsBack">
+              <RelationshipLine
+                v-for="(rel, index) in inactiveRelationships"
+                :key="rel.id || index"
+                :relationship="rel"
+                :from-table="tables[rel.fromTable]"
+                :to-table="tables[rel.toTable]"
+                :table-width="getTableWidth(tables[rel.fromTable])"
+                :from-table-width="getTableWidth(tables[rel.fromTable])"
+                :to-table-width="getTableWidth(tables[rel.toTable])"
+                :header-height="headerHeight"
+                :row-height="rowHeight"
+                :selected-tables="selectedTables"
+                :hovered-column="hoveredColumn"
+                @update="updateRelationship"
               />
-              <path
-                :d="`M0 6 Q0 0 6 0 L${getTableWidth(table) - 6} 0 Q${getTableWidth(
-                  table
-                )} 0 ${getTableWidth(table)} 6 L${getTableWidth(
-                  table
-                )} ${headerHeight} L0 ${headerHeight} Z`"
-                class="table-header-rect"
-              />
-              <text :x="15" :y="22" class="table-title">{{ table.name }}</text>
-              <g v-for="(col, colIndex) in table.columns" :key="colIndex">
-                <!-- Retângulo invisível para aumentar área de hover -->
-                <rect
-                  v-if="col.isPk || col.isFk"
-                  :x="0"
-                  :y="headerHeight + colIndex * rowHeight"
-                  :width="getTableWidth(table) - 1"
-                  :height="rowHeight"
-                  fill="transparent"
-                  class="column-hover-area"
-                  @mouseenter="
-                    handleColumnHover({
-                      tableName: table.name,
-                      columnName: col.name,
-                      isHovering: true,
-                      isPk: col.isPk,
-                      isFk: col.isFk,
-                      refTable: col.refTable,
-                    })
-                  "
-                  @mouseleave="handleColumnHover({ isHovering: false })"
-                />
-
-                <!-- Background highlight - AGORA COLADO NO HEADER -->
-                <rect
-                  v-if="
-                    (col.isPk || col.isFk) &&
-                    (isColumnHovered(table.name, col.name) ||
-                      isTableColumnHighlighted(table.name, col))
-                  "
-                  :x="0.6"
-                  :y="headerHeight + colIndex * rowHeight"
-                  :width="getTableWidth(table) - 1.2"
-                  :height="
-                    colIndex === table.columns.length - 1 ? rowHeight - 0.6 : rowHeight
-                  "
-                  :fill="col.isPk ? '#EDFEFC' : '#eff6ff'"
-                  :rx="colIndex === table.columns.length - 1 ? 4 : 0"
-                  style="pointer-events: none"
-                />
-
-                <text
-                  :x="15"
-                  :y="headerHeight + 20 + colIndex * rowHeight"
-                  font-size="10"
-                  font-weight="bold"
-                  :class="{ 'fk-icon': col.isFk, 'pk-icon': col.isPk && !col.isFk }"
-                  style="pointer-events: none"
-                >
-                  {{ col.isFk ? "FK" : col.isPk ? "PK" : "" }}
-                </text>
-                <text
-                  :x="col.isPk || col.isFk ? 40 : 15"
-                  :y="headerHeight + 20 + colIndex * rowHeight"
-                  class="col-text"
-                  :font-weight="col.isPk ? 'bold' : 'normal'"
-                  style="pointer-events: none"
-                >
-                  {{ col.name }}
-                </text>
-                <text
-                  :x="getTableWidth(table) - 15"
-                  :y="headerHeight + 20 + colIndex * rowHeight"
-                  class="col-type"
-                  text-anchor="end"
-                  style="pointer-events: none"
-                >
-                  {{ col.type }}
-                </text>
-                <g
-                  v-if="
-                    (col.isPk || col.isFk) &&
-                    (isColumnHovered(table.name, col.name) ||
-                      isTableColumnHighlighted(table.name, col))
-                  "
-                  style="pointer-events: none"
-                >
-                  <!-- Linha superior (sempre renderiza) -->
-                  <line
-                    :x1="0.6"
-                    :y1="headerHeight + colIndex * rowHeight"
-                    :x2="getTableWidth(table) - 0.6"
-                    :y2="headerHeight + colIndex * rowHeight"
-                    :stroke="col.isPk ? '#70D8CC' : '#93c5fd'"
-                    stroke-width="1.1"
-                  />
-
-                  <!-- Linha inferior (só se NÃO for a última coluna) -->
-                  <line
-                    v-if="colIndex < table.columns.length - 1"
-                    :x1="0.6"
-                    :y1="headerHeight + (colIndex + 1) * rowHeight"
-                    :x2="getTableWidth(table) - 0.6"
-                    :y2="headerHeight + (colIndex + 1) * rowHeight"
-                    :stroke="col.isPk ? '#70D8CC' : '#93c5fd'"
-                    stroke-width="1.1"
-                  />
-                </g>
-              </g>
             </g>
-          </g>
 
-          <g class="relationships-front" ref="relationshipsFront">
-            <RelationshipLine
-              v-for="(rel, index) in activeRelationships"
-              :key="rel.id || index"
-              :relationship="rel"
-              :from-table="tables[rel.fromTable]"
-              :to-table="tables[rel.toTable]"
-              :table-width="getTableWidth(tables[rel.fromTable])"
-              :from-table-width="getTableWidth(tables[rel.fromTable])"
-              :to-table-width="getTableWidth(tables[rel.toTable])"
-              :header-height="headerHeight"
-              :row-height="rowHeight"
-              :selected-tables="selectedTables"
-              :hovered-column="hoveredColumn"
-              @update="updateRelationship"
-            />
-          </g>
-
-          <g class="tables-selected">
-            <g
-              v-for="table in selectedTablesList"
-              :key="table.name"
-              :transform="`translate(${table.x}, ${table.y})`"
-              class="table-group selected"
-              style="cursor: grabbing"
-              @mousedown="(event) => startDrag(event, table.name)"
-            >
-              <rect
-                :width="getTableWidth(table)"
-                :height="getTableHeight(table)"
-                class="table-rect selected"
-                rx="6"
-              />
-              <path
-                :d="`M0 6 Q0 0 6 0 L${getTableWidth(table) - 6} 0 Q${getTableWidth(
-                  table
-                )} 0 ${getTableWidth(table)} 6 L${getTableWidth(
-                  table
-                )} ${headerHeight} L0 ${headerHeight} Z`"
-                class="table-header-rect"
-              />
-              <text :x="15" :y="22" class="table-title">{{ table.name }}</text>
-              <g v-for="(col, colIndex) in table.columns" :key="colIndex">
-                <!-- Retângulo invisível para aumentar área de hover -->
+            <g class="tables-unselected">
+              <g
+                v-for="table in unselectedTablesList"
+                :key="table.name"
+                :transform="`translate(${table.x}, ${table.y})`"
+                class="table-group"
+                style="cursor: grab"
+                @mousedown="(event) => startDrag(event, table.name)"
+              >
                 <rect
-                  v-if="col.isPk || col.isFk"
-                  :x="0"
-                  :y="headerHeight + colIndex * rowHeight"
                   :width="getTableWidth(table)"
-                  :height="rowHeight"
-                  fill="transparent"
-                  class="column-hover-area"
-                  @mouseenter="
-                    handleColumnHover({
-                      tableName: table.name,
-                      columnName: col.name,
-                      isHovering: true,
-                      isPk: col.isPk,
-                      isFk: col.isFk,
-                      refTable: col.refTable,
-                    })
-                  "
-                  @mouseleave="handleColumnHover({ isHovering: false })"
+                  :height="getTableHeight(table)"
+                  class="table-rect"
+                  rx="6"
                 />
+                <path
+                  :d="`M0 6 Q0 0 6 0 L${getTableWidth(table) - 6} 0 Q${getTableWidth(
+                    table
+                  )} 0 ${getTableWidth(table)} 6 L${getTableWidth(
+                    table
+                  )} ${headerHeight} L0 ${headerHeight} Z`"
+                  class="table-header-rect"
+                />
+                <text :x="15" :y="22" class="table-title">{{ table.name }}</text>
+                <g v-for="(col, colIndex) in table.columns" :key="colIndex">
+                  <!-- Retângulo invisível para aumentar área de hover -->
+                  <rect
+                    v-if="col.isPk || col.isFk"
+                    :x="0"
+                    :y="headerHeight + colIndex * rowHeight"
+                    :width="getTableWidth(table) - 1"
+                    :height="rowHeight"
+                    fill="transparent"
+                    class="column-hover-area"
+                    @mouseenter="
+                      handleColumnHover({
+                        tableName: table.name,
+                        columnName: col.name,
+                        isHovering: true,
+                        isPk: col.isPk,
+                        isFk: col.isFk,
+                        refTable: col.refTable,
+                      })
+                    "
+                    @mouseleave="handleColumnHover({ isHovering: false })"
+                  />
 
-                <!-- Background highlight - AGORA COLADO NO HEADER -->
+                  <!-- Background highlight - AGORA COLADO NO HEADER -->
+                  <rect
+                    v-if="
+                      (col.isPk || col.isFk) &&
+                      (isColumnHovered(table.name, col.name) ||
+                        isTableColumnHighlighted(table.name, col))
+                    "
+                    :x="0.6"
+                    :y="headerHeight + colIndex * rowHeight"
+                    :width="getTableWidth(table) - 1.2"
+                    :height="
+                      colIndex === table.columns.length - 1 ? rowHeight - 0.6 : rowHeight
+                    "
+                    :fill="col.isPk ? '#EDFEFC' : '#eff6ff'"
+                    :rx="colIndex === table.columns.length - 1 ? 4 : 0"
+                    style="pointer-events: none"
+                  />
+
+                  <text
+                    :x="15"
+                    :y="headerHeight + 20 + colIndex * rowHeight"
+                    font-size="10"
+                    font-weight="bold"
+                    :class="{ 'fk-icon': col.isFk, 'pk-icon': col.isPk && !col.isFk }"
+                    style="pointer-events: none"
+                  >
+                    {{ col.isFk ? "FK" : col.isPk ? "PK" : "" }}
+                  </text>
+                  <text
+                    :x="col.isPk || col.isFk ? 40 : 15"
+                    :y="headerHeight + 20 + colIndex * rowHeight"
+                    class="col-text"
+                    :font-weight="col.isPk ? 'bold' : 'normal'"
+                    style="pointer-events: none"
+                  >
+                    {{ col.name }}
+                  </text>
+                  <text
+                    :x="getTableWidth(table) - 15"
+                    :y="headerHeight + 20 + colIndex * rowHeight"
+                    class="col-type"
+                    text-anchor="end"
+                    style="pointer-events: none"
+                  >
+                    {{ col.type }}
+                  </text>
+                  <g
+                    v-if="
+                      (col.isPk || col.isFk) &&
+                      (isColumnHovered(table.name, col.name) ||
+                        isTableColumnHighlighted(table.name, col))
+                    "
+                    style="pointer-events: none"
+                  >
+                    <!-- Linha superior (sempre renderiza) -->
+                    <line
+                      :x1="0.6"
+                      :y1="headerHeight + colIndex * rowHeight"
+                      :x2="getTableWidth(table) - 0.6"
+                      :y2="headerHeight + colIndex * rowHeight"
+                      :stroke="col.isPk ? '#70D8CC' : '#93c5fd'"
+                      stroke-width="1.1"
+                    />
+
+                    <!-- Linha inferior (só se NÃO for a última coluna) -->
+                    <line
+                      v-if="colIndex < table.columns.length - 1"
+                      :x1="0.6"
+                      :y1="headerHeight + (colIndex + 1) * rowHeight"
+                      :x2="getTableWidth(table) - 0.6"
+                      :y2="headerHeight + (colIndex + 1) * rowHeight"
+                      :stroke="col.isPk ? '#70D8CC' : '#93c5fd'"
+                      stroke-width="1.1"
+                    />
+                  </g>
+                </g>
+              </g>
+            </g>
+
+            <g class="relationships-front" ref="relationshipsFront">
+              <RelationshipLine
+                v-for="(rel, index) in activeRelationships"
+                :key="rel.id || index"
+                :relationship="rel"
+                :from-table="tables[rel.fromTable]"
+                :to-table="tables[rel.toTable]"
+                :table-width="getTableWidth(tables[rel.fromTable])"
+                :from-table-width="getTableWidth(tables[rel.fromTable])"
+                :to-table-width="getTableWidth(tables[rel.toTable])"
+                :header-height="headerHeight"
+                :row-height="rowHeight"
+                :selected-tables="selectedTables"
+                :hovered-column="hoveredColumn"
+                @update="updateRelationship"
+              />
+            </g>
+
+            <g class="tables-selected">
+              <g
+                v-for="table in selectedTablesList"
+                :key="table.name"
+                :transform="`translate(${table.x}, ${table.y})`"
+                class="table-group selected"
+                style="cursor: grabbing"
+                @mousedown="(event) => startDrag(event, table.name)"
+              >
                 <rect
-                  v-if="
-                    (col.isPk || col.isFk) &&
-                    (isColumnHovered(table.name, col.name) ||
-                      isTableColumnHighlighted(table.name, col))
-                  "
-                  :x="2"
-                  :y="headerHeight + colIndex * rowHeight"
-                  :width="getTableWidth(table) - 3.4"
-                  :height="
-                    colIndex === table.columns.length - 1 ? rowHeight - 2 : rowHeight
-                  "
-                  :fill="col.isPk ? '#EDFEFC' : '#eff6ff'"
-                  :rx="colIndex === table.columns.length - 1 ? 6 : 3"
-                  style="pointer-events: none"
+                  :width="getTableWidth(table)"
+                  :height="getTableHeight(table)"
+                  class="table-rect selected"
+                  rx="6"
                 />
-
-                <text
-                  :x="15"
-                  :y="headerHeight + 20 + colIndex * rowHeight"
-                  font-size="10"
-                  font-weight="bold"
-                  :class="{ 'fk-icon': col.isFk, 'pk-icon': col.isPk && !col.isFk }"
-                  style="pointer-events: none"
-                >
-                  {{ col.isFk ? "FK" : col.isPk ? "PK" : "" }}
-                </text>
-                <text
-                  :x="col.isPk || col.isFk ? 40 : 15"
-                  :y="headerHeight + 20 + colIndex * rowHeight"
-                  class="col-text"
-                  :font-weight="col.isPk ? 'bold' : 'normal'"
-                  style="pointer-events: none"
-                >
-                  {{ col.name }}
-                </text>
-                <text
-                  :x="getTableWidth(table) - 15"
-                  :y="headerHeight + 20 + colIndex * rowHeight"
-                  class="col-type"
-                  text-anchor="end"
-                  style="pointer-events: none"
-                >
-                  {{ col.type }}
-                </text>
-
-                <g
-                  v-if="
-                    (col.isPk || col.isFk) &&
-                    (isColumnHovered(table.name, col.name) ||
-                      isTableColumnHighlighted(table.name, col))
-                  "
-                  style="pointer-events: none"
-                >
-                  <!-- Linha superior (sempre renderiza) -->
-                  <line
-                    :x1="1.28"
-                    :y1="headerHeight + colIndex * rowHeight"
-                    :x2="getTableWidth(table) - 1.28"
-                    :y2="headerHeight + colIndex * rowHeight"
-                    :stroke="col.isPk ? '#70D8CC' : '#93c5fd'"
-                    stroke-width="2"
+                <path
+                  :d="`M0 6 Q0 0 6 0 L${getTableWidth(table) - 6} 0 Q${getTableWidth(
+                    table
+                  )} 0 ${getTableWidth(table)} 6 L${getTableWidth(
+                    table
+                  )} ${headerHeight} L0 ${headerHeight} Z`"
+                  class="table-header-rect"
+                />
+                <text :x="15" :y="22" class="table-title">{{ table.name }}</text>
+                <g v-for="(col, colIndex) in table.columns" :key="colIndex">
+                  <!-- Retângulo invisível para aumentar área de hover -->
+                  <rect
+                    v-if="col.isPk || col.isFk"
+                    :x="0"
+                    :y="headerHeight + colIndex * rowHeight"
+                    :width="getTableWidth(table)"
+                    :height="rowHeight"
+                    fill="transparent"
+                    class="column-hover-area"
+                    @mouseenter="
+                      handleColumnHover({
+                        tableName: table.name,
+                        columnName: col.name,
+                        isHovering: true,
+                        isPk: col.isPk,
+                        isFk: col.isFk,
+                        refTable: col.refTable,
+                      })
+                    "
+                    @mouseleave="handleColumnHover({ isHovering: false })"
                   />
 
-                  <!-- Linha inferior (só se NÃO for a última coluna) -->
-                  <line
-                    v-if="colIndex < table.columns.length - 1"
-                    :x1="1.28"
-                    :y1="headerHeight + (colIndex + 1) * rowHeight"
-                    :x2="getTableWidth(table) - 1.28"
-                    :y2="headerHeight + (colIndex + 1) * rowHeight"
-                    :stroke="col.isPk ? '#70D8CC' : '#93c5fd'"
-                    stroke-width="2"
+                  <!-- Background highlight - AGORA COLADO NO HEADER -->
+                  <rect
+                    v-if="
+                      (col.isPk || col.isFk) &&
+                      (isColumnHovered(table.name, col.name) ||
+                        isTableColumnHighlighted(table.name, col))
+                    "
+                    :x="2"
+                    :y="headerHeight + colIndex * rowHeight"
+                    :width="getTableWidth(table) - 3.4"
+                    :height="
+                      colIndex === table.columns.length - 1 ? rowHeight - 2 : rowHeight
+                    "
+                    :fill="col.isPk ? '#EDFEFC' : '#eff6ff'"
+                    :rx="colIndex === table.columns.length - 1 ? 6 : 3"
+                    style="pointer-events: none"
                   />
+
+                  <text
+                    :x="15"
+                    :y="headerHeight + 20 + colIndex * rowHeight"
+                    font-size="10"
+                    font-weight="bold"
+                    :class="{ 'fk-icon': col.isFk, 'pk-icon': col.isPk && !col.isFk }"
+                    style="pointer-events: none"
+                  >
+                    {{ col.isFk ? "FK" : col.isPk ? "PK" : "" }}
+                  </text>
+                  <text
+                    :x="col.isPk || col.isFk ? 40 : 15"
+                    :y="headerHeight + 20 + colIndex * rowHeight"
+                    class="col-text"
+                    :font-weight="col.isPk ? 'bold' : 'normal'"
+                    style="pointer-events: none"
+                  >
+                    {{ col.name }}
+                  </text>
+                  <text
+                    :x="getTableWidth(table) - 15"
+                    :y="headerHeight + 20 + colIndex * rowHeight"
+                    class="col-type"
+                    text-anchor="end"
+                    style="pointer-events: none"
+                  >
+                    {{ col.type }}
+                  </text>
+
+                  <g
+                    v-if="
+                      (col.isPk || col.isFk) &&
+                      (isColumnHovered(table.name, col.name) ||
+                        isTableColumnHighlighted(table.name, col))
+                    "
+                    style="pointer-events: none"
+                  >
+                    <!-- Linha superior (sempre renderiza) -->
+                    <line
+                      :x1="1.28"
+                      :y1="headerHeight + colIndex * rowHeight"
+                      :x2="getTableWidth(table) - 1.28"
+                      :y2="headerHeight + colIndex * rowHeight"
+                      :stroke="col.isPk ? '#70D8CC' : '#93c5fd'"
+                      stroke-width="2"
+                    />
+
+                    <!-- Linha inferior (só se NÃO for a última coluna) -->
+                    <line
+                      v-if="colIndex < table.columns.length - 1"
+                      :x1="1.28"
+                      :y1="headerHeight + (colIndex + 1) * rowHeight"
+                      :x2="getTableWidth(table) - 1.28"
+                      :y2="headerHeight + (colIndex + 1) * rowHeight"
+                      :stroke="col.isPk ? '#70D8CC' : '#93c5fd'"
+                      stroke-width="2"
+                    />
+                  </g>
                 </g>
               </g>
             </g>
           </g>
-        </g>
-      </DiagramCanvas>
+        </DiagramCanvas>
 
-      <DiagramToolbar :diagramRef="diagramCanvasRef" />
+        <DiagramToolbar v-if="diagramCanvasRef" :diagramRef="diagramCanvasRef" />
+      </div>
     </div>
+
+    <ProblemsPanel
+      :problems="[...validationResult.errors, ...validationResult.warnings]"
+      :is-visible="isProblemsVisible"
+      @close="isProblemsVisible = false"
+      @toggle="isProblemsVisible = !isProblemsVisible"
+      @goto-line="gotoLine"
+    />
+
     <div v-if="isResizing" class="global-resize-overlay"></div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch, nextTick, shallowRef } from "vue";
 import DiagramCanvas from "./components/DiagramCanvas.vue";
 import DiagramToolbar from "./components/DiagramToolbar.vue";
-import { MockApiService } from "./services/mockApi.service.js";
+//import { MockApiService } from "./services/mockApi.service.js";
 import RelationshipLine from "./components/RelationshipLine.vue";
 import SqlEditor from "./components/SqlEditor.vue";
 import { SqlValidator } from "./services/SqlValidator.js";
 import { SqlParserService } from "./models/sqlParser.service.js";
+import ProblemsPanel from "./components/ProblemsPanel.vue";
+import { XCircle, AlertTriangle } from "lucide-vue-next";
 
-const monacoEditor = ref(null);   // Guarda a instância do editor (texto, scroll)
-const monacoInstance = ref(null); // Guarda a biblioteca monaco (enums, markers)
+const isProblemsVisible = ref(false);
+
+const toggleProblemsPanel = () => {
+  isProblemsVisible.value = !isProblemsVisible.value;
+};
+
+const monacoEditor = shallowRef(null); // Guarda a instância do editor (texto, scroll)
+const monacoInstance = shallowRef(null); // Guarda a biblioteca monaco (enums, markers)
 const isMonacoReady = ref(false); // Flag de segurança
 
 // Função que o componente SqlEditor chama quando termina de carregar
@@ -603,91 +643,109 @@ const getTableHeight = (table) => {
 const validationResult = ref({ isValid: true, errors: [], warnings: [] });
 const lastValidState = ref(null);
 
+const errorCount = computed(() => validationResult.value.errors.length);
+const warningCount = computed(() => validationResult.value.warnings.length);
+
 // Função para atualizar o diagrama via API
 const updateDiagram = async () => {
+  // 1. Limpeza Inicial (Se vazio)
   if (!sqlCode.value.trim()) {
     tables.value = {};
     relationships.value = [];
     validationResult.value = { isValid: true, errors: [], warnings: [] };
-    updateMonacoMarkers([]); // Limpa erros
+    // updateMonacoMarkers([]); // O watch já vai cuidar disso
     return;
   }
 
-  try {
-    // 1. VALIDAÇÃO (O Porteiro)
-    console.time("Validação");
-    const validation = SqlValidator.validate(sqlCode.value);
-    console.timeEnd("Validação");
+  // Variáveis Temporárias (Não reativas)
+  let tempErrors = [];
+  let tempWarnings = [];
+  let tempTables = {};
+  let tempRelationships = [];
+  let isValid = true;
 
-    validationResult.value = validation;
+  // 2. VALIDAÇÃO (SqlValidator)
+  const validation = SqlValidator.validate(sqlCode.value);
+  tempErrors.push(...validation.errors);
+  tempWarnings.push(...validation.warnings);
 
-    // Atualiza os sublinhados vermelhos no editor
-    updateMonacoMarkers([...validation.errors, ...validation.warnings]);
+  if (!validation.isValid) {
+    isValid = false;
+  } else {
+    // 3. PARSER (Só roda se validou básico)
+    try {
+      const parseResult = SqlParserService.parse(sqlCode.value);
 
-    // 2. DECISÃO ESTRITA
-    if (!validation.isValid) {
-      console.warn("⚠️ SQL Inválido - Diagrama não atualizado.");
-      // Opcional: Se quiser manter o diagrama antigo visível, não faz nada aqui.
-      // Se quiser limpar, faria: tables.value = {};
-      return;
-    }
+      // Processa Tabelas e Posições
+      for (const tableName in parseResult.tables) {
+        const oldTable = tables.value[tableName];
+        tempTables[tableName] = {
+          ...parseResult.tables[tableName],
+          columns: sortColumns(parseResult.tables[tableName].columns),
+          x: oldTable?.x || parseResult.tables[tableName].x,
+          y: oldTable?.y || parseResult.tables[tableName].y,
+        };
+      }
+      tempRelationships = parseResult.relationships;
 
-    // 3. PARSING SEGURO (Só roda se o porteiro deixou passar)
-    // Como validou, é seguro chamar o parser real
-    const parseResult = SqlParserService.parse(sqlCode.value);
-
-    // Lógica de preservação de posição (Layout)
-    const updatedTables = {};
-    for (const tableName in parseResult.tables) {
-      const oldTable = tables.value[tableName];
-      updatedTables[tableName] = {
-        ...parseResult.tables[tableName],
-        columns: sortColumns(parseResult.tables[tableName].columns),
-        x: oldTable?.x || parseResult.tables[tableName].x,
-        y: oldTable?.y || parseResult.tables[tableName].y,
+      // Salva estado válido
+      lastValidState.value = {
+        tables: JSON.parse(JSON.stringify(tempTables)),
+        relationships: [...tempRelationships],
       };
+    } catch (parserError) {
+      console.error("Erro interno no parser:", parserError);
+
+      // Adiciona erro do parser na lista temporária
+      tempErrors.push({
+        line: parserError.location ? parserError.location.start.line : 1,
+        message: "Erro de sintaxe ao gerar diagrama: " + parserError.message,
+        type: "error",
+      });
+      isValid = false;
     }
-
-    tables.value = updatedTables;
-    relationships.value = parseResult.relationships;
-
-    // Salva backup do estado válido
-    lastValidState.value = {
-      tables: JSON.parse(JSON.stringify(updatedTables)),
-      relationships: [...relationships.value],
-    };
-  } catch (error) {
-    console.error("❌ Erro Inesperado:", error);
-  }
-};
-
-// Função Auxiliar para pintar o editor
-const updateMonacoMarkers = (problems) => {
-  // 1. Proteção: Verifica se as variáveis existem E se têm valor
-  if (!isMonacoReady.value || !monacoInstance.value || !monacoEditor.value) {
-    return;
   }
 
-  const model = monacoEditor.value.getModel();
-  if (!model) return;
+  // 4. 🔥 FILTRAGEM FINAL ANTI-DUPLICATA (No Array Temporário)
+  const uniqueErrors = new Map();
+  tempErrors.forEach((err) => {
+    // Chave única: Linha + Texto da Mensagem
+    const key = `${err.line}-${err.message.trim()}`;
+    uniqueErrors.set(key, err);
+  });
 
-  const markers = problems.map(p => ({
-    startLineNumber: p.line,
-    startColumn: p.column || 1,
-    endLineNumber: p.line,
-    endColumn: 1000, 
-    message: p.message,
-    // 🔥 AQUI O ERRO ACONTECIA: Tem que usar .value
-    severity: p.type === 'error' 
-      ? monacoInstance.value.MarkerSeverity.Error 
-      : monacoInstance.value.MarkerSeverity.Warning
-  }));
+  const uniqueWarnings = new Map();
+  tempWarnings.forEach((warn) => {
+    const key = `${warn.line}-${warn.message.trim()}`;
+    uniqueWarnings.set(key, warn);
+  });
 
-  // 🔥 AQUI TAMBÉM: .value
-  monacoInstance.value.editor.setModelMarkers(model, 'owner', markers);
+  // 5. ATUALIZAÇÃO REATIVA ÚNICA (O Vue só reage AQUI)
+  // Atualiza dados visuais
+  if (isValid || Object.keys(tempTables).length > 0) {
+    tables.value = tempTables;
+    relationships.value = tempRelationships;
+  }
+
+  // Atualiza Erros (Dispara o watch do Monaco uma única vez com a lista limpa)
+  validationResult.value = {
+    isValid: isValid,
+    errors: Array.from(uniqueErrors.values()),
+    warnings: Array.from(uniqueWarnings.values()),
+  };
 };
+
+const gotoLine = (lineNumberRaw) => {
+  const lineNumber = parseInt(lineNumberRaw);
+  if (!monacoEditor.value || isNaN(lineNumber) || lineNumber < 1) return;
+
+  monacoEditor.value.revealLineInCenter(lineNumber);
+  monacoEditor.value.setPosition({ lineNumber, column: 1 });
+  monacoEditor.value.focus();
+};
+
 // Handler com debounce para mudanças no SQL
-const handleSqlChange = debounce(updateDiagram, 100);
+const handleSqlChange = debounce(updateDiagram, 300);
 
 // --- Funções de Seleção Múltipla ---
 
@@ -828,33 +886,117 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.problems-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: auto;
+  margin-right: 8px;
+  background-color: rgba(255, 255, 255, 0.03); /* Fundo sutil padrão */
+}
+
+.problems-badge.has-errors {
+  color: #fca5a5;
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+.problems-badge.has-errors:hover {
+  background-color: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+}
+
+.problems-badge.has-warnings {
+  color: #fcd34d;
+  background-color: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.2);
+}
+.problems-badge.has-warnings:hover {
+  background-color: rgba(245, 158, 11, 0.2);
+  border-color: #f59e0b;
+}
+
+.badge-count {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.badge-icon {
+  transition: transform 0.2s;
+}
+
+.problems-badge:hover .badge-icon {
+  transform: scale(1.1);
+}
+
+.header-badge {
+  margin-left: auto; /* Empurra pra direita */
+  margin-right: 10px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s;
+}
+
+.header-badge.error {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  animation: pulse-red 2s infinite;
+}
+
+.header-badge:hover {
+  background-color: rgba(239, 68, 68, 0.4);
+}
+
+@keyframes pulse-red {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+.main-content {
+  display: flex;
+  flex: 1; /* Ocupa todo o espaço disponível verticalmente */
+  overflow: hidden; /* Garante que não vaze scroll */
+  min-height: 0; /* 🔥 CRUCIAL para o Flexbox funcionar no Firefox/Chrome em aninhamento */
+  flex-direction: row; /* Garante que editor e canvas fiquem lado a lado */
+}
+
 .app {
   display: flex;
+  flex-direction: column; /* Painel de Problemas fica embaixo do main-content */
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-  background-color: #0f172a; /* Cor de fundo geral */
+  background-color: #0f172a;
 }
 
 .editor-panel {
   display: flex;
-  flex-direction: column;
+  flex-direction: column; /* Garante empilhamento vertical */
   background-color: #0f172a;
   flex-shrink: 0;
-
-  /* 🔥 AQUI ESTÁ A MÁGICA */
-  /* Animamos a largura, a opacidade e as margens */
   transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-
-  /* Essencial: Esconde o conteúdo enquanto encolhe */
-  overflow: hidden;
-  white-space: nowrap;
-
-  /* Garante que ele possa chegar a zero */
-  min-width: 0;
-
-  /* Borda direita (se houver) */
-  border-right: 1px solid #1e293b;
+  overflow: hidden; /* Mantém o resize limpo */
+  /* Removemos qualquer position relative/absolute daqui se tiver */
 }
 
 .editor-panel.panel-hidden {
@@ -878,16 +1020,21 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  /* 🔥 MUDANÇA: Header agora é MAIS ESCURO que o editor (Slate 950) */
   background-color: #020617;
   padding: 0 15px;
-  height: 40px;
-  /* Borda sutil para separar */
+  white-space: nowrap;
+  /* 🔥 FIXO E SÓLIDO */
+  height: 40px; 
+  flex-shrink: 0; /* Impede que o header amasse */
   border-bottom: 1px solid #1e293b;
 
-  /* 🔥 IMPEDE SELEÇÃO DE TEXTO */
+  /* 🔥 REMOVENDO Z-INDEX ALTO */
+  /* Não precisamos de z-index aqui. O Flexbox garante a ordem. */
+  /* Se precisar muito, use 1 ou 2, nunca 50 */
+  z-index: 10;
+  position: relative; 
+  
   user-select: none;
-  -webkit-user-select: none;
 }
 
 .editor-header h1 {
@@ -911,8 +1058,11 @@ onMounted(() => {
 }
 
 .editor-panel :deep(.editor-container) {
-  flex: 1;
-  height: calc(100% - 40px); /* Altura total menos o header */
+  flex: 1; /* Ocupa o espaço restante (height - 40px) */
+  height: auto; /* Deixa o flex controlar a altura */
+  overflow: hidden;
+  position: relative;
+  z-index: 1; /* Fica abaixo do header se houver sombra */
 }
 
 .resizer-handle {
@@ -921,7 +1071,6 @@ onMounted(() => {
   background-color: #0f172a;
   cursor: col-resize;
   transition: background 0.2s, width 0.2s; /* Animação suave */
-  z-index: 20; /* Garante que fique acima de tudo */
   flex-shrink: 0;
 
   /* Borda sutil na esquerda para separar do editor */
@@ -936,48 +1085,65 @@ onMounted(() => {
   width: 7px;
 }
 .icon-btn {
-  background: none;
-  border: none;
-  color: #94a3b8; /* Cinza claro */
-  cursor: pointer;
-  font-size: 16px;
-  padding: 5px;
-  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-
-  /* 🔥 IMPEDE SELEÇÃO DO ÍCONE COMO TEXTO */
+  color: #64748b;
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
   user-select: none;
-}
-
-.icon-btn:hover {
-  background-color: #1e293b;
-  color: #5eead4; /* Verde ao passar o mouse */
-}
-
-.icon-btn:hover {
-  background-color: #3e4451;
-  color: #fff;
 }
 
 .collapsed-sidebar {
   width: 40px;
-  /* Fundo escuro igual ao Header */
   background-color: #020617;
   border-right: 1px solid #1e293b;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 10px;
+  padding-top: 12px;
   cursor: pointer;
-
-  /* 🔥 IMPEDE SELEÇÃO */
   user-select: none;
+  transition: background-color 0.2s;
 }
 
 .collapsed-sidebar:hover {
-  background-color: #1e293b;
+  background-color: #0f172a;
+}
+
+.expand-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.collapsed-sidebar:hover .expand-btn,
+.icon-btn:hover {
+  background-color: rgba(45, 212, 191, 0.1); /* Fundo Teal bem suave */
+  color: #2dd4bf; /* Texto Teal vibrante */
+  border-color: rgba(45, 212, 191, 0.2); /* Borda sutil */
+  transform: translateX(2px); /* Pequeno movimento para a direita (convite ao clique) */
+  box-shadow: 0 0 10px rgba(45, 212, 191, 0.15); /* Glow suave */
+}
+
+.editor-header .icon-btn:hover {
+  background-color: rgba(45, 212, 191, 0.1); /* Fundo Teal bem suave */
+  color: #2dd4bf; /* Texto Teal vibrante */
+  border-color: rgba(45, 212, 191, 0.2); /* Borda sutil */
+  transform: translateX(2px); /* Pequeno movimento para a direita (convite ao clique) */
+  box-shadow: 0 0 10px rgba(45, 212, 191, 0.15); /* Glow suave */
 }
 
 @media (max-width: 768px) {
