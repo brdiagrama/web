@@ -1,14 +1,26 @@
 <template>
   <div class="app">
-    <div class="editor-panel">
-      <h1>Editor SQL</h1>
-      <textarea
-        v-model="sqlCode"
-        @input="handleSqlChange"
-        class="sql-editor"
-        placeholder="Digite seu código CREATE TABLE aqui..."
-      ></textarea>
+    <div 
+      class="editor-panel" 
+      :class="{ 'no-transition': isResizing, 'panel-hidden': !isEditorVisible }"
+      :style="{ width: isEditorVisible ? editorWidth + 'px' : '0px' }"
+    >
+      <div class="editor-header">
+        <h1>Editor SQL</h1>
+        <button class="icon-btn" @click="toggleEditor" title="Ocultar Editor">❮</button>
+      </div>
+
+      <SqlEditor 
+        v-model="sqlCode" 
+        @update:model-value="handleSqlChange"
+      />
     </div>
+
+    <div v-if="!isEditorVisible" class="collapsed-sidebar" @click="toggleEditor">
+      <button class="icon-btn expand-btn" title="Abrir Editor">❯</button>
+    </div>
+
+    <div v-show="isEditorVisible" class="resizer-handle" @mousedown="startResize"></div>
 
     <div class="canvas-panel">
       <DiagramCanvas
@@ -323,7 +335,9 @@
 
       <DiagramToolbar :diagramRef="diagramCanvasRef" />
     </div>
+    <div v-if="isResizing" class="global-resize-overlay"></div>
   </div>
+  
 </template>
 
 <script setup>
@@ -332,6 +346,74 @@ import DiagramCanvas from "./components/DiagramCanvas.vue";
 import DiagramToolbar from "./components/DiagramToolbar.vue";
 import { MockApiService } from "./services/mockApi.service.js";
 import RelationshipLine from "./components/RelationshipLine.vue";
+import SqlEditor from "./components/SqlEditor.vue";
+
+const editorWidth = ref(550); // Largura inicial do editor
+const isResizing = ref(false);
+const isEditorVisible = ref(true);
+
+const MIN_WIDTH = 300;
+const MAX_WIDTH = 800;
+const SNAP_THRESHOLD = 300;
+
+const startResize = () => {
+  // Bloqueia resize no mobile (largura da tela < 768px)
+  if (window.innerWidth < 768) return;
+
+  isResizing.value = true;
+  document.body.style.cursor = "col-resize"; // Muda cursor globalmente
+
+  document.body.classList.add('is-resizing-global');
+
+  window.addEventListener("mousemove", handleResize);
+  window.addEventListener("mouseup", stopResize);
+};
+
+const handleResize = (e) => {
+  if (!isResizing.value) return;
+
+  // Pega a posição X do mouse
+  const currentX = e.clientX;
+  
+  // Ponto de gatilho (se passar daqui para a esquerda, fecha)
+  const SNAP_THRESHOLD = 150; 
+
+  // 1. LÓGICA ELÁSTICA: FECHAR/ABRIR DINAMICAMENTE
+  if (currentX < SNAP_THRESHOLD) {
+    // Se o mouse cruzou a linha da esquerda, "esconde" o editor visualmente
+    // MAS continua ouvindo o movimento (não chamamos stopResize)
+    if (isEditorVisible.value) {
+      isEditorVisible.value = false;
+    }
+  } else {
+    // Se o mouse voltou para a direita, "mostra" o editor de novo
+    if (!isEditorVisible.value) {
+      isEditorVisible.value = true;
+    }
+
+    // 2. CÁLCULO DA LARGURA (Só atualiza se estiver visível)
+    let newWidth = currentX;
+
+    // Clamp (Trava nos limites Min e Max)
+    if (newWidth < MIN_WIDTH) newWidth = MIN_WIDTH;
+    if (newWidth > MAX_WIDTH) newWidth = MAX_WIDTH;
+
+    editorWidth.value = newWidth;
+  }
+};
+
+const stopResize = () => {
+  isResizing.value = false;
+  document.body.style.cursor = ""; // Reseta cursor
+  document.body.classList.remove('is-resizing-global');
+  window.removeEventListener("mousemove", handleResize);
+  window.removeEventListener("mouseup", stopResize);
+};
+
+// Toggle para o botão de ocultar/mostrar
+const toggleEditor = () => {
+  isEditorVisible.value = !isEditorVisible.value;
+};
 
 const unselectedTablesList = computed(() => {
   return Object.values(tables.value).filter(
@@ -601,14 +683,13 @@ const handleColumnHover = (data) => {
 // --- Funções de Drag and Drop ---
 
 const startDrag = (event, tableName) => {
-
   if (!event.ctrlKey && !event.metaKey) {
-      event.preventDefault();
+    event.preventDefault();
   }
 
   const svgElement = diagramCanvasRef.value?.svgRoot;
   if (!svgElement) return;
-  
+
   if (event.ctrlKey || event.metaKey) {
     if (selectedTables.value.has(tableName)) {
       selectedTables.value.delete(tableName);
@@ -617,15 +698,12 @@ const startDrag = (event, tableName) => {
       selectedTables.value.add(tableName);
     }
   } else {
-  
     if (!selectedTables.value.has(tableName)) {
       selectedTables.value.clear();
       selectedTables.value.add(tableName);
     }
-    
   }
 
-  
   dragState.value.isDragging = true;
   dragState.value.draggedTable = tableName;
 
@@ -707,38 +785,180 @@ onMounted(() => {
 .app {
   display: flex;
   height: 100vh;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  width: 100vw;
+  overflow: hidden;
+  background-color: #0F172A; /* Cor de fundo geral */
 }
 
 .editor-panel {
-  width: 40%;
-  background-color: #282c34;
   display: flex;
   flex-direction: column;
+  background-color: #0F172A;
+  flex-shrink: 0;
+  
+  /* 🔥 AQUI ESTÁ A MÁGICA */
+  /* Animamos a largura, a opacidade e as margens */
+  transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  
+  /* Essencial: Esconde o conteúdo enquanto encolhe */
+  overflow: hidden;
+  white-space: nowrap;
+  
+  /* Garante que ele possa chegar a zero */
+  min-width: 0; 
+  
+  /* Borda direita (se houver) */
+  border-right: 1px solid #1E293B; 
 }
 
-.editor-panel h1 {
-  color: #fff;
-  padding: 15px 20px;
+
+.editor-panel.panel-hidden {
+  border-right: none;
+}
+.editor-panel.no-transition {
+  /* 0.1s = Muito rápido (sensação de peso)
+     ease-out = Começa rápido e desacelera no final (para "encaixar" no mouse)
+  */
+  transition: width 0.1s ease-out !important; 
+  will-change: width; /* Avisa o navegador para usar aceleração de GPU */
+}
+
+.editor-panel.no-transition:not(.panel-hidden) {
+  /* Velocidade de arraste (Rápida para acompanhar o mouse) */
+  transition: width 0.1s ease-out !important; 
+  will-change: width;
+}
+
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  /* 🔥 MUDANÇA: Header agora é MAIS ESCURO que o editor (Slate 950) */
+  background-color: #020617; 
+  padding: 0 15px;
+  height: 40px;
+  /* Borda sutil para separar */
+  border-bottom: 1px solid #1E293B;
+  
+  /* 🔥 IMPEDE SELEÇÃO DE TEXTO */
+  user-select: none;
+  -webkit-user-select: none; 
+}
+
+.editor-header h1 {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  /* Verde Água da Marca */
+  color: #5EEAD4; 
+  font-weight: 700;
   margin: 0;
-  font-size: 1.2em;
-  background-color: #1e2228;
 }
 
-.sql-editor {
+.editor-header h1 {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  /* Verde Água da Marca */
+  color: #5EEAD4; 
+  font-weight: 700;
+  margin: 0;
+}
+
+.editor-panel :deep(.editor-container) {
   flex: 1;
-  background-color: #282c34;
-  color: #abb2bf;
-  border: none;
-  padding: 20px;
-  font-family: "Fira Code", "Courier New", monospace;
-  font-size: 16px;
-  line-height: 1.5;
-  resize: none;
+  height: calc(100% - 40px); /* Altura total menos o header */
 }
 
-.sql-editor:focus {
-  outline: none;
+.resizer-handle {
+  width: 5px;
+  /* Mesma cor do fundo para ficar invisível até passar o mouse */
+  background-color: #0F172A; 
+  cursor: col-resize;
+  transition: background 0.2s, width 0.2s; /* Animação suave */
+  z-index: 20; /* Garante que fique acima de tudo */
+  flex-shrink: 0;
+  
+  /* Borda sutil na esquerda para separar do editor */
+  border-left: 1px solid #1E293B; 
+}
+
+.resizer-handle:hover,
+.resizer-handle:active {
+  /* 🔥 MUDANÇA: Agora brilha em VERDE ÁGUA (Teal) */
+  background-color: #2DD4BF; 
+  /* Fica um pouquinho mais largo pra facilitar o clique */
+  width: 7px; 
+}
+.icon-btn {
+  background: none;
+  border: none;
+  color: #94A3B8; /* Cinza claro */
+  cursor: pointer;
+  font-size: 16px;
+  padding: 5px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* 🔥 IMPEDE SELEÇÃO DO ÍCONE COMO TEXTO */
+  user-select: none; 
+}
+
+.icon-btn:hover {
+  background-color: #1E293B;
+  color: #5EEAD4; /* Verde ao passar o mouse */
+}
+
+.icon-btn:hover {
+  background-color: #3e4451;
+  color: #fff;
+}
+
+.collapsed-sidebar {
+  width: 40px;
+  /* Fundo escuro igual ao Header */
+  background-color: #020617; 
+  border-right: 1px solid #1E293B;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 10px;
+  cursor: pointer;
+  
+  /* 🔥 IMPEDE SELEÇÃO */
+  user-select: none; 
+}
+
+.collapsed-sidebar:hover {
+  background-color: #1E293B;
+}
+
+@media (max-width: 768px) {
+  .app {
+    flex-direction: column; /* Vira coluna no celular */
+  }
+  
+  .editor-panel {
+    width: 100% !important; /* Força largura total */
+    height: 50%; /* Ocupa metade da tela se aberto */
+    border-bottom: 2px solid #444;
+  }
+  
+  .resizer-handle {
+    display: none !important; /* Esconde a barra de arraste */
+  }
+  
+  .collapsed-sidebar {
+    width: 100%;
+    height: 40px;
+    flex-direction: row;
+    justify-content: center;
+    padding: 0;
+    border-right: none;
+    border-bottom: 1px solid #444;
+  }
 }
 
 .canvas-panel {
@@ -747,6 +967,7 @@ onMounted(() => {
   background: #f0f2f5;
   background-image: radial-gradient(#dfe6e9 1px, transparent 1px);
   background-size: 20px 20px;
+  transition: all 0.1s ease-out;
   border-left: 2px solid #444;
 }
 
@@ -784,5 +1005,33 @@ onMounted(() => {
 :deep(.hoverable-column:hover .pk-icon),
 :deep(.hoverable-column:hover .fk-icon) {
   filter: drop-shadow(0 0 2px currentColor);
+}
+
+/* 🔥 BLOQUEIO GERAL DE SELEÇÃO DE TEXTO NO DIAGRAMA */
+/* Isso impede que arrastar a tabela selecione o nome dela */
+:deep(.table-group text),
+:deep(.table-title),
+:deep(.col-text),
+:deep(.col-type),
+:deep(.pk-icon),
+:deep(.fk-icon) {
+  user-select: none;
+  -webkit-user-select: none; /* Para Safari/Chrome antigos */
+  pointer-events: none; /* Garante que o mouse "atravesse" o texto e pegue a tabela */
+}
+
+.global-resize-overlay {
+  position: fixed; /* Fixo na tela inteira */
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999; /* Fica acima de TUDO (Header, Editor, Canvas) */
+  cursor: col-resize; /* Mantém o cursor de arrastar */
+  background: transparent; /* Invisível */
+  
+  /* Garante que o navegador priorize essa div */
+  user-select: none;
+  touch-action: none;
 }
 </style>

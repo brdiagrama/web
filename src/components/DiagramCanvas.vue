@@ -832,33 +832,40 @@ defineExpose({
 
 .table-title {
   fill: #ffffff;
-  font-weight: bold;
+  font-weight: 700; /* Negrito mais forte como na imagem */
   font-size: 14px;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; /* 🔥 A Mágica */
   pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1); /* Leve sombra para leitura */
 }
 
 .col-text {
   font-size: 12px;
-  fill: #333;
+  fill: #2c3e50;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; /* 🔥 A Mágica */
   pointer-events: none;
 }
 
 .col-type {
   font-size: 11px;
   fill: #95a5a6;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; /* 🔥 A Mágica */
   pointer-events: none;
+  text-transform: uppercase; /* Fica mais elegante */
 }
 
 .pk-icon {
-  fill: #1abc9c;
+  fill: #1ABC9C;
   font-size: 10px;
-  font-weight: bold;
+  font-weight: 800;
+  font-family: "Segoe UI", sans-serif;
 }
 
 .fk-icon {
   fill: #3498db;
   font-size: 10px;
-  font-weight: bold;
+  font-weight: 800;
+  font-family: "Segoe UI", sans-serif;
 }
 
 .table-group {

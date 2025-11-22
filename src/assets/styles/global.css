@@ -1,0 +1,20 @@
+/* --- TRAVA GLOBAL DE REDIMENSIONAMENTO --- */
+/* Essa classe é adicionada via JS no <body> quando começa a arrastar */
+
+body.is-resizing-global {
+  /* Força o cursor de redimensionamento no SITE INTEIRO */
+  cursor: col-resize !important;
+  
+  /* Impede seleção de texto em QUALQUER elemento */
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+/* Garante que nada roube o evento do mouse (como iframes ou inputs) */
+body.is-resizing-global * {
+  pointer-events: none !important;
+}
+
+/* A exceção: O nosso escudo invisível (se ele existir no DOM) precisa receber eventos */
+/* Mas como estamos ouvindo o window no JS, nem isso é estritamente necessário, 
+   mas o pointer-events: none no * resolve 99% dos bugs de arraste */
