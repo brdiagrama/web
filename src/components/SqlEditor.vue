@@ -333,4 +333,16 @@ const handleChange = (value) => {
   width: 100%;
   height: 100%;
 }
+
+:deep(.find-widget) {
+  right: auto !important;
+  left: 0 !important;
+}
+
+:deep(.find-widget),
+:deep(.monaco-hover),
+:deep(.suggest-widget),
+:deep(.context-view) {
+  z-index: 100 !important;
+}
 </style>
