@@ -379,30 +379,9 @@ const selectedTables = ref(new Set());
 const hoveredColumn = ref(null);
 
 const isTableColumnHighlighted = (tableName, column) => {
-  if (!selectedTables.value.has(tableName)) return false;
-  if (!column.isPk && !column.isFk) return false;
-
-  // Se for PK, verifica se há FKs relacionadas em tabelas selecionadas
-  if (column.isPk) {
-    return relationships.value.some(
-      (rel) =>
-        rel.toTable === tableName &&
-        rel.toCol === column.name &&
-        selectedTables.value.has(rel.fromTable)
-    );
-  }
-
-  // Se for FK, verifica se a PK de destino está em tabela selecionada
-  if (column.isFk) {
-    return relationships.value.some(
-      (rel) =>
-        rel.fromTable === tableName &&
-        rel.fromCol === column.name &&
-        selectedTables.value.has(rel.toTable)
-    );
-  }
-
-  return false;
+  // Só destaca PK/FK automaticamente se houver múltiplas tabelas selecionadas
+  if (selectedTables.value.size <= 1) return false;
+  return selectedTables.value.has(tableName) && (column.isPk || column.isFk);
 };
 
 const highlightedColumns = computed(() => {
