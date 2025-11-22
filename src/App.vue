@@ -601,14 +601,31 @@ const handleColumnHover = (data) => {
 // --- Funções de Drag and Drop ---
 
 const startDrag = (event, tableName) => {
-  const svgElement = diagramCanvasRef.value?.svgRoot;
-  if (!svgElement) return;
 
-  if (!selectedTables.value.has(tableName)) {
-    selectedTables.value.clear();
-    selectedTables.value.add(tableName);
+  if (!event.ctrlKey && !event.metaKey) {
+      event.preventDefault();
   }
 
+  const svgElement = diagramCanvasRef.value?.svgRoot;
+  if (!svgElement) return;
+  
+  if (event.ctrlKey || event.metaKey) {
+    if (selectedTables.value.has(tableName)) {
+      selectedTables.value.delete(tableName);
+      return;
+    } else {
+      selectedTables.value.add(tableName);
+    }
+  } else {
+  
+    if (!selectedTables.value.has(tableName)) {
+      selectedTables.value.clear();
+      selectedTables.value.add(tableName);
+    }
+    
+  }
+
+  
   dragState.value.isDragging = true;
   dragState.value.draggedTable = tableName;
 
@@ -620,8 +637,6 @@ const startDrag = (event, tableName) => {
 
   document.addEventListener("mousemove", handleDrag);
   document.addEventListener("mouseup", endDrag);
-
-  event.preventDefault();
 };
 
 const handleDrag = (event) => {
