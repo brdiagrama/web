@@ -1,7 +1,7 @@
 <template>
   <div class="app">
-    <div 
-      class="editor-panel" 
+    <div
+      class="editor-panel"
       :class="{ 'no-transition': isResizing, 'panel-hidden': !isEditorVisible }"
       :style="{ width: isEditorVisible ? editorWidth + 'px' : '0px' }"
     >
@@ -10,10 +10,7 @@
         <button class="icon-btn" @click="toggleEditor" title="Ocultar Editor">❮</button>
       </div>
 
-      <SqlEditor 
-        v-model="sqlCode" 
-        @update:model-value="handleSqlChange"
-      />
+      <SqlEditor v-model="sqlCode" @update:model-value="handleSqlChange" editor-ready="handleEditorReady" />
     </div>
 
     <div v-if="!isEditorVisible" class="collapsed-sidebar" @click="toggleEditor">
@@ -337,7 +334,6 @@
     </div>
     <div v-if="isResizing" class="global-resize-overlay"></div>
   </div>
-  
 </template>
 
 <script setup>
@@ -347,6 +343,19 @@ import DiagramToolbar from "./components/DiagramToolbar.vue";
 import { MockApiService } from "./services/mockApi.service.js";
 import RelationshipLine from "./components/RelationshipLine.vue";
 import SqlEditor from "./components/SqlEditor.vue";
+import { SqlValidator } from "./services/SqlValidator.js";
+import { SqlParserService } from "./models/sqlParser.service.js";
+
+const monacoEditor = ref(null);   // Guarda a instância do editor (texto, scroll)
+const monacoInstance = ref(null); // Guarda a biblioteca monaco (enums, markers)
+const isMonacoReady = ref(false); // Flag de segurança
+
+// Função que o componente SqlEditor chama quando termina de carregar
+const handleEditorReady = ({ editor, monaco }) => {
+  monacoEditor.value = editor;
+  monacoInstance.value = monaco;
+  isMonacoReady.value = true; // Libera o uso
+};
 
 const editorWidth = ref(550); // Largura inicial do editor
 const isResizing = ref(false);
@@ -363,7 +372,7 @@ const startResize = () => {
   isResizing.value = true;
   document.body.style.cursor = "col-resize"; // Muda cursor globalmente
 
-  document.body.classList.add('is-resizing-global');
+  document.body.classList.add("is-resizing-global");
 
   window.addEventListener("mousemove", handleResize);
   window.addEventListener("mouseup", stopResize);
@@ -374,9 +383,9 @@ const handleResize = (e) => {
 
   // Pega a posição X do mouse
   const currentX = e.clientX;
-  
+
   // Ponto de gatilho (se passar daqui para a esquerda, fecha)
-  const SNAP_THRESHOLD = 150; 
+  const SNAP_THRESHOLD = 150;
 
   // 1. LÓGICA ELÁSTICA: FECHAR/ABRIR DINAMICAMENTE
   if (currentX < SNAP_THRESHOLD) {
@@ -405,7 +414,7 @@ const handleResize = (e) => {
 const stopResize = () => {
   isResizing.value = false;
   document.body.style.cursor = ""; // Reseta cursor
-  document.body.classList.remove('is-resizing-global');
+  document.body.classList.remove("is-resizing-global");
   window.removeEventListener("mousemove", handleResize);
   window.removeEventListener("mouseup", stopResize);
 };
@@ -591,55 +600,92 @@ const getTableHeight = (table) => {
 
 // Funções de formatação removidas - agora usa renderização direta no template
 
-// Função para atualizar o diagrama via API
+const validationResult = ref({ isValid: true, errors: [], warnings: [] });
+const lastValidState = ref(null);
+
 // Função para atualizar o diagrama via API
 const updateDiagram = async () => {
   if (!sqlCode.value.trim()) {
     tables.value = {};
     relationships.value = [];
+    validationResult.value = { isValid: true, errors: [], warnings: [] };
+    updateMonacoMarkers([]); // Limpa erros
     return;
   }
-  try {
-    // Usa MockApiService durante desenvolvimento
-    // Em produção, isso seria uma chamada fetch real para /api/parse
-    const response = await MockApiService.parse(sqlCode.value);
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Erro na resposta da API");
+  try {
+    // 1. VALIDAÇÃO (O Porteiro)
+    console.time("Validação");
+    const validation = SqlValidator.validate(sqlCode.value);
+    console.timeEnd("Validação");
+
+    validationResult.value = validation;
+
+    // Atualiza os sublinhados vermelhos no editor
+    updateMonacoMarkers([...validation.errors, ...validation.warnings]);
+
+    // 2. DECISÃO ESTRITA
+    if (!validation.isValid) {
+      console.warn("⚠️ SQL Inválido - Diagrama não atualizado.");
+      // Opcional: Se quiser manter o diagrama antigo visível, não faz nada aqui.
+      // Se quiser limpar, faria: tables.value = {};
+      return;
     }
 
-    const { tables: newTables, relationships: newRelationships } = await response.json();
+    // 3. PARSING SEGURO (Só roda se o porteiro deixou passar)
+    // Como validou, é seguro chamar o parser real
+    const parseResult = SqlParserService.parse(sqlCode.value);
 
-    // Preserva posições das tabelas existentes e ordena colunas
+    // Lógica de preservação de posição (Layout)
     const updatedTables = {};
-    for (const tableName in newTables) {
+    for (const tableName in parseResult.tables) {
       const oldTable = tables.value[tableName];
       updatedTables[tableName] = {
-        ...newTables[tableName],
-        columns: sortColumns(newTables[tableName].columns),
-        x: oldTable?.x || newTables[tableName].x,
-        y: oldTable?.y || newTables[tableName].y,
+        ...parseResult.tables[tableName],
+        columns: sortColumns(parseResult.tables[tableName].columns),
+        x: oldTable?.x || parseResult.tables[tableName].x,
+        y: oldTable?.y || parseResult.tables[tableName].y,
       };
     }
+
     tables.value = updatedTables;
+    relationships.value = parseResult.relationships;
 
-    // Preserva vértices customizados dos relacionamentos existentes
-    const updatedRelationships = newRelationships.map((newRel) => {
-      const existing = relationships.value.find((r) => r.id === newRel.id);
-      return {
-        ...newRel,
-        vertices: existing?.vertices || [],
-        auto: existing?.auto !== false,
-      };
-    });
-
-    relationships.value = updatedRelationships;
+    // Salva backup do estado válido
+    lastValidState.value = {
+      tables: JSON.parse(JSON.stringify(updatedTables)),
+      relationships: [...relationships.value],
+    };
   } catch (error) {
-    console.error("❌ Erro ao processar diagrama:", error);
+    console.error("❌ Erro Inesperado:", error);
   }
 };
 
+// Função Auxiliar para pintar o editor
+const updateMonacoMarkers = (problems) => {
+  // 1. Proteção: Verifica se as variáveis existem E se têm valor
+  if (!isMonacoReady.value || !monacoInstance.value || !monacoEditor.value) {
+    return;
+  }
+
+  const model = monacoEditor.value.getModel();
+  if (!model) return;
+
+  const markers = problems.map(p => ({
+    startLineNumber: p.line,
+    startColumn: p.column || 1,
+    endLineNumber: p.line,
+    endColumn: 1000, 
+    message: p.message,
+    // 🔥 AQUI O ERRO ACONTECIA: Tem que usar .value
+    severity: p.type === 'error' 
+      ? monacoInstance.value.MarkerSeverity.Error 
+      : monacoInstance.value.MarkerSeverity.Warning
+  }));
+
+  // 🔥 AQUI TAMBÉM: .value
+  monacoInstance.value.editor.setModelMarkers(model, 'owner', markers);
+};
 // Handler com debounce para mudanças no SQL
 const handleSqlChange = debounce(updateDiagram, 100);
 
@@ -787,30 +833,29 @@ onMounted(() => {
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-  background-color: #0F172A; /* Cor de fundo geral */
+  background-color: #0f172a; /* Cor de fundo geral */
 }
 
 .editor-panel {
   display: flex;
   flex-direction: column;
-  background-color: #0F172A;
+  background-color: #0f172a;
   flex-shrink: 0;
-  
+
   /* 🔥 AQUI ESTÁ A MÁGICA */
   /* Animamos a largura, a opacidade e as margens */
   transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-  
+
   /* Essencial: Esconde o conteúdo enquanto encolhe */
   overflow: hidden;
   white-space: nowrap;
-  
-  /* Garante que ele possa chegar a zero */
-  min-width: 0; 
-  
-  /* Borda direita (se houver) */
-  border-right: 1px solid #1E293B; 
-}
 
+  /* Garante que ele possa chegar a zero */
+  min-width: 0;
+
+  /* Borda direita (se houver) */
+  border-right: 1px solid #1e293b;
+}
 
 .editor-panel.panel-hidden {
   border-right: none;
@@ -819,13 +864,13 @@ onMounted(() => {
   /* 0.1s = Muito rápido (sensação de peso)
      ease-out = Começa rápido e desacelera no final (para "encaixar" no mouse)
   */
-  transition: width 0.1s ease-out !important; 
+  transition: width 0.1s ease-out !important;
   will-change: width; /* Avisa o navegador para usar aceleração de GPU */
 }
 
 .editor-panel.no-transition:not(.panel-hidden) {
   /* Velocidade de arraste (Rápida para acompanhar o mouse) */
-  transition: width 0.1s ease-out !important; 
+  transition: width 0.1s ease-out !important;
   will-change: width;
 }
 
@@ -834,15 +879,15 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   /* 🔥 MUDANÇA: Header agora é MAIS ESCURO que o editor (Slate 950) */
-  background-color: #020617; 
+  background-color: #020617;
   padding: 0 15px;
   height: 40px;
   /* Borda sutil para separar */
-  border-bottom: 1px solid #1E293B;
-  
+  border-bottom: 1px solid #1e293b;
+
   /* 🔥 IMPEDE SELEÇÃO DE TEXTO */
   user-select: none;
-  -webkit-user-select: none; 
+  -webkit-user-select: none;
 }
 
 .editor-header h1 {
@@ -850,7 +895,7 @@ onMounted(() => {
   text-transform: uppercase;
   letter-spacing: 1px;
   /* Verde Água da Marca */
-  color: #5EEAD4; 
+  color: #5eead4;
   font-weight: 700;
   margin: 0;
 }
@@ -860,7 +905,7 @@ onMounted(() => {
   text-transform: uppercase;
   letter-spacing: 1px;
   /* Verde Água da Marca */
-  color: #5EEAD4; 
+  color: #5eead4;
   font-weight: 700;
   margin: 0;
 }
@@ -873,27 +918,27 @@ onMounted(() => {
 .resizer-handle {
   width: 5px;
   /* Mesma cor do fundo para ficar invisível até passar o mouse */
-  background-color: #0F172A; 
+  background-color: #0f172a;
   cursor: col-resize;
   transition: background 0.2s, width 0.2s; /* Animação suave */
   z-index: 20; /* Garante que fique acima de tudo */
   flex-shrink: 0;
-  
+
   /* Borda sutil na esquerda para separar do editor */
-  border-left: 1px solid #1E293B; 
+  border-left: 1px solid #1e293b;
 }
 
 .resizer-handle:hover,
 .resizer-handle:active {
   /* 🔥 MUDANÇA: Agora brilha em VERDE ÁGUA (Teal) */
-  background-color: #2DD4BF; 
+  background-color: #2dd4bf;
   /* Fica um pouquinho mais largo pra facilitar o clique */
-  width: 7px; 
+  width: 7px;
 }
 .icon-btn {
   background: none;
   border: none;
-  color: #94A3B8; /* Cinza claro */
+  color: #94a3b8; /* Cinza claro */
   cursor: pointer;
   font-size: 16px;
   padding: 5px;
@@ -901,14 +946,14 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   /* 🔥 IMPEDE SELEÇÃO DO ÍCONE COMO TEXTO */
-  user-select: none; 
+  user-select: none;
 }
 
 .icon-btn:hover {
-  background-color: #1E293B;
-  color: #5EEAD4; /* Verde ao passar o mouse */
+  background-color: #1e293b;
+  color: #5eead4; /* Verde ao passar o mouse */
 }
 
 .icon-btn:hover {
@@ -919,37 +964,37 @@ onMounted(() => {
 .collapsed-sidebar {
   width: 40px;
   /* Fundo escuro igual ao Header */
-  background-color: #020617; 
-  border-right: 1px solid #1E293B;
+  background-color: #020617;
+  border-right: 1px solid #1e293b;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding-top: 10px;
   cursor: pointer;
-  
+
   /* 🔥 IMPEDE SELEÇÃO */
-  user-select: none; 
+  user-select: none;
 }
 
 .collapsed-sidebar:hover {
-  background-color: #1E293B;
+  background-color: #1e293b;
 }
 
 @media (max-width: 768px) {
   .app {
     flex-direction: column; /* Vira coluna no celular */
   }
-  
+
   .editor-panel {
     width: 100% !important; /* Força largura total */
     height: 50%; /* Ocupa metade da tela se aberto */
     border-bottom: 2px solid #444;
   }
-  
+
   .resizer-handle {
     display: none !important; /* Esconde a barra de arraste */
   }
-  
+
   .collapsed-sidebar {
     width: 100%;
     height: 40px;
@@ -1029,7 +1074,7 @@ onMounted(() => {
   z-index: 9999; /* Fica acima de TUDO (Header, Editor, Canvas) */
   cursor: col-resize; /* Mantém o cursor de arrastar */
   background: transparent; /* Invisível */
-  
+
   /* Garante que o navegador priorize essa div */
   user-select: none;
   touch-action: none;
