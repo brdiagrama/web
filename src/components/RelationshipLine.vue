@@ -392,6 +392,7 @@ const y2 = t2.y + getColumnOffset(t2, props.relationship.toCol) + targetOffset;
   font-family: "Segoe UI", sans-serif;
   pointer-events: none;
   user-select: none;
+  transition: opacity 0.2s, transform 0.2s;
   transition: fill 0.2s;
 }
 
@@ -406,19 +407,6 @@ const y2 = t2.y + getColumnOffset(t2, props.relationship.toCol) + targetOffset;
   transition: transform 0.15s ease-out;
   /* Define o centro da transformação para a linha não "deslocar" */
   transform-origin: center center;
-}
-
-/* 2. Destaque Visual no Hover (Triggered by .is-active no pai) */
-.relationship-line.is-active .connector-visual {
-  stroke: #192747;
-  stroke-width: 2.5px;
-  filter: drop-shadow(0 0 0px #19274780) drop-shadow(0 0 8px #19274740);
-  color: #192747;
-}
-/* 3. Estilo dos Rótulos (Opcional: Fazer o rótulo "pular" junto) */
-.cardinality-label {
-  /* ... */
-  transition: opacity 0.2s, transform 0.2s;
 }
 
 /* Animação Keyframe: Cria o movimento infinito */
@@ -444,7 +432,6 @@ const y2 = t2.y + getColumnOffset(t2, props.relationship.toCol) + targetOffset;
 /* Ajuste fino para quando estiver ativo */
 .relationship-line.is-active .connector-visual {
   stroke: #192747; 
-  stroke-width: 3px; 
   filter: drop-shadow(0 0 2px rgba(25, 39, 71, 0.5));
 }
 </style>
