@@ -641,7 +641,7 @@ const updateDiagram = async () => {
 };
 
 // Handler com debounce para mudanças no SQL
-const handleSqlChange = debounce(updateDiagram, 500);
+const handleSqlChange = debounce(updateDiagram, 100);
 
 // --- Funções de Seleção Múltipla ---
 
