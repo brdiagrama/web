@@ -15,6 +15,7 @@
         ref="diagramCanvasRef"
         class="canvas-container"
         @selectionArea="handleSelectionArea"
+        @selectionSelecting="handleSelectionArea"
       >
         <!-- Definições SVG -->
         <defs> </defs>

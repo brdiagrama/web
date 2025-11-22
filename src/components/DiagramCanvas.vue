@@ -460,6 +460,16 @@
       <slot />
 
       <!-- Retângulo de seleção -->
+
+      <rect
+        v-if="selectionBox.visible"
+        :x="-50000"
+        :y="-50000"
+        width="100000"
+        height="100000"
+        fill="transparent"
+        style="pointer-events: all; cursor: crosshair"
+      />
       <rect
         v-if="selectionBox.visible"
         :x="Math.min(selectionBox.startX, selectionBox.endX)"
@@ -481,7 +491,8 @@ import { onMounted, onUnmounted, ref, watch } from "vue";
 import svgPanZoom from "svg-pan-zoom";
 import { useDiagramStore } from "@/stores/diagram";
 
-const emit = defineEmits(["selectionArea"]);
+
+const emit = defineEmits(["selectionArea", "selectionSelecting"]);
 
 const store = useDiagramStore();
 
@@ -519,23 +530,25 @@ const saveState = () => {
 // --- Funções de Panorâmica (Arrastar) ---
 
 const handleMouseDown = (e) => {
-  // Botão do meio do mouse (scroll) = button 1
+  // Botão do meio (Scroll/Pan)
   if (e.button === 1) {
     e.preventDefault();
     isMiddleMouseDown = true;
     enablePan();
   }
-  // Botão esquerdo (button 0) - iniciar seleção
+  // Botão esquerdo (Seleção)
   else if (e.button === 0) {
     const rect = svgRoot.value.getBoundingClientRect();
     const pan = panZoomInstance.value.getPan();
     const zoom = panZoomInstance.value.getZoom();
 
-    // Converter coordenadas da tela para coordenadas do SVG
+    // Inicia coordenadas
     startPoint.x = (e.clientX - rect.left - pan.x) / zoom;
     startPoint.y = (e.clientY - rect.top - pan.y) / zoom;
 
     isSelecting = true;
+    
+    // Define caixa inicial (ponto único)
     selectionBox.value = {
       visible: true,
       startX: startPoint.x,
@@ -544,22 +557,68 @@ const handleMouseDown = (e) => {
       endY: startPoint.y,
     };
 
-    // Adicionar listener de mousemove
-    svgRoot.value.addEventListener("mousemove", handleMouseMove);
+    // 🔥 CORREÇÃO: Adiciona listeners na JANELA (window).
+    // Isso garante que se soltar o mouse em cima de qualquer coisa (tabela, overlay, fora da tela),
+    // o evento será capturado.
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleWindowMouseUp);
   }
 };
 
 const handleMouseMove = (e) => {
   if (!isSelecting) return;
+  
+  // Previne selecionar texto indesejado enquanto arrasta
+  e.preventDefault();
 
   const rect = svgRoot.value.getBoundingClientRect();
   const pan = panZoomInstance.value.getPan();
   const zoom = panZoomInstance.value.getZoom();
 
-  // Atualizar posição final do retângulo
   selectionBox.value.endX = (e.clientX - rect.left - pan.x) / zoom;
   selectionBox.value.endY = (e.clientY - rect.top - pan.y) / zoom;
+
+  // Emitindo em tempo real para o efeito visual
+  const currentSelection = {
+      x1: Math.min(selectionBox.value.startX, selectionBox.value.endX),
+      y1: Math.min(selectionBox.value.startY, selectionBox.value.endY),
+      x2: Math.max(selectionBox.value.startX, selectionBox.value.endX),
+      y2: Math.max(selectionBox.value.startY, selectionBox.value.endY),
+  };
+  
+  emit("selectionSelecting", currentSelection);
 };
+
+const handleWindowMouseUp = (e) => {
+  if (isSelecting && e.button === 0) {
+    isSelecting = false;
+    
+    // Remove os listeners globais para não pesar a memória
+    window.removeEventListener("mousemove", handleMouseMove);
+    window.removeEventListener("mouseup", handleWindowMouseUp);
+
+    // Calcula área final
+    const selectionArea = {
+      x1: Math.min(selectionBox.value.startX, selectionBox.value.endX),
+      y1: Math.min(selectionBox.value.startY, selectionBox.value.endY),
+      x2: Math.max(selectionBox.value.startX, selectionBox.value.endX),
+      y2: Math.max(selectionBox.value.startY, selectionBox.value.endY),
+    };
+
+    // Emite evento final (App.vue vai processar e limpar se for clique vazio)
+    emit("selectionArea", selectionArea);
+
+    // Esconde a caixa visualmente
+    selectionBox.value.visible = false;
+  }
+};
+
+const handleGlobalMouseUp = (e) => {
+    if (e.button === 1 && isMiddleMouseDown) {
+        isMiddleMouseDown = false;
+        disablePan();
+    }
+}
 
 const handleMouseUp = (e) => {
   if (e.button === 1 && isMiddleMouseDown) {
@@ -719,12 +778,7 @@ onMounted(() => {
         panZoomInstance.value.setOnZoom(saveState);
 
         // Listener global para capturar mouseup fora do SVG
-        window.addEventListener("mouseup", (e) => {
-          if (e.button === 1 && isMiddleMouseDown) {
-            isMiddleMouseDown = false;
-            disablePan();
-          }
-        });
+       window.addEventListener("mouseup", handleGlobalMouseUp);
       } catch (error) {
         console.error("Erro ao inicializar svg-pan-zoom:", error);
       }
@@ -734,10 +788,9 @@ onMounted(() => {
 
 onUnmounted(() => {
   // Limpar listeners globais
-  window.removeEventListener("mouseup", handleMouseUp);
-  if (svgRoot.value) {
-    svgRoot.value.removeEventListener("mousemove", handleMouseMove);
-  }
+ window.removeEventListener("mouseup", handleGlobalMouseUp);
+  window.removeEventListener("mouseup", handleWindowMouseUp);
+  window.removeEventListener("mousemove", handleMouseMove);
 });
 
 // --- Métodos Expostos (Acessíveis pelo componente pai) ---
@@ -797,7 +850,7 @@ defineExpose({
 }
 
 .pk-icon {
-  fill: #1ABC9C;
+  fill: #1abc9c;
   font-size: 10px;
   font-weight: bold;
 }
