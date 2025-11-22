@@ -1,7 +1,15 @@
 <template>
     <div class="diagram-toolbar">
-        <button @click="fitDiagram" class="toolbar-btn">
-            Ajustar à Tela
+        <button @click="resetZoom" class="toolbar-btn reset-zoom-btn" title="Zoom 100%">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <!-- Quadrado externo -->
+                <rect x="3" y="3" width="18" height="18" stroke-width="2" rx="2"/>
+                <!-- Setas nos cantos -->
+                <path d="M 7 7 L 7 10 M 7 7 L 10 7" stroke-width="2" stroke-linecap="round"/>
+                <path d="M 17 7 L 17 10 M 17 7 L 14 7" stroke-width="2" stroke-linecap="round"/>
+                <path d="M 7 17 L 7 14 M 7 17 L 10 17" stroke-width="2" stroke-linecap="round"/>
+                <path d="M 17 17 L 17 14 M 17 17 L 14 17" stroke-width="2" stroke-linecap="round"/>
+            </svg>
         </button>
           <!-- NOVO: Botão do Grid -->
         <button 
@@ -106,13 +114,10 @@ const decreaseZoom = () => {
 };
 
 /**
- * Chama o método 'fitToScreen' exposto pelo DiagramCanvas.
+ * Reseta o zoom para 100%
  */
-const fitDiagram = () => {
-    // Verifica se a referência ao componente DiagramCanvas é válida
-    if (props.diagramRef && props.diagramRef.fitToScreen) {
-        props.diagramRef.fitToScreen();
-    }
+const resetZoom = () => {
+    zoomScale.value = 100;
 };
 
 </script>
@@ -134,6 +139,28 @@ const fitDiagram = () => {
 .toolbar-btn {
     padding: 8px 15px;
     cursor: pointer;
+}
+
+.reset-zoom-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 7px;
+    transition: all 0.2s ease;
+}
+
+.reset-zoom-btn:hover {
+    background-color: #f0f0f0;
+    border-color: #999;
+}
+
+.reset-zoom-btn:active {
+    background-color: #e0e0e0;
 }
 .zoom-control {
     display: flex;
