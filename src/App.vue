@@ -26,7 +26,12 @@
 
           <button class="icon-btn" @click="exportSql" title="Exportar .sql">Exportar💾</button>
           
+          <button class="icon-btn" @click="triggerImport" title="Importar .sql">Importar📂</button>
+
           <button class="icon-btn" @click="toggleEditor" title="Ocultar Editor">❮</button>
+        
+          <input ref="fileInputRef" type="file" accept=".sql,text/sql,.txt" @change="handleFileImport" style="display:none" />
+
         </div>
 
         <SqlEditor
@@ -790,6 +795,36 @@ const gotoLine = (lineNumberRaw) => {
   monacoEditor.value.revealLineInCenter(lineNumber);
   monacoEditor.value.setPosition({ lineNumber, column: 1 });
   monacoEditor.value.focus();
+};
+
+const fileInputRef = ref(null);
+
+const triggerImport = () => {
+  fileInputRef.value?.click();
+};
+
+const handleFileImport = async (event) => {
+  const file = event.target?.files?.[0];
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    sqlCode.value = text;
+
+    // Se o Monaco já estiver pronto, atualiza o editor diretamente
+    if (monacoEditor.value && typeof monacoEditor.value.setValue === "function") {
+      monacoEditor.value.setValue(text);
+    }
+
+    // Atualiza o diagrama imediatamente com o conteúdo importado
+    await updateDiagram();
+  } catch (err) {
+    console.error("Erro ao importar arquivo:", err);
+    // Opcional: exibir notificação ao usuário
+  } finally {
+    // limpa o input para permitir reimportar o mesmo arquivo depois
+    if (fileInputRef.value) fileInputRef.value.value = "";
+  }
 };
 
 const exportSql = () => {
