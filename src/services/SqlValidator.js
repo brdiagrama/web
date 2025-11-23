@@ -1,318 +1,409 @@
 /**
  * src/services/SqlValidator.js
- * Versão 2.0 - Backend Inteligente
- * - Detecção de Ponto e Vírgula faltando
- * - Prevenção de Duplicatas
- * - Validação de Tipos Robusta
+ * Versão 3.1 - Tratamento de Vírgula Trailing + FK Validation
+ * - Detecta vírgula antes de ')' (trailing comma)
+ * - Valida Foreign Keys (tabela referenciada existe?)
+ * - Correção do falso positivo de ';' faltando
  */
 
 export class SqlValidator {
-  static RESERVED_WORDS = new Set([
-    'SELECT', 'FROM', 'WHERE', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'TABLE',
-    'PRIMARY', 'FOREIGN', 'KEY', 'REFERENCES', 'CONSTRAINT', 'UNIQUE', 'NOT',
-    'NULL', 'DEFAULT', 'CHECK', 'INDEX', 'ALTER', 'DROP', 'ADD', 'COLUMN'
-  ]);
+    static RESERVED_WORDS = new Set([
+        'SELECT', 'FROM', 'WHERE', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'TABLE',
+        'PRIMARY', 'FOREIGN', 'KEY', 'REFERENCES', 'CONSTRAINT', 'UNIQUE', 'NOT',
+        'NULL', 'DEFAULT', 'CHECK', 'INDEX', 'ALTER', 'DROP', 'ADD', 'COLUMN', 'ORDER', 'GROUP', 'BY'
+    ]);
 
-  static VALID_TYPES = new Set([
-    'INT', 'INTEGER', 'BIGINT', 'SMALLINT', 'TINYINT',
-    'VARCHAR', 'CHAR', 'TEXT', 'LONGTEXT', 'MEDIUMTEXT',
-    'DATE', 'DATETIME', 'TIMESTAMP', 'TIME',
-    'DECIMAL', 'NUMERIC', 'FLOAT', 'DOUBLE', 'REAL',
-    'BOOLEAN', 'BOOL', 'BIT',
-    'SERIAL', 'JSON', 'JSONB', 'UUID', 'MONEY', 'BLOB'
-  ]);
+    static VALID_TYPES = new Set([
+        'INT', 'INTEGER', 'BIGINT', 'SMALLINT', 'TINYINT',
+        'VARCHAR', 'CHAR', 'TEXT', 'LONGTEXT', 'MEDIUMTEXT',
+        'DATE', 'DATETIME', 'TIMESTAMP', 'TIME',
+        'DECIMAL', 'NUMERIC', 'FLOAT', 'DOUBLE', 'REAL',
+        'BOOLEAN', 'BOOL', 'BIT',
+        'SERIAL', 'JSON', 'JSONB', 'UUID', 'MONEY', 'BLOB'
+    ]);
 
-  /**
-   * Método Principal
-   */
-  static validate(sql) {
-    // 0. Inicialização Limpa
-    const uniqueErrors = new Set(); // Chave única para evitar duplicatas
-    const errors = [];
-    const warnings = [];
-    const tables = {};
+    static validate(sql) {
+        const uniqueErrors = new Map();
+        const errors = [];
+        const warnings = [];
+        const tables = {};
 
-    // Helper para adicionar erro sem duplicar
-    const addError = (line, message, type = 'error') => {
-      const key = `${line}-${message}`;
-      if (!uniqueErrors.has(key)) {
-        uniqueErrors.add(key);
-        // Empurra para o array real
-        (type === 'error' ? errors : warnings).push({ line, message, type });
-      }
-    };
+        const declaredTableNames = new Set();
+        let lastLineSearched = 0;
 
-    if (!sql || !sql.trim()) {
-      return { isValid: true, tables: {}, errors: [], warnings: [] };
-    }
-
-    // 1. Proteção de Performance
-    if (sql.length > 50000) {
-      return {
-        isValid: false,
-        errors: [{ line: 1, message: 'SQL muito grande (limite 50k caracteres)', type: 'error' }],
-        warnings: []
-      };
-    }
-
-    const lines = sql.split('\n');
-
-    // 2. 🔥 NOVO: Validação Rigorosa de Ponto e Vírgula (Antes de processar)
-    // Regex: Procura um ")" seguido de quebra de linha/espaço e IMEDIATAMENTE um "CREATE"
-    // Isso significa que o usuário fechou a tabela mas esqueceu o ";" antes da próxima.
-    const cleanSqlForCheck = sql.replace(/--.*$/gm, ''); // Remove comentários
-    const missingSemicolonRegex = /\)\s*[\r\n]+\s*CREATE/gi;
-    let match;
-    
-    while ((match = missingSemicolonRegex.exec(cleanSqlForCheck)) !== null) {
-      // Calcula a linha exata onde ocorreu o erro
-      const textUntilError = cleanSqlForCheck.substring(0, match.index);
-      const lineNumber = textUntilError.split('\n').length;
-      
-      addError(lineNumber, "Faltou ponto e vírgula ';' após fechar a tabela anterior.");
-    }
-
-    // Se faltou ponto e vírgula entre tabelas, paramos aqui. 
-    // Tentar processar o resto causaria erros de sintaxe confusos.
-    if (errors.length > 0) {
-      return { isValid: false, tables: {}, errors, warnings };
-    }
-
-    // 3. Extração e Validação das Tabelas
-    const statements = this.extractCreateStatements(sql);
-
-    statements.forEach(stmt => {
-      const result = this.validateCreateTable(stmt, lines);
-      
-      // Mescla os resultados usando nosso helper anti-duplicata
-      result.errors.forEach(e => addError(e.line, e.message, 'error'));
-      result.warnings.forEach(w => addError(w.line, w.message, 'warning'));
-      
-      if (result.table) {
-        tables[result.table.name] = result.table;
-      }
-    });
-
-    // 4. Validação Cruzada (FKs) - Só roda se a sintaxe base estiver OK
-    if (errors.length === 0) {
-      // Futuro: validateForeignKeys(tables)
-    }
-
-    return {
-      isValid: errors.length === 0,
-      tables,
-      errors, // Array limpo e sem duplicatas
-      warnings
-    };
-  }
-
-  // --- MÉTODOS DE PARSING ---
-
-  static extractCreateStatements(sql) {
-    const statements = [];
-    let depth = 0;
-    let current = '';
-    let inString = false;
-    let stringChar = '';
-
-    for (let i = 0; i < sql.length; i++) {
-      const char = sql[i];
-      const prev = sql[i - 1];
-
-      // Ignora strings
-      if ((char === "'" || char === '"') && prev !== '\\') {
-        if (!inString) { inString = true; stringChar = char; }
-        else if (char === stringChar) { inString = false; }
-      }
-
-      // Conta parênteses (para não cortar no ; de dentro de um CHECK ou string)
-      if (!inString) {
-        if (char === '(') depth++;
-        if (char === ')') depth--;
-      }
-
-      current += char;
-
-      // Corta no Ponto e Vírgula (se não estiver dentro de parênteses)
-      if (depth === 0 && char === ';') {
-        const trimmed = current.trim();
-        if (trimmed.toUpperCase().startsWith('CREATE')) {
-          statements.push(trimmed);
-        }
-        current = '';
-      }
-    }
-
-    // Pega o último comando (que pode não ter ;)
-    if (current.trim() && current.trim().toUpperCase().startsWith('CREATE')) {
-      statements.push(current.trim());
-    }
-
-    return statements;
-  }
-
-  static validateCreateTable(stmt, lines) {
-    const localErrors = [];
-    let table = null;
-
-    // Remove comentários para limpar a string
-    const cleanStmt = stmt.replace(/--.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
-    
-    // Acha a linha real no arquivo original
-    const lineNumber = this.findLineNumber(stmt, lines);
-
-    // Valida Header
-    const headerMatch = cleanStmt.match(/^\s*CREATE\s+TABLE\s+(\w+)\s*\(/i);
-    if (!headerMatch) {
-      // Se não achou CREATE TABLE, ignora (pode ser lixo no fim do arquivo)
-      return { errors: [], warnings: [], table: null };
-    }
-
-    const tableName = headerMatch[1];
-
-    // Valida Parênteses
-    const openCount = (cleanStmt.match(/\(/g) || []).length;
-    const closeCount = (cleanStmt.match(/\)/g) || []).length;
-    if (openCount !== closeCount) {
-      localErrors.push({ 
-        line: lineNumber, 
-        message: `Parênteses desbalanceados na tabela '${tableName}'.`, 
-        type: 'error' 
-      });
-      return { errors: localErrors, warnings: [], table: null };
-    }
-
-    // Extrai o corpo
-    const bodyStart = cleanStmt.indexOf('(');
-    const bodyEnd = cleanStmt.lastIndexOf(')');
-    const body = cleanStmt.substring(bodyStart + 1, bodyEnd);
-
-    // Valida colunas
-    const result = this.parseTableBody(body, tableName, lineNumber, lines);
-
-    if (result.errors.length === 0 && localErrors.length === 0) {
-      table = { name: tableName, columns: result.columns };
-    }
-
-    return { 
-      errors: [...localErrors, ...result.errors], 
-      warnings: result.warnings, 
-      table 
-    };
-  }
-
-  static parseTableBody(body, tableName, startLine, lines) {
-    const errors = [];
-    const warnings = [];
-    const columns = [];
-    
-    const items = this.splitByComma(body);
-
-    items.forEach(item => {
-      const trimmed = item.trim();
-      if (!trimmed) return;
-
-      // Ignora constraints de tabela por enquanto
-      if (/^\s*(PRIMARY\s+KEY|FOREIGN\s+KEY|CONSTRAINT|UNIQUE|CHECK)/i.test(trimmed)) {
-        return; 
-      }
-
-      // Acha a linha específica desta coluna (procura o texto dentro do arquivo)
-      // Isso é "inteligente": em vez de usar a linha da tabela, achamos a linha da coluna
-      const columnLine = this.findLineNumber(trimmed.split(' ')[0], lines, startLine);
-
-      const colResult = this.parseColumn(trimmed, columnLine || startLine);
-      
-      if (colResult.error) {
-        errors.push(colResult.error);
-      } else if (colResult.column) {
-        columns.push(colResult.column);
-      }
-    });
-
-    return { errors, warnings, columns };
-  }
-
-  static parseColumn(def, line) {
-    const parts = def.trim().split(/\s+/);
-
-    if (parts.length < 2) {
-      return { 
-        error: { 
-          line: line, 
-          message: `Definição incompleta. Esperado: nome_coluna tipo_dado`, 
-          type: 'error' 
-        } 
-      };
-    }
-
-    const name = parts[0];
-    const typeRaw = parts[1];
-    
-    // Remove parenteses do tipo para validar (ex: VARCHAR(50) -> VARCHAR)
-    const baseType = typeRaw.split('(')[0].toUpperCase();
-
-    // Validação de Tipo Inteligente
-    if (!this.VALID_TYPES.has(baseType)) {
-      // Verifica se o usuário não digitou uma palavra reservada sem querer
-      if (this.RESERVED_WORDS.has(baseType)) {
-        return {
-          error: {
-            line: line,
-            message: `"${baseType}" é uma palavra reservada, não um tipo.`,
-            type: 'error'
-          }
+        const addIssue = (line, message, type = 'error') => {
+            const key = `${line}-${message.trim()}`;
+            if (!uniqueErrors.has(key)) {
+                const issue = { line, message, type };
+                uniqueErrors.set(key, issue);
+                (type === 'error' ? errors : warnings).push(issue);
+            }
         };
-      }
 
-      return {
-        error: {
-          line: line,
-          message: `Tipo inválido: "${baseType}". Use INT, VARCHAR, DATE, etc.`,
-          type: 'error'
+        if (!sql || !sql.trim()) return { isValid: true, tables: {}, errors: [], warnings: [] };
+
+        const lines = sql.split('\n');
+
+        // 1. Checagem de Ponto e Vírgula (MELHORADA: Ignora se tabela tem erro interno)
+        const cleanSqlForCheck = sql.replace(/--.*$/gm, '');
+        const missingSemicolonRegex = /\)\s*[\r\n]+\s*CREATE/gi;
+        let match;
+        let semicolonErrors = [];
+
+        while ((match = missingSemicolonRegex.exec(cleanSqlForCheck)) !== null) {
+            const textUntilError = cleanSqlForCheck.substring(0, match.index);
+            const lineNumber = textUntilError.split('\n').length;
+            semicolonErrors.push({ line: lineNumber, message: "Faltou ponto e vírgula ';' após a tabela anterior." });
         }
-      };
+
+        // 2. Extração e Análise (coleta erros internos primeiro)
+        const statements = this.extractCreateStatements(sql);
+        let hasInternalErrors = false;
+
+        statements.forEach(stmt => {
+            const cleanStmt = stmt.replace(/--.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+            const headerMatch = cleanStmt.match(/^\s*CREATE\s+TABLE\s+([a-zA-Z0-9_]+)/i);
+
+            let currentTableLine = 1;
+            let tableName = null;
+
+            if (headerMatch) {
+                tableName = headerMatch[1];
+                currentTableLine = this.findLineNumber(`CREATE TABLE ${tableName}`, lines, lastLineSearched);
+                lastLineSearched = currentTableLine;
+
+                if (declaredTableNames.has(tableName)) {
+                    addIssue(currentTableLine, `A tabela '${tableName}' já foi declarada anteriormente.`, 'error');
+                    hasInternalErrors = true;
+                    return;
+                }
+                declaredTableNames.add(tableName);
+            }
+
+            const result = this.validateCreateTable(stmt, lines, tables, currentTableLine);
+
+            result.errors.forEach(e => {
+                addIssue(e.line, e.message, 'error');
+                hasInternalErrors = true;
+            });
+            result.warnings.forEach(w => addIssue(w.line, w.message, 'warning'));
+
+            if (result.table && result.errors.length === 0) {
+                tables[result.table.name] = result.table;
+            }
+        });
+
+        // 🔥 CORREÇÃO: Só adiciona erro de ';' se NÃO houver erros internos nas tabelas
+        if (!hasInternalErrors) {
+            semicolonErrors.forEach(e => addIssue(e.line, e.message, 'error'));
+        }
+
+        return { isValid: errors.length === 0, tables, errors, warnings };
     }
 
-    return {
-      column: {
-        name: name,
-        type: typeRaw,
-        isPk: /PRIMARY\s+KEY/i.test(def),
-        isFk: false
-      }
-    };
-  }
+    static validateCreateTable(stmt, lines, existingTables, startLine) {
+        const localErrors = [];
+        const localWarnings = [];
+        let table = null;
 
-  // --- UTILITÁRIOS ---
+        const cleanStmt = stmt.replace(/--.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+        const headerMatch = cleanStmt.match(/^\s*CREATE\s+TABLE\s+([a-zA-Z0-9_]+)/i);
 
-  static splitByComma(str) {
-    const result = [];
-    let current = '';
-    let depth = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str[i];
-      if (char === '(') depth++;
-      if (char === ')') depth--;
-      if (char === ',' && depth === 0) {
-        result.push(current);
-        current = '';
-        continue;
-      }
-      current += char;
+        if (!headerMatch) return { errors: [], warnings: [], table: null };
+        const tableName = headerMatch[1];
+
+        const bodyStart = cleanStmt.indexOf('(');
+
+        if (bodyStart === -1) {
+            if (cleanStmt.length > `CREATE TABLE ${tableName}`.length + 2) {
+                localErrors.push({
+                    line: startLine,
+                    message: `Esperado '(' para iniciar as colunas da tabela '${tableName}'.`,
+                    type: 'error'
+                });
+            }
+            return { errors: localErrors, warnings: [], table: null };
+        }
+
+        const contentAfterOpen = cleanStmt.substring(bodyStart + 1).trim();
+        if (contentAfterOpen.length === 0) {
+            localWarnings.push({
+                line: startLine,
+                message: `Adicione a primeira coluna (ex: id INT) na tabela '${tableName}'.`,
+                type: 'warning'
+            });
+            return { errors: [], warnings: localWarnings, table: null };
+        }
+
+        const bodyEnd = cleanStmt.lastIndexOf(')');
+        if (bodyEnd === -1 || bodyEnd < bodyStart) {
+            localErrors.push({
+                line: startLine,
+                message: `Faltou fechar parênteses ')' no final da tabela '${tableName}'.`,
+                type: 'error'
+            });
+            const bodyPartial = cleanStmt.substring(bodyStart + 1);
+            const resultPartial = this.parseTableBody(bodyPartial, tableName, startLine, lines, existingTables);
+            if (resultPartial.columns.length > 0) {
+                table = { name: tableName, columns: resultPartial.columns };
+            }
+            return { errors: [...localErrors, ...resultPartial.errors], warnings: [], table };
+        }
+
+        const body = cleanStmt.substring(bodyStart + 1, bodyEnd);
+
+        // 🔥 NOVO: Detecta vírgula trailing (antes do ')' final)
+        const textBeforeClosing = body.trimEnd();
+        if (textBeforeClosing.endsWith(',')) {
+            // Encontra a ÚLTIMA vírgula no corpo
+            const lastCommaIndex = body.lastIndexOf(',');
+            const textUntilComma = body.substring(0, lastCommaIndex);
+            const lineWithComma = startLine + textUntilComma.split('\n').length;
+
+            localErrors.push({
+                line: lineWithComma,
+                message: `Remova a vírgula após a última coluna (antes de ')').`,
+                type: 'error'
+            });
+        }
+
+        const result = this.parseTableBody(body, tableName, startLine, lines, existingTables);
+
+        if (result.errors.length === 0 && localErrors.length === 0) {
+            table = { name: tableName, columns: result.columns };
+        }
+
+        return { errors: [...localErrors, ...result.errors], warnings: [...localWarnings, ...result.warnings], table };
     }
-    if (current.trim()) result.push(current);
-    return result;
-  }
 
-  // Busca a linha onde um texto aparece, começando de uma linha offset
-  static findLineNumber(snippet, lines, startOffset = 0) {
-    const search = snippet.substring(0, 20).trim(); // Pega só o começo para buscar
-    if (!search) return startOffset;
+    static parseTableBody(bodyContent, tableName, tableStartLine, allLines, existingTables) {
+        const errors = [];
+        const warnings = [];
+        const columns = [];
+        const columnNames = new Set();
 
-    for (let i = startOffset; i < lines.length; i++) {
-      if (lines[i].includes(search)) return i + 1;
+        // 🔥 PASSO 1: Primeira passagem - coleta TODAS as colunas declaradas
+        const firstPassRegex = /([a-zA-Z0-9_]+)\s+(INT|INTEGER|VARCHAR|TEXT|DATE|TIMESTAMP|BOOLEAN|FLOAT|DOUBLE|DECIMAL|CHAR|SERIAL|BIGINT|JSON|UUID|MONEY|TIME|BLOB|TINYINT|SMALLINT|LONGTEXT|MEDIUMTEXT|NUMERIC|REAL|BOOL|BIT|DATETIME|JSONB)/gi;
+        let firstMatch;
+        const declaredColumns = new Set();
+
+        while ((firstMatch = firstPassRegex.exec(bodyContent)) !== null) {
+            declaredColumns.add(firstMatch[1]);
+        }
+
+        // 🔥 PASSO 2: Valida FOREIGN KEY (tabela + coluna referenciada)
+        const fkRegex = /FOREIGN\s+KEY\s*\(\s*([a-zA-Z0-9_]+)\s*\)\s*REFERENCES\s+([a-zA-Z0-9_]+)\s*\(\s*([a-zA-Z0-9_]+)\s*\)/gi;
+        let fkMatch;
+        while ((fkMatch = fkRegex.exec(bodyContent)) !== null) {
+            const localColumn = fkMatch[1];      // Ex: user_id
+            const referencedTable = fkMatch[2];  // Ex: users
+            const referencedColumn = fkMatch[3]; // Ex: id
+
+            const textUntilFK = bodyContent.substring(0, fkMatch.index);
+            const fkLine = tableStartLine + textUntilFK.split('\n').length - 1;
+
+            // Valida se a coluna LOCAL existe na tabela atual
+            if (!declaredColumns.has(localColumn)) {
+                errors.push({
+                    line: fkLine,
+                    message: `A coluna '${localColumn}' não foi encontrada nesta tabela. Declare-a antes de usar na FOREIGN KEY.`,
+                    type: 'error'
+                });
+            }
+
+            // Valida se a TABELA referenciada existe
+            if (!existingTables[referencedTable]) {
+                errors.push({
+                    line: fkLine,
+                    message: `A tabela referenciada '${referencedTable}' não foi encontrada. `,
+                    type: 'error'
+                });
+            }
+            // Se a tabela existe, valida se a COLUNA referenciada existe nela
+            else {
+                const targetTableColumns = existingTables[referencedTable].columns.map(c => c.name);
+                if (!targetTableColumns.includes(referencedColumn)) {
+                    errors.push({
+                        line: fkLine,
+                        message: `A coluna '${referencedColumn}' não foi encontrada na tabela '${referencedTable}'.`,
+                        type: 'error'
+                    });
+                }
+            }
+        }
+
+        // 🔥 PASSO 3: Valida PRIMARY KEY (coluna deve existir)
+        const pkRegex = /PRIMARY\s+KEY\s*\(\s*([a-zA-Z0-9_]+)\s*\)/gi;
+        let pkMatch;
+        while ((pkMatch = pkRegex.exec(bodyContent)) !== null) {
+            const pkColumn = pkMatch[1];
+            const textUntilPK = bodyContent.substring(0, pkMatch.index);
+            const pkLine = tableStartLine + textUntilPK.split('\n').length - 1;
+
+            if (!declaredColumns.has(pkColumn)) {
+                errors.push({
+                    line: pkLine,
+                    message: `A coluna '${pkColumn}' não foi encontrada nesta tabela. Declare-a antes de usar na PRIMARY KEY.`,
+                    type: 'error'
+                });
+            }
+        }
+
+        const inlineFkRegex = /([a-zA-Z0-9_]+)\s+(?:INT|INTEGER|VARCHAR|TEXT|BIGINT|SMALLINT)\s+REFERENCES\s+([a-zA-Z0-9_]+)\s*\(\s*([a-zA-Z0-9_]+)\s*\)/gi;
+        let inlineFkMatch;
+        while ((inlineFkMatch = inlineFkRegex.exec(bodyContent)) !== null) {
+            const localColumn = inlineFkMatch[1];       // Ex: cliente_id
+            const referencedTable = inlineFkMatch[2];   // Ex: cliente
+            const referencedColumn = inlineFkMatch[3];  // Ex: iddas (errado)
+
+            const textUntilFK = bodyContent.substring(0, inlineFkMatch.index);
+            const fkLine = tableStartLine + textUntilFK.split('\n').length - 1;
+
+            // Valida se a TABELA referenciada existe
+            if (!existingTables[referencedTable]) {
+                errors.push({
+                    line: fkLine,
+                    message: `A tabela referenciada '${referencedTable}' não foi encontrada. `,
+                    type: 'error'
+                });
+            }
+            // Se a tabela existe, valida se a COLUNA referenciada existe nela
+            else {
+                const targetTableColumns = existingTables[referencedTable].columns.map(c => c.name);
+                if (!targetTableColumns.includes(referencedColumn)) {
+                    errors.push({
+                        line: fkLine,
+                        message: `A coluna '${referencedColumn}' não foi encontrada na tabela '${referencedTable}'.`,
+                        type: 'error'
+                    });
+                }
+            }
+        }
+
+        // Regex Híbrido para colunas e constraints (ORIGINAL - FUNCIONA BEM)
+        const itemRegex = /(CONSTRAINT|PRIMARY\s+KEY|FOREIGN\s+KEY|UNIQUE|CHECK|INDEX)|([a-zA-Z0-9_]+)\s+(INT|INTEGER|VARCHAR|TEXT|DATE|TIMESTAMP|BOOLEAN|FLOAT|DOUBLE|DECIMAL|CHAR|SERIAL|BIGINT|JSON|UUID|MONEY|TIME|BLOB|TINYINT|SMALLINT|LONGTEXT|MEDIUMTEXT|NUMERIC|REAL|BOOL|BIT|DATETIME|JSONB)/gi;
+
+        let match;
+        let lastEndIndex = 0;
+        let isFirstItem = true;
+
+        while ((match = itemRegex.exec(bodyContent)) !== null) {
+            const fullMatch = match[0];
+            const startIndex = match.index;
+
+            const isConstraint = !!match[1];
+            const colName = match[2];
+            const colType = match[3];
+
+            // Checagem de vírgula inteligente (ORIGINAL - FUNCIONA)
+            if (!isFirstItem) {
+                const textBetween = bodyContent.substring(lastEndIndex, startIndex);
+                const hasComma = textBetween.includes(',');
+                const hasNewLine = textBetween.includes('\n');
+
+                if (!hasComma) {
+                    if (isConstraint && !hasNewLine) {
+                        lastEndIndex = startIndex + fullMatch.length;
+                        continue;
+                    }
+
+                    const textUntilItem = bodyContent.substring(0, startIndex);
+                    const relativeLine = textUntilItem.split('\n').length - 1;
+                    const errorLine = tableStartLine + relativeLine;
+                    const nextItemName = isConstraint ? fullMatch.split(' ')[0] : colName;
+
+                    errors.push({
+                        line: errorLine,
+                        message: `Faltou uma vírgula antes de '${nextItemName}'.`,
+                        type: 'error'
+                    });
+                }
+            }
+
+            const itemTextUntilNow = bodyContent.substring(0, startIndex);
+            const currentLine = tableStartLine + itemTextUntilNow.split('\n').length - 1;
+
+            if (!isConstraint) {
+                if (this.RESERVED_WORDS.has(colName.toUpperCase())) {
+                    errors.push({
+                        line: currentLine,
+                        message: `'${colName}' é palavra reservada.`,
+                        type: 'error'
+                    });
+                }
+
+                if (columnNames.has(colName)) {
+                    errors.push({
+                        line: currentLine,
+                        message: `Coluna duplicada: '${colName}'.`,
+                        type: 'error'
+                    });
+                } else {
+                    columnNames.add(colName);
+                    columns.push({
+                        name: colName,
+                        type: colType,
+                        isPk: /PRIMARY\s+KEY/i.test(bodyContent.substring(startIndex, startIndex + fullMatch.length + 20)),
+                        isFk: /REFERENCES\s+[a-zA-Z0-9_]+/i.test(bodyContent.substring(startIndex, startIndex + fullMatch.length + 50))
+                    });
+                }
+            }
+
+            lastEndIndex = startIndex + fullMatch.length;
+            isFirstItem = false;
+        }
+
+        return { errors, warnings, columns };
     }
-    return startOffset || 1;
-  }
+
+    static findClosestType(invalidType) {
+        if (!invalidType || invalidType.length < 3) return null;
+
+        for (const type of this.VALID_TYPES) {
+            if (type.startsWith(invalidType) || invalidType.startsWith(type)) {
+                return type;
+            }
+        }
+        return null;
+    }
+
+    static extractCreateStatements(sql) {
+        const statements = [];
+        let depth = 0;
+        let current = '';
+        let inString = false;
+        let stringChar = '';
+
+        for (let i = 0; i < sql.length; i++) {
+            const char = sql[i];
+            const prev = sql[i - 1];
+            if ((char === "'" || char === '"') && prev !== '\\') {
+                if (!inString) { inString = true; stringChar = char; }
+                else if (char === stringChar) { inString = false; }
+            }
+            if (!inString) {
+                if (char === '(') depth++;
+                if (char === ')') depth--;
+            }
+            current += char;
+            if (depth === 0 && char === ';') {
+                const trimmed = current.trim();
+                if (trimmed.toUpperCase().startsWith('CREATE')) statements.push(trimmed);
+                current = '';
+            }
+        }
+        if (current.trim() && current.trim().toUpperCase().startsWith('CREATE')) {
+            statements.push(current.trim());
+        }
+        return statements;
+    }
+
+    static findLineNumber(snippet, lines, startOffset = 0) {
+        const search = snippet.trim();
+        if (!search) return startOffset + 1;
+        for (let i = startOffset; i < lines.length; i++) {
+            if (lines[i].includes(search)) return i + 1;
+        }
+        return startOffset + 1;
+    }
 }

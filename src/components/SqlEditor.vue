@@ -19,6 +19,7 @@ import { VueMonacoEditor } from "@guolao/vue-monaco-editor";
 const props = defineProps({
   modelValue: { type: String, default: "" },
   markers: { type: Array, default: () => [] },
+  dbTables: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(["update:modelValue", "editor-ready"]);
@@ -125,7 +126,6 @@ const editorOptions = {
   cursorSmoothCaretAnimation: "on", // O cursor "desliza" ao digitar em vez de pular
   smoothScrolling: true, // Rolagem macia
   mouseWheelZoom: true,
-  fixedOverflowWidgets: true,
   renderValidationDecorations: "on",
 };
 
@@ -141,6 +141,9 @@ const handleMount = (editor, monaco) => {
     ignoreCase: true,
     tokenizer: {
       root: [
+        [/`[^`]+`/, "identifier.quoted"],
+        [/"[^"]+"/, "identifier.quoted"],
+
         [
           /\b(create|table|primary|foreign|key|references|not|null|insert|update|delete|select|from|where|join|on|order|by|group|limit|distinct|as|values|set|drop|alter|add|constraint|unique|default|check|index|view)\b/,
           "keyword",
@@ -176,7 +179,17 @@ const handleMount = (editor, monaco) => {
         endColumn: word.endColumn,
       };
 
+      // 🔥 SUGESTÕES DINÂMICAS DE TABELAS
+      const tableSuggestions = props.dbTables.map((tableName) => ({
+        label: tableName, // O que aparece na lista
+        kind: monaco.languages.CompletionItemKind.Class, // Ícone de "Classe/Tabela"
+        insertText: tableName,
+        detail: "Tabela existente",
+        range,
+      }));
+
       const suggestions = [
+        ...tableSuggestions,
         // Snippets
         {
           label: "create table",
@@ -264,6 +277,7 @@ const handleMount = (editor, monaco) => {
       { token: "keyword", foreground: "5EEAD4" }, // Teal Pastel (Marca Suave)
       { token: "dataType", foreground: "FDBA74" }, // Pêssego
       { token: "function", foreground: "93C5FD" }, // Azul Pastel
+      { token: "identifier.quoted", foreground: "FCA5A5" }, // Vermelho Pastel
       { token: "identifier", foreground: "F1F5F9" }, // Branco
       { token: "string", foreground: "86EFAC" }, // Verde Menta
       { token: "number", foreground: "FCA5A5" }, // Vermelho Pastel
@@ -334,6 +348,8 @@ const handleChange = (value) => {
   height: 100%;
 }
 
+/* Sim, deixei essa bomba desse jeito pois nao consegui de jeito nenhum fazer com que o hover do monaco ficasse acima do header fixo
+então ele fica no cantinho e ai só não aparece os hovers */
 :deep(.find-widget) {
   right: auto !important;
   left: 0 !important;

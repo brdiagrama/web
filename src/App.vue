@@ -30,6 +30,7 @@
         <SqlEditor
           v-model="sqlCode"
           :markers="[...validationResult.errors, ...validationResult.warnings]"
+          :db-tables="availableTableNames"
           @update:model-value="handleSqlChange"
           @editor-ready="handleEditorReady"
         />
@@ -382,6 +383,10 @@ import { XCircle, AlertTriangle } from "lucide-vue-next";
 
 const isProblemsVisible = ref(false);
 
+const availableTableNames = computed(() => {
+  return Object.keys(tables.value); // Retorna array: ['users', 'posts', 'davi']
+});
+
 const toggleProblemsPanel = () => {
   isProblemsVisible.value = !isProblemsVisible.value;
 };
@@ -648,23 +653,46 @@ const warningCount = computed(() => validationResult.value.warnings.length);
 
 // Função para atualizar o diagrama via API
 const updateDiagram = async () => {
-  // 1. Limpeza Inicial (Se vazio)
+  // Limpeza Inicial
   if (!sqlCode.value.trim()) {
     tables.value = {};
     relationships.value = [];
     validationResult.value = { isValid: true, errors: [], warnings: [] };
-    // updateMonacoMarkers([]); // O watch já vai cuidar disso
     return;
   }
 
-  // Variáveis Temporárias (Não reativas)
   let tempErrors = [];
   let tempWarnings = [];
   let tempTables = {};
   let tempRelationships = [];
   let isValid = true;
 
-  // 2. VALIDAÇÃO (SqlValidator)
+  // 🔥 1. "GUARDA REAL": Valida se começou com um comando SQL real
+  // Pega a primeira palavra do texto (ignorando espaços e comentários)
+  const cleanStart = sqlCode.value.replace(/--.*$/gm, "").trim();
+  const firstWordMatch = cleanStart.match(/^([a-zA-Z]+)/);
+
+  if (firstWordMatch) {
+    const command = firstWordMatch[1].toUpperCase();
+    // Lista de comandos permitidos para iniciar (incluindo DROP e ALTER como pediu)
+    const validStarters = ["CREATE", "DROP", "ALTER", "USE", "SET"];
+
+    if (!validStarters.includes(command)) {
+      // SE FOR LIXO ("k2j13k12") -> ERRO VERMELHO IMEDIATO
+      tempErrors.push({
+        line: 1, // Assume linha 1 ou busca a linha
+        message: `Comando desconhecido: "${firstWordMatch[1]}". Comece com CREATE, DROP ou ALTER.`,
+        type: "error",
+      });
+      isValid = false;
+
+      // Não roda o resto para economizar processamento
+      finishUpdate(false, tempErrors, tempWarnings);
+      return;
+    }
+  }
+
+  // 2. VALIDAÇÃO ESTRUTURAL (SqlValidator)
   const validation = SqlValidator.validate(sqlCode.value);
   tempErrors.push(...validation.errors);
   tempWarnings.push(...validation.warnings);
@@ -672,11 +700,11 @@ const updateDiagram = async () => {
   if (!validation.isValid) {
     isValid = false;
   } else {
-    // 3. PARSER (Só roda se validou básico)
+    // 3. PARSER (Geração do Diagrama)
     try {
       const parseResult = SqlParserService.parse(sqlCode.value);
 
-      // Processa Tabelas e Posições
+      // ... processamento das tabelas (mantive igual) ...
       for (const tableName in parseResult.tables) {
         const oldTable = tables.value[tableName];
         tempTables[tableName] = {
@@ -688,46 +716,61 @@ const updateDiagram = async () => {
       }
       tempRelationships = parseResult.relationships;
 
-      // Salva estado válido
       lastValidState.value = {
         tables: JSON.parse(JSON.stringify(tempTables)),
         relationships: [...tempRelationships],
       };
     } catch (parserError) {
       console.error("Erro interno no parser:", parserError);
+      const rawMsg = parserError.message || "";
 
-      // Adiciona erro do parser na lista temporária
-      tempErrors.push({
-        line: parserError.location ? parserError.location.start.line : 1,
-        message: "Erro de sintaxe ao gerar diagrama: " + parserError.message,
-        type: "error",
-      });
-      isValid = false;
+      const isJsError =
+        rawMsg.includes("Cannot read propert") || rawMsg.includes("is not iterable");
+
+      // 2. Erros de Parser (End of Input / Expected)
+      const isIncomplete = rawMsg.includes("end of input") || rawMsg.includes("Expected");
+
+      if (isJsError || isIncomplete) {
+        tempWarnings.push({
+          line: parserError.location ? parserError.location.start.line : 1,
+          message: "Termine de escrever o comando...", // Amarelo (Aviso)
+          type: "warning",
+        });
+        // Impede atualização do diagrama com estado quebrado
+        isValid = false;
+      } else {
+        // Erro de sintaxe real e explícito (ex: tipo de dado errado detectado pelo parser)
+        tempErrors.push({
+          line: parserError.location ? parserError.location.start.line : 1,
+          message: "Erro de sintaxe: " + rawMsg,
+          type: "error",
+        });
+        isValid = false;
+      }
     }
   }
 
-  // 4. 🔥 FILTRAGEM FINAL ANTI-DUPLICATA (No Array Temporário)
+  finishUpdate(isValid, tempErrors, tempWarnings, tempTables, tempRelationships);
+};
+
+// Função auxiliar para não repetir o código de finalização/filtragem
+const finishUpdate = (isValid, errors, warnings, newTables = {}, newRels = []) => {
+  // Filtragem Anti-Duplicata
   const uniqueErrors = new Map();
-  tempErrors.forEach((err) => {
-    // Chave única: Linha + Texto da Mensagem
-    const key = `${err.line}-${err.message.trim()}`;
-    uniqueErrors.set(key, err);
-  });
+  errors.forEach((err) => uniqueErrors.set(`${err.line}-${err.message.trim()}`, err));
 
   const uniqueWarnings = new Map();
-  tempWarnings.forEach((warn) => {
-    const key = `${warn.line}-${warn.message.trim()}`;
-    uniqueWarnings.set(key, warn);
-  });
+  warnings.forEach((warn) =>
+    uniqueWarnings.set(`${warn.line}-${warn.message.trim()}`, warn)
+  );
 
-  // 5. ATUALIZAÇÃO REATIVA ÚNICA (O Vue só reage AQUI)
-  // Atualiza dados visuais
-  if (isValid || Object.keys(tempTables).length > 0) {
-    tables.value = tempTables;
-    relationships.value = tempRelationships;
+  // Atualiza Visualização
+  if (isValid || Object.keys(newTables).length > 0) {
+    tables.value = newTables;
+    relationships.value = newRels;
   }
 
-  // Atualiza Erros (Dispara o watch do Monaco uma única vez com a lista limpa)
+  // Atualiza Marcadores
   validationResult.value = {
     isValid: isValid,
     errors: Array.from(uniqueErrors.values()),
@@ -1024,7 +1067,7 @@ onMounted(() => {
   padding: 0 15px;
   white-space: nowrap;
   /* 🔥 FIXO E SÓLIDO */
-  height: 40px; 
+  height: 40px;
   flex-shrink: 0; /* Impede que o header amasse */
   border-bottom: 1px solid #1e293b;
 
@@ -1032,8 +1075,8 @@ onMounted(() => {
   /* Não precisamos de z-index aqui. O Flexbox garante a ordem. */
   /* Se precisar muito, use 1 ou 2, nunca 50 */
   z-index: 10;
-  position: relative; 
-  
+  position: relative;
+
   user-select: none;
 }
 
@@ -1244,5 +1287,42 @@ onMounted(() => {
   /* Garante que o navegador priorize essa div */
   user-select: none;
   touch-action: none;
+}
+
+:deep(.find-widget) {
+  right: auto !important;
+  left: 0 !important; /* Sua preferência de deixar na esquerda */
+  z-index: 100 !important;
+}
+
+/* 2. Autocomplete (Sugestões) - Nível Médio */
+:deep(.suggest-widget),
+:deep(.context-view) {
+  z-index: 5000 !important; /* Acima do Find, abaixo do Hover */
+}
+
+/* 3. Hover de Erro/Aviso - Nível DEUS (Sempre visível) */
+:deep(.monaco-hover) {
+  z-index: 9999 !important; /* Ninguém cobre o erro */
+}
+</style>
+
+<style>
+.monaco-editor-hover,
+.monaco-hover {
+  z-index: 999999 !important; /* Prioridade Máxima */
+}
+
+/* 2. O Autocomplete (Sugestões) fica abaixo do Hover */
+.editor-widget.suggest-widget,
+.monaco-editor .suggest-widget {
+  z-index: 50000 !important; /* Alto, mas menor que o Hover */
+}
+
+/* 3. O Widget de Busca */
+.monaco-editor .find-widget {
+  z-index: 60000 !important; /* Acima do suggest, abaixo do Hover */
+  right: auto !important;
+  left: 0 !important;
 }
 </style>

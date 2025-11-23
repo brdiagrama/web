@@ -183,6 +183,7 @@ export class SqlParserService {
         if (!sql.trim()) {
             return { tables: {}, relationships: [] };
         }
+        
 
         const astList = parser.astify(sql, { database: 'MySQL' });
         const statements = Array.isArray(astList) ? astList : [astList];
@@ -223,6 +224,24 @@ export class SqlParserService {
                         };
 
                         // Constraints Inline
+                        if (def.reference_definition) {
+                            column.isFk = true;
+                            column.refTable = def.reference_definition.table[0].table;
+                            const toColName = def.reference_definition.definition?.[0]?.column || 'id';
+                            newRelationships.push({
+                                id: generateId(),
+                                fromTable: tableName,
+                                fromCol: column.name,
+                                toTable: column.refTable,
+                                toCol: toColName,
+                                cardinality: SqlParserService.detectCardinality(column, tableData, column.refTable, newTables),
+                                vertices: [],
+                                auto: true,
+                                sourceOffsetY: 0,
+                                targetOffsetY: 0
+                            });
+                        }
+
                         if (def.primary_key && def.primary_key.toLowerCase() === 'primary key') column.isPk = true;
                         if (def.unique && def.unique.toLowerCase() === 'unique') column.unique = true;
                         if (def.nullable && def.nullable.type === 'not null') column.nullable = false;
