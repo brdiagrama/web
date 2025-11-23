@@ -183,14 +183,25 @@ const sortedProblems = computed(() => {
   padding: 10px 12px;
   border-bottom: 1px solid #1E293B;
   cursor: pointer;
-  background-color: #020617;
-  transition: background 0.15s;
+  transition: background-color 0.2s ease;
   align-items: flex-start;
   gap: 12px;
+  background-color: #020617;
 }
 
-.problem-item:hover {
-  background-color: #0F172A;
+.problem-item.error {
+  background-color: rgba(239, 68, 68, 0.08);
+}
+
+.problem-item.error:hover {
+  background-color: rgba(239, 68, 68, 0.15);
+}
+
+.problem-item.warning {
+  background-color: rgba(245, 158, 11, 0.08);
+}
+.problem-item.warning:hover {
+  background-color: rgba(245, 158, 11, 0.15);
 }
 
 /* Faixinha colorida na esquerda (estilo VS Code) */
@@ -252,6 +263,12 @@ const sortedProblems = computed(() => {
 .problem-item:hover .location-link {
   color: #94A3B8;
   text-decoration-color: #94A3B8;
+}
+
+.problems-list {
+  flex: 1;           /* Faz a lista ocupar todo o espaço abaixo do header */
+  overflow-y: auto;  /* Habilita a rolagem vertical quando necessário */
+  min-height: 0;     /* Garante que o scroll funcione corretamente dentro do flexbox */
 }
 
 /* Scrollbar */

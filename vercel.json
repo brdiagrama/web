@@ -7,7 +7,7 @@
     },
     
     {
-      "source": "/editor",
+      "source": "/gerador",
       "destination": "/editor.html"
     }
   ]
