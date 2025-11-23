@@ -23,7 +23,7 @@
               {{ errorCount + warningCount }}
             </span>
           </button>
-+         <button class="icon-btn" @click="newProject" title="Novo Projeto">Novo➕</button>
++         <button class="icon-btn" @click="newProject" title="Limpar">Limpar➕</button>
           
           <button class="icon-btn" @click="exportSql" title="Exportar .sql">Exportar💾</button>
           
@@ -907,9 +907,9 @@ const handleFileImport = async (event) => {
   }
 };
 
-// Novo: cria novo projeto (apaga estado atual)
+// apaga estado atual
 const newProject = async () => {
-  const ok = confirm("Deseja criar um novo projeto? Isso apagará o projeto atual.");
+  const ok = confirm("Deseja apagará o projeto atual?");
   if (!ok) return;
 
   // Limpa estado do editor/diagrama
@@ -928,8 +928,6 @@ const newProject = async () => {
   // Atualiza visual do diagrama
   await updateDiagram();
 };
-
-
 
 const exportSql = () => {
   const content = sqlCode.value || "";
