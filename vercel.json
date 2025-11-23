@@ -10,5 +10,29 @@
       "source": "/gerador",
       "destination": "/editor.html"
     }
+  ],
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "destination": "https://brdiagrama.com/$1",
+      "permanent": true,
+      "has": [
+        {
+          "type": "host",
+          "value": "web-brdiagrama.vercel.app"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "destination": "https://brdiagrama.com/$1",
+      "permanent": true,
+      "has": [
+        {
+          "type": "host",
+          "value": "web-1q1epx7o8-davizera-cmds-projects.vercel.app"
+        }
+      ]
+    }
   ]
 }
