@@ -803,12 +803,92 @@ const triggerImport = () => {
   fileInputRef.value?.click();
 };
 
+
+// ...existing code...
+const MAX_FILE_SIZE = 100 * 1024; // 100 KB
+const ALLOWED_EXT_RE = /\.sql$/i;
+const FORBIDDEN_EXT_RE = /\.(exe|bin|dll|sh|bat|jar|class|com|py)$/i;
+const ALLOWED_MIME = new Set(["application/sql", "text/sql", "text/plain"]);
+
+/**
+ * Checa se o ArrayBuffer parece conter dados binários.
+ * Retorna true se detectar bytes nulos ou alta proporção de bytes "não-texto".
+ */
+const isLikelyBinary = (arrayBuffer) => {
+  const view = new Uint8Array(arrayBuffer);
+  const len = Math.min(view.length, 1024);
+  if (len === 0) return false;
+
+  let nonText = 0;
+  for (let i = 0; i < len; i++) {
+    const b = view[i];
+    if (b === 0) return true; // null byte -> binário quase certo
+    // Permitir: tab(9), LF(10), CR(13), e bytes imprimíveis 32..126
+    if (b === 9 || b === 10 || b === 13) continue;
+    if (b >= 32 && b <= 126) continue;
+    nonText++;
+  }
+  // Se mais de 10% forem não-text, considera binário
+  return nonText / len > 0.10;
+};
+
 const handleFileImport = async (event) => {
   const file = event.target?.files?.[0];
-  if (!file) return;
+
+  // limpa input e retorna se nada selecionado
+  if (!file) {
+    if (fileInputRef.value) fileInputRef.value.value = "";
+    return;
+  }
+
+  // Rejeita por extensão proibida (executáveis/binaries)
+  if (FORBIDDEN_EXT_RE.test(file.name || "")) {
+    alert("somente arquivos .sql");
+    if (fileInputRef.value) fileInputRef.value.value = "";
+    return;
+  }
+
+  // Verifica extensão .sql
+  if (!ALLOWED_EXT_RE.test(file.name || "")) {
+    alert("somente arquivos .sql");
+    if (fileInputRef.value) fileInputRef.value.value = "";
+    return;
+  }
+
+  // Verifica tamanho máximo
+  if (file.size > MAX_FILE_SIZE) {
+    alert("Arquivo muito grande. Tamanho máximo: 100 KB");
+    if (fileInputRef.value) fileInputRef.value.value = "";
+    return;
+  }
+
+  // Verifica MIME (quando disponível) — aceita text/plain também
+  if (file.type && !ALLOWED_MIME.has(file.type)) {
+    // Alguns navegadores deixam file.type vazio; aqui só bloqueia quando houver tipo e for inválido
+    alert("somente arquivos .sql");
+    if (fileInputRef.value) fileInputRef.value.value = "";
+    return;
+  }
 
   try {
+    // Lê os primeiros bytes para detectar binário
+    const head = file.slice(0, 1024);
+    const buf = await head.arrayBuffer();
+    if (isLikelyBinary(buf)) {
+      alert("somente arquivos .sql");
+      return;
+    }
+
+    // Lê como texto
     const text = await file.text();
+
+    // Segurança adicional: curto sanity-check no conteúdo (evita uploads de arquivos muito estranhos)
+    if (!text.trim()) {
+      alert("Arquivo vazio ou inválido");
+      return;
+    }
+
+    // Aplica ao editor/estado
     sqlCode.value = text;
 
     // Se o Monaco já estiver pronto, atualiza o editor diretamente
@@ -820,12 +900,14 @@ const handleFileImport = async (event) => {
     await updateDiagram();
   } catch (err) {
     console.error("Erro ao importar arquivo:", err);
-    // Opcional: exibir notificação ao usuário
+    alert("Erro ao importar arquivo");
   } finally {
     // limpa o input para permitir reimportar o mesmo arquivo depois
     if (fileInputRef.value) fileInputRef.value.value = "";
   }
 };
+// ...existing code...
+
 
 const exportSql = () => {
   const content = sqlCode.value || "";
