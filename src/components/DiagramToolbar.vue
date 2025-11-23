@@ -17,21 +17,25 @@
             :class="['toolbar-btn', 'grid-btn', { active: store.isGridVisible }]"
             title="Mostrar/Ocultar Grade"
         >
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor">
-                <!-- Linhas verticais -->
-                <line x1="6" y1="2" x2="6" y2="16" stroke-width="2"/>
-                <line x1="12" y1="2" x2="12" y2="16" stroke-width="2"/>
-                <!-- Linhas horizontais -->
-                <line x1="2" y1="6" x2="16" y2="6" stroke-width="2"/>
-                <line x1="2" y1="12" x2="16" y2="12" stroke-width="2"/>
+            <svg height="28" viewBox="0 0 24 24" width="28" xmlns="http://www.w3.org/2000/svg">
+                <path d="M19,7 L19,17 L22,17 L22,19 L19,19 L19,22 L17,22 L17,19 L7,19 L7,22 L5,22 L5,19 L2,19 L2,17 L5,17 L5,7 L2,7 L2,5 L5,5 L5,2 L7,2 L7,5 L17,5 L17,2 L19,2 L19,5 L22,5 L22,7 L19,7 Z M17,7 L7,7 L7,17 L17,17 L17,7 Z" fill="currentColor"></path>
             </svg>
         </button>
            
         
         <div class="zoom-control">
-            <button @click="decreaseZoom" class="zoom-btn" title="Diminuir Zoom">−</button>
+            <button @click="decreaseZoom" class="zoom-btn" title="Diminuir Zoom">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor">
+                    <line x1="2" y1="7" x2="12" y2="7" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+            </button>
             <span class="zoom-label">{{ Math.round(zoomScale) }}%</span>
-            <button @click="increaseZoom" class="zoom-btn" title="Aumentar Zoom">+</button>
+            <button @click="increaseZoom" class="zoom-btn" title="Aumentar Zoom">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor">
+                    <line x1="7" y1="2" x2="7" y2="12" stroke-width="1.5" stroke-linecap="round"/>
+                    <line x1="2" y1="7" x2="12" y2="7" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+            </button>
         </div>
     </div>
     
@@ -148,7 +152,7 @@ const resetZoom = () => {
     width: 40px;
     height: 36px;
     padding: 0;
-    border: 1px solid #ddd;
+    border: none;
     background: white;
     border-radius: 7px;
     transition: all 0.2s ease;
@@ -156,7 +160,6 @@ const resetZoom = () => {
 
 .reset-zoom-btn:hover {
     background-color: #f0f0f0;
-    border-color: #999;
 }
 
 .reset-zoom-btn:active {
@@ -178,7 +181,7 @@ const resetZoom = () => {
     font-size: 20px;
     font-weight: bold;
     cursor: pointer;
-    border: 1px solid #ddd;
+    border: none;
     background: white;
     border-radius: 4px;
     transition: all 0.2s ease;
@@ -186,7 +189,6 @@ const resetZoom = () => {
 
 .zoom-btn:hover {
     background-color: #f0f0f0;
-    border-color: #999;
 }
 
 .zoom-btn:active {
@@ -197,32 +199,30 @@ const resetZoom = () => {
     min-width: 50px;
     text-align: center;
     font-weight: 500;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 .grid-btn {
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    width: 75px;
+    width: 48px;
     height: 36px;
-    border: 1px solid #ddd;
+    border: none;
     background: white;
     border-radius: 7px;
 }
 
 .grid-btn.active {
     background-color: #e8f4ff;
-    border-color: #007acc;
     color: #007acc;
 }
 
 .grid-btn:hover {
     background-color: #f0f0f0;
-    border-color: #999;
 }
 
 .grid-btn.active:hover {
     background-color: #d0e8ff;
-    border-color: #005a9e;
 }
 </style>
