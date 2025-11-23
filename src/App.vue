@@ -86,7 +86,7 @@
                 :key="table.name"
                 :transform="`translate(${table.x}, ${table.y})`"
                 class="table-group"
-                style="cursor: grab"
+                :style="{ cursor: diagramStore.isPanMode ? 'grab' : 'move' }"
                 @mousedown="(event) => startDrag(event, table.name)"
               >
                 <rect
@@ -230,7 +230,7 @@
                 :key="table.name"
                 :transform="`translate(${table.x}, ${table.y})`"
                 class="table-group selected"
-                style="cursor: grabbing"
+                :style="{ cursor: diagramStore.isPanMode ? 'grab' : 'move' }"
                 @mousedown="(event) => startDrag(event, table.name)"
               >
                 <rect
@@ -380,6 +380,9 @@ import { SqlValidator } from "./services/SqlValidator.js";
 import { SqlParserService } from "./models/sqlParser.service.js";
 import ProblemsPanel from "./components/ProblemsPanel.vue";
 import { XCircle, AlertTriangle } from "lucide-vue-next";
+import { useDiagramStore } from "./stores/diagram.js";
+
+const diagramStore = useDiagramStore();
 
 const isProblemsVisible = ref(false);
 
@@ -830,6 +833,11 @@ const handleColumnHover = (data) => {
 // --- Funções de Drag and Drop ---
 
 const startDrag = (event, tableName) => {
+  // Bloqueia drag de tabelas quando pan mode está ativo
+  if (diagramStore.isPanMode) {
+    return;
+  }
+  
   if (!event.ctrlKey && !event.metaKey) {
     event.preventDefault();
   }
