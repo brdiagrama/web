@@ -24,6 +24,8 @@
             </span>
           </button>
 
+          <button class="icon-btn" @click="exportSql" title="Exportar .sql">Exportar💾</button>
+          
           <button class="icon-btn" @click="toggleEditor" title="Ocultar Editor">❮</button>
         </div>
 
@@ -788,6 +790,19 @@ const gotoLine = (lineNumberRaw) => {
   monacoEditor.value.revealLineInCenter(lineNumber);
   monacoEditor.value.setPosition({ lineNumber, column: 1 });
   monacoEditor.value.focus();
+};
+
+const exportSql = () => {
+  const content = sqlCode.value || "";
+  const blob = new Blob([content], { type: "text/sql;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "export.sql";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 };
 
 // Handler com debounce para mudanças no SQL
