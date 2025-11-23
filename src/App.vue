@@ -23,7 +23,8 @@
               {{ errorCount + warningCount }}
             </span>
           </button>
-
++         <button class="icon-btn" @click="newProject" title="Novo Projeto">Novo➕</button>
+          
           <button class="icon-btn" @click="exportSql" title="Exportar .sql">Exportar💾</button>
           
           <button class="icon-btn" @click="triggerImport" title="Importar .sql">Importar📂</button>
@@ -804,7 +805,6 @@ const triggerImport = () => {
 };
 
 
-// ...existing code...
 const MAX_FILE_SIZE = 100 * 1024; // 100 KB
 const ALLOWED_EXT_RE = /\.sql$/i;
 const FORBIDDEN_EXT_RE = /\.(exe|bin|dll|sh|bat|jar|class|com|py)$/i;
@@ -906,7 +906,29 @@ const handleFileImport = async (event) => {
     if (fileInputRef.value) fileInputRef.value.value = "";
   }
 };
-// ...existing code...
+
+// Novo: cria novo projeto (apaga estado atual)
+const newProject = async () => {
+  const ok = confirm("Deseja criar um novo projeto? Isso apagará o projeto atual.");
+  if (!ok) return;
+
+  // Limpa estado do editor/diagrama
+  sqlCode.value = ""; // ou setar defaultSql se preferir começar com exemplo
+  tables.value = {};
+  relationships.value = [];
+  selectedTables.value.clear();
+  validationResult.value = { isValid: true, errors: [], warnings: [] };
+  lastValidState.value = null;
+
+  // Atualiza Monaco se estiver pronto
+  if (monacoEditor.value && typeof monacoEditor.value.setValue === "function") {
+    monacoEditor.value.setValue("");
+  }
+
+  // Atualiza visual do diagrama
+  await updateDiagram();
+};
+
 
 
 const exportSql = () => {
