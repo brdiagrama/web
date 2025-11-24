@@ -1,85 +1,36 @@
-    <!DOCTYPE html>
-    <html lang="pt-BR">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>BrDiagrama - Bem-vindo</title>
-        <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO ESSENCIAL -->
+    <title>BrDiagrama - Do SQL ao Diagrama Visual</title>
+    <meta name="description" content="BrDiagrama transforma seus comandos SQL DDL em diagramas ER visuais instantaneamente. A ferramenta ideal para desenvolvedores e DBAs.">
+    <meta name="keywords" content="SQL, Diagrama ER, DDL, Modelagem de Dados, Banco de Dados, Visualização">
+    
+    <!-- OPEN GRAPH (Para ficar bonito no WhatsApp/Linkedin) -->
+    <meta property="og:title" content="BrDiagrama - Do SQL ao Diagrama">
+    <meta property="og:description" content="A solução definitiva para transformar código SQL em diagramas visuais e profissionais.">
+    <meta property="og:image" content="/caminho-para-sua-logo-ou-print.jpg">
+    <meta property="og:type" content="website">
 
-            body {
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                min-height: 100vh;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                color: #fff;
-            }
+    <!-- Fontes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind (Opcional: se você já usa no build, pode tirar esse script) -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
-            .container {
-                text-align: center;
-                padding: 40px;
-                background: rgba(255, 255, 255, 0.1);
-                border-radius: 20px;
-                backdrop-filter: blur(10px);
-                box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-                border: 1px solid rgba(255, 255, 255, 0.18);
-                max-width: 600px;
-            }
+    <!-- Seus estilos globais (Opcional) -->
+    <!-- <link rel="stylesheet" href="/src/assets/styles/global.css"> -->
+</head>
+<body class="bg-[#0F172A] text-white">
+    
+    <!-- VUE MOUNT POINT -->
+    <div id="app-landing"></div>
 
-            h1 {
-                font-size: 3em;
-                margin-bottom: 20px;
-                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-            }
-
-            p {
-                font-size: 1.2em;
-                margin-bottom: 40px;
-                opacity: 0.9;
-            }
-
-            .btn {
-                display: inline-block;
-                padding: 15px 40px;
-                font-size: 1.2em;
-                font-weight: bold;
-                color: #fff;
-                background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-                border: none;
-                border-radius: 50px;
-                cursor: pointer;
-                text-decoration: none;
-                transition: all 0.3s ease;
-                box-shadow: 0 4px 15px 0 rgba(245, 87, 108, 0.5);
-            }
-
-            .btn:hover {
-                transform: translateY(-3px);
-                box-shadow: 0 6px 20px 0 rgba(245, 87, 108, 0.7);
-            }
-
-            .btn:active {
-                transform: translateY(-1px);
-            }
-
-            .icon {
-                font-size: 4em;
-                margin-bottom: 20px;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="icon"></div>
-            <h1>BrDiagrama</h1>
-            <p>Gerador de Diagramas de Banco de Dados</p>
-            <a href="/gerador" class="btn">Acessar Gerador</a>
-        </div>
-    </body>
-    </html>
+    <!-- SCRIPT DE ENTRADA DO VUE -->
+    <script type="module" src="/src/landing.js"></script>
+</body>
+</html>
