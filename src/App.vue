@@ -1016,9 +1016,11 @@ const startDrag = (event, tableName) => {
 
   const ctm = svgElement.getScreenCTM();
   const table = tables.value[tableName];
-
-  dragState.value.offset.x = (event.clientX - ctm.e) / ctm.a - table.x;
-  dragState.value.offset.y = (event.clientY - ctm.f) / ctm.d - table.y;
+  
+  // Usa o zoom da store para cálculo consistente
+  const zoom = diagramStore.zoom;
+  dragState.value.offset.x = (event.clientX - ctm.e) / zoom - table.x;
+  dragState.value.offset.y = (event.clientY - ctm.f) / zoom - table.y;
 
   document.addEventListener("mousemove", handleDrag);
   document.addEventListener("mouseup", endDrag);
@@ -1031,8 +1033,11 @@ const handleDrag = (event) => {
   if (!svgElement) return;
 
   const ctm = svgElement.getScreenCTM();
-  const newX = (event.clientX - ctm.e) / ctm.a - dragState.value.offset.x;
-  const newY = (event.clientY - ctm.f) / ctm.d - dragState.value.offset.y;
+  
+  // Converte as coordenadas do mouse considerando o zoom atual
+  const zoom = diagramStore.zoom;
+  const newX = (event.clientX - ctm.e) / zoom - dragState.value.offset.x;
+  const newY = (event.clientY - ctm.f) / zoom - dragState.value.offset.y;
 
   // Calcula o delta de movimento
   const draggedTable = tables.value[dragState.value.draggedTable];
