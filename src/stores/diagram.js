@@ -13,6 +13,9 @@ export const useDiagramStore = defineStore('diagram', {
         isGridVisible: false,
         gridSize: 20, // Tamanho da grade em pixels (espaçamento entre pontos)
         
+        // Estado do Pan Mode
+        isPanMode: false,
+        
         // NOVO: Estado dos relacionamentos
         relationships: {}, // Store dos relacionamentos com vértices
         relationshipSettings: {
@@ -53,6 +56,13 @@ export const useDiagramStore = defineStore('diagram', {
          */
         toggleGrid() {
             this.isGridVisible = !this.isGridVisible;
+        },
+        
+        /**
+         * Toggle do Pan Mode
+         */
+        togglePanMode() {
+            this.isPanMode = !this.isPanMode;
         },
         
         /**

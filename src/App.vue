@@ -23,8 +23,16 @@
               {{ errorCount + warningCount }}
             </span>
           </button>
++         <button class="icon-btn" @click="newProject" title="Limpar">Limpar➕</button>
+          
+          <button class="icon-btn" @click="exportSql" title="Exportar .sql">Exportar💾</button>
+          
+          <button class="icon-btn" @click="triggerImport" title="Importar .sql">Importar📂</button>
 
           <button class="icon-btn" @click="toggleEditor" title="Ocultar Editor">❮</button>
+        
+          <input ref="fileInputRef" type="file" accept=".sql,text/sql,.txt" @change="handleFileImport" style="display:none" />
+
         </div>
 
         <SqlEditor
@@ -86,7 +94,7 @@
                 :key="table.name"
                 :transform="`translate(${table.x}, ${table.y})`"
                 class="table-group"
-                style="cursor: grab"
+                :style="{ cursor: diagramStore.isPanMode ? 'grab' : 'move' }"
                 @mousedown="(event) => startDrag(event, table.name)"
               >
                 <rect
@@ -230,7 +238,7 @@
                 :key="table.name"
                 :transform="`translate(${table.x}, ${table.y})`"
                 class="table-group selected"
-                style="cursor: grabbing"
+                :style="{ cursor: diagramStore.isPanMode ? 'grab' : 'move' }"
                 @mousedown="(event) => startDrag(event, table.name)"
               >
                 <rect
@@ -380,6 +388,9 @@ import { SqlValidator } from "./services/SqlValidator.js";
 import { SqlParserService } from "./models/sqlParser.service.js";
 import ProblemsPanel from "./components/ProblemsPanel.vue";
 import { XCircle, AlertTriangle } from "lucide-vue-next";
+import { useDiagramStore } from "./stores/diagram.js";
+
+const diagramStore = useDiagramStore();
 
 const isProblemsVisible = ref(false);
 
@@ -787,6 +798,150 @@ const gotoLine = (lineNumberRaw) => {
   monacoEditor.value.focus();
 };
 
+const fileInputRef = ref(null);
+
+const triggerImport = () => {
+  fileInputRef.value?.click();
+};
+
+
+const MAX_FILE_SIZE = 100 * 1024; // 100 KB
+const ALLOWED_EXT_RE = /\.sql$/i;
+const FORBIDDEN_EXT_RE = /\.(exe|bin|dll|sh|bat|jar|class|com|py)$/i;
+const ALLOWED_MIME = new Set(["application/sql", "text/sql", "text/plain"]);
+
+/**
+ * Checa se o ArrayBuffer parece conter dados binários.
+ * Retorna true se detectar bytes nulos ou alta proporção de bytes "não-texto".
+ */
+const isLikelyBinary = (arrayBuffer) => {
+  const view = new Uint8Array(arrayBuffer);
+  const len = Math.min(view.length, 1024);
+  if (len === 0) return false;
+
+  let nonText = 0;
+  for (let i = 0; i < len; i++) {
+    const b = view[i];
+    if (b === 0) return true; // null byte -> binário quase certo
+    // Permitir: tab(9), LF(10), CR(13), e bytes imprimíveis 32..126
+    if (b === 9 || b === 10 || b === 13) continue;
+    if (b >= 32 && b <= 126) continue;
+    nonText++;
+  }
+  // Se mais de 10% forem não-text, considera binário
+  return nonText / len > 0.10;
+};
+
+const handleFileImport = async (event) => {
+  const file = event.target?.files?.[0];
+
+  // limpa input e retorna se nada selecionado
+  if (!file) {
+    if (fileInputRef.value) fileInputRef.value.value = "";
+    return;
+  }
+
+  // Rejeita por extensão proibida (executáveis/binaries)
+  if (FORBIDDEN_EXT_RE.test(file.name || "")) {
+    alert("somente arquivos .sql");
+    if (fileInputRef.value) fileInputRef.value.value = "";
+    return;
+  }
+
+  // Verifica extensão .sql
+  if (!ALLOWED_EXT_RE.test(file.name || "")) {
+    alert("somente arquivos .sql");
+    if (fileInputRef.value) fileInputRef.value.value = "";
+    return;
+  }
+
+  // Verifica tamanho máximo
+  if (file.size > MAX_FILE_SIZE) {
+    alert("Arquivo muito grande. Tamanho máximo: 100 KB");
+    if (fileInputRef.value) fileInputRef.value.value = "";
+    return;
+  }
+
+  // Verifica MIME (quando disponível) — aceita text/plain também
+  if (file.type && !ALLOWED_MIME.has(file.type)) {
+    // Alguns navegadores deixam file.type vazio; aqui só bloqueia quando houver tipo e for inválido
+    alert("somente arquivos .sql");
+    if (fileInputRef.value) fileInputRef.value.value = "";
+    return;
+  }
+
+  try {
+    // Lê os primeiros bytes para detectar binário
+    const head = file.slice(0, 1024);
+    const buf = await head.arrayBuffer();
+    if (isLikelyBinary(buf)) {
+      alert("somente arquivos .sql");
+      return;
+    }
+
+    // Lê como texto
+    const text = await file.text();
+
+    // Segurança adicional: curto sanity-check no conteúdo (evita uploads de arquivos muito estranhos)
+    if (!text.trim()) {
+      alert("Arquivo vazio ou inválido");
+      return;
+    }
+
+    // Aplica ao editor/estado
+    sqlCode.value = text;
+
+    // Se o Monaco já estiver pronto, atualiza o editor diretamente
+    if (monacoEditor.value && typeof monacoEditor.value.setValue === "function") {
+      monacoEditor.value.setValue(text);
+    }
+
+    // Atualiza o diagrama imediatamente com o conteúdo importado
+    await updateDiagram();
+  } catch (err) {
+    console.error("Erro ao importar arquivo:", err);
+    alert("Erro ao importar arquivo");
+  } finally {
+    // limpa o input para permitir reimportar o mesmo arquivo depois
+    if (fileInputRef.value) fileInputRef.value.value = "";
+  }
+};
+
+// apaga estado atual
+const newProject = async () => {
+  const ok = confirm("Deseja apagará o projeto atual?");
+  if (!ok) return;
+
+  // Limpa estado do editor/diagrama
+  sqlCode.value = ""; // ou setar defaultSql se preferir começar com exemplo
+  tables.value = {};
+  relationships.value = [];
+  selectedTables.value.clear();
+  validationResult.value = { isValid: true, errors: [], warnings: [] };
+  lastValidState.value = null;
+
+  // Atualiza Monaco se estiver pronto
+  if (monacoEditor.value && typeof monacoEditor.value.setValue === "function") {
+    monacoEditor.value.setValue("");
+  }
+
+  // Atualiza visual do diagrama
+  await updateDiagram();
+};
+
+const exportSql = () => {
+  const content = sqlCode.value || "";
+  const blob = new Blob([content], { type: "text/sql;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "export.sql";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+};
+
 // Handler com debounce para mudanças no SQL
 const handleSqlChange = debounce(updateDiagram, 300);
 
@@ -830,6 +985,11 @@ const handleColumnHover = (data) => {
 // --- Funções de Drag and Drop ---
 
 const startDrag = (event, tableName) => {
+  // Bloqueia drag de tabelas quando pan mode está ativo
+  if (diagramStore.isPanMode) {
+    return;
+  }
+  
   if (!event.ctrlKey && !event.metaKey) {
     event.preventDefault();
   }

@@ -3,7 +3,9 @@
     ref="svgRoot"
     class="diagram-canvas"
     @wheel="handleWheelEvent"
-    :style="{ width: '100%', height: '100%', cursor: currentCursor }"
+    @mousedown="handleMouseDown"
+    @mouseleave="handleMouseLeave"
+    :style="{ width: '100%', height: '100%', cursor: store.isPanMode ? (isLeftMousePanning ? 'grabbing' : 'grab') : currentCursor }"
   >
     <!-- NOVO: Definições de padrões para o grid -->
     <defs>
@@ -439,9 +441,6 @@
         height="100%"
         fill="none"
         style="pointer-events: all"
-        @mousedown="handleMouseDown"
-        @mouseup="handleMouseUp"
-        @mouseleave="handleMouseLeave"
       />
     </g>
     <g id="viewport-layer">
@@ -500,6 +499,7 @@ const svgRoot = ref(null);
 const panZoomInstance = ref(null);
 let isPanEnabled = false;
 let isMiddleMouseDown = false;
+const isLeftMousePanning = ref(false); // Para rastrear pan com botão esquerdo
 
 // Estado do cursor
 const currentCursor = ref("default");
@@ -530,14 +530,35 @@ const saveState = () => {
 // --- Funções de Panorâmica (Arrastar) ---
 
 const handleMouseDown = (e) => {
+  // Ignora se o clique foi em um elemento que não seja o fundo (tabelas, etc)
+  const targetClasses = e.target.classList;
+  const isBackground = targetClasses.contains('diagram-background-rect') || 
+                       targetClasses.contains('grid-background') ||
+                       e.target === svgRoot.value;
+  
   // Botão do meio (Scroll/Pan)
   if (e.button === 1) {
     e.preventDefault();
     isMiddleMouseDown = true;
     enablePan();
   }
-  // Botão esquerdo (Seleção)
+  // Botão esquerdo (Pan Mode ou Seleção)
   else if (e.button === 0) {
+    // Se Pan Mode estiver ativo, ativa o pan
+    if (store.isPanMode) {
+      e.preventDefault();
+      e.stopPropagation();
+      isLeftMousePanning.value = true;
+      enablePan();
+      return;
+    }
+    
+    // Só inicia seleção se clicou no fundo
+    if (!isBackground) {
+      return;
+    }
+    
+    // Caso contrário, inicia seleção
     const rect = svgRoot.value.getBoundingClientRect();
     const pan = panZoomInstance.value.getPan();
     const zoom = panZoomInstance.value.getZoom();
@@ -618,6 +639,11 @@ const handleGlobalMouseUp = (e) => {
         isMiddleMouseDown = false;
         disablePan();
     }
+    // Se Pan Mode estiver ativo e botão esquerdo for solto
+    if (e.button === 0 && isLeftMousePanning.value) {
+        isLeftMousePanning.value = false;
+        disablePan();
+    }
 }
 
 const handleMouseUp = (e) => {
@@ -651,6 +677,10 @@ const handleMouseUp = (e) => {
 const handleMouseLeave = () => {
   if (isMiddleMouseDown) {
     isMiddleMouseDown = false;
+    disablePan();
+  }
+  if (isLeftMousePanning.value) {
+    isLeftMousePanning.value = false;
     disablePan();
   }
 };
