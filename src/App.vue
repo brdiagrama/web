@@ -1027,11 +1027,25 @@ const exportDiagramPNG = async () => {
     svgClone.setAttribute('viewBox', `${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}`);
     svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
     
-    // Remove transformações do viewport-layer
+    // Remove TODAS as transformações relacionadas ao zoom/pan
     const viewportLayer = svgClone.querySelector('#viewport-layer');
     if (viewportLayer) {
       viewportLayer.removeAttribute('transform');
+      viewportLayer.style.transform = '';
     }
+    
+    // Remove transformações de qualquer elemento g com transform
+    const allGroups = svgClone.querySelectorAll('g[transform]');
+    allGroups.forEach(g => {
+      // Não remove transform de elementos que são parte do design (como markers)
+      if (!g.id || !g.id.includes('marker')) {
+        const currentTransform = g.getAttribute('transform');
+        // Mantém apenas transforms de translate que são posicionamento de tabelas
+        if (currentTransform && !currentTransform.startsWith('translate(') && currentTransform.includes('scale')) {
+          g.removeAttribute('transform');
+        }
+      }
+    });
     
     // Remove elementos de seleção e grid
     const selectionsToRemove = svgClone.querySelectorAll('rect[fill="rgba(59, 130, 246, 0.1)"]');
@@ -1174,11 +1188,25 @@ const exportDiagramSVG = () => {
     svgClone.setAttribute('viewBox', `${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}`);
     svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
     
-    // Remove transformações do viewport-layer
+    // Remove TODAS as transformações relacionadas ao zoom/pan
     const viewportLayer = svgClone.querySelector('#viewport-layer');
     if (viewportLayer) {
       viewportLayer.removeAttribute('transform');
+      viewportLayer.style.transform = '';
     }
+    
+    // Remove transformações de qualquer elemento g com transform de zoom/scale
+    const allGroups = svgClone.querySelectorAll('g[transform]');
+    allGroups.forEach(g => {
+      // Não remove transform de elementos que são parte do design
+      if (!g.id || !g.id.includes('marker')) {
+        const currentTransform = g.getAttribute('transform');
+        // Mantém apenas transforms de translate que são posicionamento de tabelas
+        if (currentTransform && !currentTransform.startsWith('translate(') && currentTransform.includes('scale')) {
+          g.removeAttribute('transform');
+        }
+      }
+    });
     
     // Remove elementos de seleção e grid
     const selectionsToRemove = svgClone.querySelectorAll('rect[fill="rgba(59, 130, 246, 0.1)"]');
