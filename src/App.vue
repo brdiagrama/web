@@ -25,7 +25,23 @@
           </button>
 +         <button class="icon-btn" @click="newProject" title="Limpar">Limpar➕</button>
           
-          <button class="icon-btn" @click="exportSql" title="Exportar .sql">Exportar💾</button>
+          <div class="export-dropdown" ref="exportDropdownRef">
+            <button class="icon-btn" @mouseenter="showExportDropdown = true" title="Exportar">Exportar💾</button>
+            <div v-if="showExportDropdown" class="dropdown-menu" @mouseenter="showExportDropdown = true" @mouseleave="showExportDropdown = false">
+              <button @click="exportSql" class="dropdown-item">
+                <span class="dropdown-icon">📄</span>
+                <span>Exportar SQL</span>
+              </button>
+              <button @click="exportDiagramPNG" class="dropdown-item">
+                <span class="dropdown-icon">🖼️</span>
+                <span>Exportar PNG</span>
+              </button>
+              <button @click="exportDiagramSVG" class="dropdown-item">
+                <span class="dropdown-icon">📐</span>
+                <span>Exportar SVG</span>
+              </button>
+            </div>
+          </div>
           
           <button class="icon-btn" @click="triggerImport" title="Importar .sql">Importar📂</button>
 
@@ -393,6 +409,8 @@ import { useDiagramStore } from "./stores/diagram.js";
 const diagramStore = useDiagramStore();
 
 const isProblemsVisible = ref(false);
+const showExportDropdown = ref(false);
+const exportDropdownRef = ref(null);
 
 const availableTableNames = computed(() => {
   return Object.keys(tables.value); // Retorna array: ['users', 'posts', 'davi']
@@ -930,6 +948,7 @@ const newProject = async () => {
 };
 
 const exportSql = () => {
+  showExportDropdown.value = false;
   const content = sqlCode.value || "";
   const blob = new Blob([content], { type: "text/sql;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -940,6 +959,279 @@ const exportSql = () => {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+};
+
+const calculateDiagramBounds = () => {
+  const padding = 80; // Aumentado o padding para garantir margem
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+  Object.values(tables.value).forEach(table => {
+    const tableWidth = getTableWidth(table);
+    const tableHeight = getTableHeight(table);
+    
+    const x1 = table.x;
+    const y1 = table.y;
+    const x2 = table.x + tableWidth;
+    const y2 = table.y + tableHeight;
+    
+    minX = Math.min(minX, x1);
+    minY = Math.min(minY, y1);
+    maxX = Math.max(maxX, x2);
+    maxY = Math.max(maxY, y2);
+  });
+
+  if (minX === Infinity) {
+    return { x: 0, y: 0, width: 800, height: 600 };
+  }
+
+  const bounds = {
+    x: minX - padding,
+    y: minY - padding,
+    width: maxX - minX + padding * 2,
+    height: maxY - minY + padding * 2
+  };
+  
+  console.log('Bounds calculados:', bounds);
+  console.log('Tabelas:', Object.keys(tables.value).length);
+  
+  return bounds;
+};
+
+const exportDiagramPNG = async () => {
+  showExportDropdown.value = false;
+  
+  try {
+    // Verifica se há tabelas
+    if (!tables.value || Object.keys(tables.value).length === 0) {
+      alert('Não há tabelas para exportar');
+      return;
+    }
+    
+    // Acessa o SVG através da ref do componente
+    const svgElement = diagramCanvasRef.value?.svgRoot;
+    if (!svgElement) {
+      alert('Erro: SVG não encontrado');
+      return;
+    }
+
+    const bounds = calculateDiagramBounds();
+    
+    console.log('Exportando PNG com bounds:', bounds);
+    
+    // Clona o SVG para não afetar a visualização atual
+    const svgClone = svgElement.cloneNode(true);
+    
+    // Configura o SVG clonado com dimensões e viewBox corretos
+    svgClone.setAttribute('width', Math.ceil(bounds.width));
+    svgClone.setAttribute('height', Math.ceil(bounds.height));
+    svgClone.setAttribute('viewBox', `${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}`);
+    svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    
+    // Remove transformações do viewport-layer
+    const viewportLayer = svgClone.querySelector('#viewport-layer');
+    if (viewportLayer) {
+      viewportLayer.removeAttribute('transform');
+    }
+    
+    // Remove elementos de seleção e grid
+    const selectionsToRemove = svgClone.querySelectorAll('rect[fill="rgba(59, 130, 246, 0.1)"]');
+    selectionsToRemove.forEach(el => el.remove());
+    
+    const gridToRemove = svgClone.querySelector('.grid-background');
+    if (gridToRemove) gridToRemove.remove();
+    
+    // Aplica estilos inline no SVG clonado
+    const styleSheets = Array.from(document.styleSheets);
+    let cssText = '';
+    
+    styleSheets.forEach(sheet => {
+      try {
+        const rules = sheet.cssRules || sheet.rules;
+        if (rules) {
+          Array.from(rules).forEach(rule => {
+            cssText += rule.cssText + '\n';
+          });
+        }
+      } catch (e) {
+        // Ignora erros de CORS
+      }
+    });
+    
+    const styleElement = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+    styleElement.textContent = cssText;
+    const defsElement = svgClone.querySelector('defs');
+    if (defsElement) {
+      defsElement.appendChild(styleElement);
+    } else {
+      svgClone.insertBefore(styleElement, svgClone.firstChild);
+    }
+    
+    // Converte SVG para string
+    const svgString = new XMLSerializer().serializeToString(svgClone);
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const svgUrl = URL.createObjectURL(svgBlob);
+    
+    // Cria imagem a partir do SVG
+    const img = new Image();
+    img.onload = () => {
+      // Cria canvas para conversão
+      const canvas = document.createElement('canvas');
+      
+      // Limite máximo de canvas (maioria dos browsers suporta até 32767x32767)
+      const MAX_DIMENSION = 16000;
+      let scale = 2; // 2x para melhor qualidade
+      
+      // Ajusta scale se as dimensões excederem o limite
+      if (bounds.width * scale > MAX_DIMENSION || bounds.height * scale > MAX_DIMENSION) {
+        scale = Math.min(MAX_DIMENSION / bounds.width, MAX_DIMENSION / bounds.height);
+      }
+      
+      canvas.width = Math.floor(bounds.width * scale);
+      canvas.height = Math.floor(bounds.height * scale);
+      
+      console.log('Canvas dimensions:', canvas.width, 'x', canvas.height, 'scale:', scale);
+      
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.scale(scale, scale);
+      ctx.drawImage(img, 0, 0, bounds.width, bounds.height);
+      
+      // Adiciona marca d'água no canto inferior direito
+      ctx.save();
+      const watermarkText = 'brdiagrama.com';
+      const watermarkSize = 14;
+      const watermarkPadding = 20;
+      
+      ctx.font = `600 ${watermarkSize}px Arial, sans-serif`;
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'bottom';
+      
+      // Sombra sutil para legibilidade
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.fillText(watermarkText, bounds.width - watermarkPadding + 1, bounds.height - watermarkPadding + 1);
+      
+      // Texto principal
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+      ctx.fillText(watermarkText, bounds.width - watermarkPadding, bounds.height - watermarkPadding);
+      ctx.restore();
+      
+      // Converte para PNG e faz download
+      canvas.toBlob((blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'diagrama.png';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        URL.revokeObjectURL(svgUrl);
+      }, 'image/png');
+    };
+    
+    img.onerror = (error) => {
+      console.error('Erro ao carregar imagem:', error);
+      alert('Erro ao gerar PNG. Verifique o console para mais detalhes.');
+      URL.revokeObjectURL(svgUrl);
+    };
+    
+    img.src = svgUrl;
+  } catch (error) {
+    console.error('Erro ao exportar PNG:', error);
+    alert('Erro ao exportar PNG: ' + (error?.message || 'Erro desconhecido'));
+  }
+};
+
+const exportDiagramSVG = () => {
+  showExportDropdown.value = false;
+  
+  try {
+    // Verifica se há tabelas
+    if (!tables.value || Object.keys(tables.value).length === 0) {
+      alert('Não há tabelas para exportar');
+      return;
+    }
+
+    // Acessa o SVG através da ref do componente
+    const svgElement = diagramCanvasRef.value?.svgRoot;
+    if (!svgElement) {
+      alert('Erro: SVG não encontrado');
+      return;
+    }
+
+    const bounds = calculateDiagramBounds();
+    
+    console.log('Exportando SVG com bounds:', bounds);
+    
+    // Clona o SVG para não afetar a visualização atual
+    const svgClone = svgElement.cloneNode(true);
+    
+    // Remove atributos de estilo e adiciona dimensões fixas
+    svgClone.removeAttribute('style');
+    svgClone.setAttribute('width', Math.ceil(bounds.width));
+    svgClone.setAttribute('height', Math.ceil(bounds.height));
+    svgClone.setAttribute('viewBox', `${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}`);
+    svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    
+    // Remove transformações do viewport-layer
+    const viewportLayer = svgClone.querySelector('#viewport-layer');
+    if (viewportLayer) {
+      viewportLayer.removeAttribute('transform');
+    }
+    
+    // Remove elementos de seleção e grid
+    const selectionsToRemove = svgClone.querySelectorAll('rect[fill="rgba(59, 130, 246, 0.1)"]');
+    selectionsToRemove.forEach(el => el.remove());
+    
+    const gridToRemove = svgClone.querySelector('.grid-background');
+    if (gridToRemove) gridToRemove.remove();
+    
+    // Coleta todos os estilos CSS relevantes
+    const styleSheets = Array.from(document.styleSheets);
+    let cssText = '';
+    
+    styleSheets.forEach(sheet => {
+      try {
+        const rules = sheet.cssRules || sheet.rules;
+        if (rules) {
+          Array.from(rules).forEach(rule => {
+            if (rule.cssText) {
+              cssText += rule.cssText + '\n';
+            }
+          });
+        }
+      } catch (e) {
+        // Ignora erros de CORS em folhas de estilo externas
+        console.warn('Não foi possível acessar stylesheet:', e);
+      }
+    });
+    
+    // Adiciona estilos inline no SVG dentro de <defs>
+    const styleElement = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+    styleElement.textContent = cssText;
+    const defsElement = svgClone.querySelector('defs');
+    if (defsElement) {
+      defsElement.appendChild(styleElement);
+    } else {
+      svgClone.insertBefore(styleElement, svgClone.firstChild);
+    }
+    
+    // Serializa e faz download
+    const svgData = new XMLSerializer().serializeToString(svgClone);
+    const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'diagrama.svg';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Erro ao exportar SVG:', error);
+    alert('Erro ao exportar SVG: ' + error.message);
+  }
 };
 
 // Handler com debounce para mudanças no SQL
@@ -1352,6 +1644,101 @@ onMounted(() => {
   border-color: rgba(45, 212, 191, 0.2); /* Borda sutil */
   transform: translateX(2px); /* Pequeno movimento para a direita (convite ao clique) */
   box-shadow: 0 0 10px rgba(45, 212, 191, 0.15); /* Glow suave */
+}
+
+.export-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  min-width: 160px;
+  overflow: hidden;
+  z-index: 1000;
+  animation: dropdownFadeIn 0.15s ease-out;
+}
+
+.dropdown-menu::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid #334155;
+}
+
+.dropdown-menu::after {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 5px solid #1e293b;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.dropdown-item {
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  color: #cbd5e1;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 13px;
+  font-family: "Segoe UI", sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.3);
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.dropdown-item:hover {
+  background-color: rgba(45, 212, 191, 0.15);
+  color: #2dd4bf;
+}
+
+.dropdown-item:active {
+  background-color: rgba(45, 212, 191, 0.25);
+}
+
+.dropdown-icon {
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
 }
 
 @media (max-width: 768px) {
