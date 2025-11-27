@@ -1215,35 +1215,166 @@ const exportDiagramSVG = () => {
     const gridToRemove = svgClone.querySelector('.grid-background');
     if (gridToRemove) gridToRemove.remove();
     
-    // Coleta todos os estilos CSS relevantes
-    const styleSheets = Array.from(document.styleSheets);
-    let cssText = '';
+    // Remove elementos interativos (hover areas, pointer-events)
+    const hoverAreas = svgClone.querySelectorAll('.column-hover-area, rect[fill="transparent"]');
+    hoverAreas.forEach(el => el.remove());
     
-    styleSheets.forEach(sheet => {
-      try {
-        const rules = sheet.cssRules || sheet.rules;
-        if (rules) {
-          Array.from(rules).forEach(rule => {
-            if (rule.cssText) {
-              cssText += rule.cssText + '\n';
-            }
-          });
-        }
-      } catch (e) {
-        // Ignora erros de CORS em folhas de estilo externas
-        console.warn('Não foi possível acessar stylesheet:', e);
+    // Remove todos os markers de hover do <defs>
+    const svgDefs = svgClone.querySelector('defs');
+    if (svgDefs) {
+      const hoverMarkers = svgDefs.querySelectorAll('marker[id*="Hover"]');
+      hoverMarkers.forEach(marker => marker.remove());
+    }
+    
+    // Remove retângulos de highlight/hover das colunas
+    const highlightRects = svgClone.querySelectorAll('rect[fill="#EDFEFC"], rect[fill="#eff6ff"]');
+    highlightRects.forEach(rect => rect.remove());
+    
+    // Remove linhas de destaque/borda das colunas (azul e verde água)
+    const highlightLines = svgClone.querySelectorAll('line[stroke="#70D8CC"], line[stroke="#93c5fd"]');
+    highlightLines.forEach(line => line.remove());
+    
+    // Remove elementos de relacionamento específicos (hitbox, flow, etc)
+    const connectorHitboxes = svgClone.querySelectorAll('.connector-hitbox');
+    connectorHitboxes.forEach(el => el.remove());
+    
+    const connectorFlows = svgClone.querySelectorAll('.connector-flow');
+    connectorFlows.forEach(el => el.remove());
+    
+    // Remove grupos de relacionamento inativos/duplicados
+    const relationshipGroups = svgClone.querySelectorAll('.relationship-line');
+    relationshipGroups.forEach(group => {
+      group.classList.remove('is-active', 'hover', 'active');
+    });
+    
+    // Remove textos de cardinalidade (labels de relacionamento)
+    const cardinalityLabels = svgClone.querySelectorAll('.cardinality-label');
+    cardinalityLabels.forEach(label => {
+      label.classList.remove('cardinality-hover');
+      // Opcional: remover completamente se não quiser mostrar cardinalidade
+      // label.remove();
+    });
+    
+    // Força todas as linhas a usarem cor e stroke padrão
+    const relationshipLines = svgClone.querySelectorAll('line, path, polyline');
+    relationshipLines.forEach(line => {
+      // Remove classes de hover/interação
+      if (line.classList) {
+        line.classList.remove('hover', 'active', 'selected', 'highlighted', 'connector-hover-active');
+      }
+      
+      // Remove atributos de marker de hover
+      const markerStart = line.getAttribute('marker-start');
+      const markerEnd = line.getAttribute('marker-end');
+      
+      if (markerStart && markerStart.includes('Hover')) {
+        line.setAttribute('marker-start', markerStart.replace(/Hover/g, ''));
+      }
+      if (markerEnd && markerEnd.includes('Hover')) {
+        line.setAttribute('marker-end', markerEnd.replace(/Hover/g, ''));
+      }
+      
+      // Força cor padrão (cinza) em todas as linhas de relacionamento
+      const stroke = line.getAttribute('stroke');
+      if (stroke && (stroke.includes('#192747') || stroke.includes('rgb(25, 39, 71)') || stroke.includes('#4facfe'))) {
+        line.setAttribute('stroke', '#7f8c8d');
+      }
+      
+      // Remove stroke-width aumentado de hover e força padrão
+      const strokeWidth = line.getAttribute('stroke-width');
+      if (strokeWidth && parseFloat(strokeWidth) !== 2) {
+        line.setAttribute('stroke-width', '2');
+      }
+      
+      // Remove animações
+      line.removeAttribute('style');
+      line.style.animation = 'none';
+    });
+    
+    // Remove todos os event listeners e atributos interativos
+    const allElements = svgClone.querySelectorAll('*');
+    allElements.forEach(el => {
+      el.removeAttribute('style'); // Remove estilos inline que podem ter pointer-events
+      el.style.pointerEvents = 'none'; // Desabilita pointer events
+      el.removeAttribute('@mouseenter');
+      el.removeAttribute('@mouseleave');
+      el.removeAttribute('@mousedown');
+      el.removeAttribute('@click');
+      
+      // Remove classes de estado interativo
+      if (el.classList) {
+        el.classList.remove('hover', 'active', 'selected', 'highlighted');
       }
     });
     
-    // Adiciona estilos inline no SVG dentro de <defs>
-    const styleElement = document.createElementNS('http://www.w3.org/2000/svg', 'style');
-    styleElement.textContent = cssText;
-    const defsElement = svgClone.querySelector('defs');
-    if (defsElement) {
-      defsElement.appendChild(styleElement);
-    } else {
-      svgClone.insertBefore(styleElement, svgClone.firstChild);
-    }
+    // Aplica estilos inline diretamente nos elementos para compatibilidade com Figma
+    // Tabelas
+    const tableRects = svgClone.querySelectorAll('.table-rect');
+    tableRects.forEach(rect => {
+      rect.setAttribute('fill', '#ffffff');
+      rect.setAttribute('stroke', '#e5e7eb');
+      rect.setAttribute('stroke-width', '1');
+    });
+    
+    const tableHeaders = svgClone.querySelectorAll('.table-header-rect');
+    tableHeaders.forEach(header => {
+      header.setAttribute('fill', '#1e293b');
+    });
+    
+    const tableTitles = svgClone.querySelectorAll('.table-title');
+    tableTitles.forEach(title => {
+      title.setAttribute('fill', '#ffffff');
+      title.setAttribute('font-size', '14');
+      title.setAttribute('font-weight', '600');
+      title.setAttribute('font-family', 'Arial, sans-serif');
+    });
+    
+    // Textos de colunas
+    const colTexts = svgClone.querySelectorAll('.col-text');
+    colTexts.forEach(text => {
+      text.setAttribute('fill', '#1e293b');
+      text.setAttribute('font-size', '12');
+      text.setAttribute('font-family', 'Arial, sans-serif');
+    });
+    
+    const colTypes = svgClone.querySelectorAll('.col-type');
+    colTypes.forEach(text => {
+      text.setAttribute('fill', '#6b7280');
+      text.setAttribute('font-size', '11');
+      text.setAttribute('font-family', 'Arial, sans-serif');
+    });
+    
+    // Ícones PK/FK
+    const pkIcons = svgClone.querySelectorAll('.pk-icon');
+    pkIcons.forEach(icon => {
+      icon.setAttribute('fill', '#10b981');
+      icon.setAttribute('font-size', '9');
+      icon.setAttribute('font-weight', 'bold');
+    });
+    
+    const fkIcons = svgClone.querySelectorAll('.fk-icon');
+    fkIcons.forEach(icon => {
+      icon.setAttribute('fill', '#3b82f6');
+      icon.setAttribute('font-size', '9');
+      icon.setAttribute('font-weight', 'bold');
+    });
+    
+    // Linhas de relacionamento
+    const connectorVisuals = svgClone.querySelectorAll('.connector-visual');
+    connectorVisuals.forEach(line => {
+      line.setAttribute('fill', 'none');
+      line.setAttribute('stroke', '#7f8c8d');
+      line.setAttribute('stroke-width', '2');
+    });
+    
+    // Labels de cardinalidade
+    const cardLabels = svgClone.querySelectorAll('.cardinality-label');
+    cardLabels.forEach(label => {
+      label.setAttribute('font-size', '0'); // Esconde por padrão
+      label.setAttribute('fill', '#7f8c8d');
+      label.setAttribute('font-weight', '600');
+      label.setAttribute('font-family', 'Arial, sans-serif');
+    });
     
     // Serializa e faz download
     const svgData = new XMLSerializer().serializeToString(svgClone);
