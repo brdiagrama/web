@@ -79,13 +79,20 @@ onMounted(() => {
 
 
   // Anima os títulos (continua normal)
+  heroTl.to("#left-database", {
+    opacity: 0.3, // Ou 1 se você quiser ele sólido também!
+    y: 0,         // Se quiser um efeitinho de subida, use um .from com y:20 antes
+    duration: 1,
+    ease: "power2.out"
+  });
+
   heroTl
     .from("#hero-title-top", {
       y: 40,
       opacity: 0,
       duration: 0.8,
       ease: "power3.out",
-    }, 0.2) // Pequeno delay para o database aparecer primeiro
+    }, "-=0.5") // Pequeno delay para o database aparecer primeiro
     .from("#hero-title-keyword", {
       y: 40,
       opacity: 0,
@@ -101,12 +108,14 @@ onMounted(() => {
     
     gsap.set(connectionLine, {
       strokeDasharray: length,
-      strokeDashoffset: length
+      strokeDashoffset: length,
+      autoAlpha: 0.3
     });
     
     // Desenha a linha
     heroTl.to(connectionLine, {
       strokeDashoffset: 0,
+      autoAlpha: 0.3,
       duration: 2.5,
       ease: "power2.inOut"
     }, "-=0.4"); // Começa um pouco antes do título terminar
@@ -219,7 +228,7 @@ onMounted(() => {
             xmlns="http://www.w3.org/2000/svg"
           >
             <!-- Database Icon (Esquerda) -->
-            <g class="static-element" opacity="0.3">
+            <g class="static-element" id="left-database" opacity="0">
               <path
                 d="M92 77C138.944 77 177 61.33 177 42C177 22.67 138.944 7 92 7C45.0558 7 7 22.67 7 42C7 61.33 45.0558 77 92 77Z"
                 stroke="#334155"
