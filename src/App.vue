@@ -1111,37 +1111,63 @@ const exportDiagramPNG = async () => {
       ctx.scale(scale, scale);
       ctx.drawImage(img, 0, 0, bounds.width, bounds.height);
       
-      // Adiciona marca d'água no canto inferior direito
-      ctx.save();
-      const watermarkText = 'brdiagrama.com';
-      const watermarkSize = 14;
-      const watermarkPadding = 20;
+      // Adiciona marca d'água (logo) no canto inferior direito
+      const logoImg = new Image();
+      logoImg.onload = () => {
+        ctx.save();
+        const logoHeight = 20; // Altura da logo
+        const logoWidth = (logoImg.width / logoImg.height) * logoHeight; // Mantém proporção
+        const logoPadding = 20;
+        
+        // Adiciona sombra sutil para legibilidade
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 1;
+        
+        // Desenha a logo com opacidade
+        ctx.globalAlpha = 0.7;
+        ctx.drawImage(
+          logoImg, 
+          bounds.width - logoWidth - logoPadding, 
+          bounds.height - logoHeight - logoPadding, 
+          logoWidth, 
+          logoHeight
+        );
+        ctx.restore();
+        
+        // Converte para PNG e faz download
+        canvas.toBlob((blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'diagrama.png';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+          URL.revokeObjectURL(svgUrl);
+        }, 'image/png');
+      };
       
-      ctx.font = `600 ${watermarkSize}px Arial, sans-serif`;
-      ctx.textAlign = 'right';
-      ctx.textBaseline = 'bottom';
+      logoImg.onerror = () => {
+        console.error('Erro ao carregar logo');
+        // Se falhar, faz download sem logo
+        canvas.toBlob((blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'diagrama.png';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+          URL.revokeObjectURL(svgUrl);
+        }, 'image/png');
+      };
       
-      // Sombra sutil para legibilidade
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-      ctx.fillText(watermarkText, bounds.width - watermarkPadding + 1, bounds.height - watermarkPadding + 1);
-      
-      // Texto principal
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-      ctx.fillText(watermarkText, bounds.width - watermarkPadding, bounds.height - watermarkPadding);
-      ctx.restore();
-      
-      // Converte para PNG e faz download
-      canvas.toBlob((blob) => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'diagrama.png';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-        URL.revokeObjectURL(svgUrl);
-      }, 'image/png');
+      // Carrega a logo
+      logoImg.src = new URL('@/assets/images/logo/logo-completa.svg', import.meta.url).href;
     };
     
     img.onerror = (error) => {
