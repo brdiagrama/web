@@ -144,6 +144,7 @@ const sortedProblems = computed(() => {
   align-items: center;
   gap: 5px;
   transition: background 0.2s;
+  font-family: 'Segoe UI', sans-serif;
 }
 
 .count-badge.error {

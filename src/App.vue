@@ -7,48 +7,83 @@
         :style="{ width: isEditorVisible ? editorWidth + 'px' : '0px' }"
       >
         <div class="editor-header">
-          <h1>Editor SQL</h1>
-
-          <button
-            v-if="errorCount > 0 || warningCount > 0"
-            class="problems-badge"
-            :class="{ 'has-errors': errorCount > 0, 'has-warnings': errorCount === 0 }"
-            @click="toggleProblemsPanel"
-            :title="`${errorCount} erro(s), ${warningCount} aviso(s)`"
-          >
-            <XCircle v-if="errorCount > 0" :size="14" class="badge-icon error-icon" />
-            <AlertTriangle v-else :size="14" class="badge-icon warning-icon" />
-
-            <span class="badge-count">
-              {{ errorCount + warningCount }}
-            </span>
-          </button>
-+         <button class="icon-btn" @click="newProject" title="Limpar">Limpar➕</button>
-          
-          <div class="export-dropdown" ref="exportDropdownRef">
-            <button class="icon-btn" @mouseenter="showExportDropdown = true" title="Exportar">Exportar💾</button>
-            <div v-if="showExportDropdown" class="dropdown-menu" @mouseenter="showExportDropdown = true" @mouseleave="showExportDropdown = false">
-              <button @click="exportSql" class="dropdown-item">
-                <span class="dropdown-icon">📄</span>
-                <span>Exportar SQL</span>
-              </button>
-              <button @click="exportDiagramPNG" class="dropdown-item">
-                <span class="dropdown-icon">🖼️</span>
-                <span>Exportar PNG</span>
-              </button>
-              <button @click="exportDiagramSVG" class="dropdown-item">
-                <span class="dropdown-icon">📐</span>
-                <span>Exportar SVG</span>
-              </button>
-            </div>
+          <div class="brand-area">
+         <a href="/" title="Voltar para a Página Inicial">
+        <img :src="logoBrDiagrama" alt="BrDiagrama" class="editor-logo" />
+    </a>
           </div>
-          
-          <button class="icon-btn" @click="triggerImport" title="Importar .sql">Importar📂</button>
 
-          <button class="icon-btn" @click="toggleEditor" title="Ocultar Editor">❮</button>
-        
-          <input ref="fileInputRef" type="file" accept=".sql,text/sql,.txt" @change="handleFileImport" style="display:none" />
+          <div class="header-actions">
+            <button
+              v-if="errorCount > 0 || warningCount > 0"
+              class="problems-badge"
+              :class="{ 'has-errors': errorCount > 0, 'has-warnings': errorCount === 0 }"
+              @click="toggleProblemsPanel"
+              :title="`${errorCount} erro(s), ${warningCount} aviso(s)`"
+            >
+              <XCircle v-if="errorCount > 0" :size="14" class="badge-icon error-icon" />
+              <AlertTriangle v-else :size="14" class="badge-icon warning-icon" />
+              <span class="badge-count">{{ errorCount + warningCount }}</span>
+            </button>
 
+            <button class="icon-btn" @click="newProject" title="Novo Projeto / Limpar">
+              <Eraser :size="18" />
+            </button>
+
+            <button class="icon-btn" @click="triggerImport" title="Importar SQL">
+              <Upload :size="18" />
+            </button>
+
+            <div class="export-dropdown" ref="exportDropdownRef">
+              <button
+                class="icon-btn"
+                :class="{ active: showExportDropdown }"
+                @mouseenter="showExportDropdown = true"
+                title="Exportar"
+              >
+                <Download :size="18" />
+              </button>
+
+              <div
+                v-if="showExportDropdown"
+                class="dropdown-menu"
+                @mouseenter="showExportDropdown = true"
+                @mouseleave="showExportDropdown = false"
+              >
+                <div class="dropdown-header">Exportar como...</div>
+                <button @click="exportSql" class="dropdown-item">
+                  <FileCode :size="16" class="dropdown-icon-lucide" />
+                  <span>Arquivo SQL</span>
+                </button>
+                <button @click="exportDiagramPNG" class="dropdown-item">
+                  <ImageIcon :size="16" class="dropdown-icon-lucide" />
+                  <span>Imagem PNG</span>
+                </button>
+                <button @click="exportDiagramSVG" class="dropdown-item">
+                  <Code2 :size="16" class="dropdown-icon-lucide" />
+                  <span>Vetor SVG</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="header-divider"></div>
+
+            <button
+              class="icon-btn toggle-btn"
+              @click="toggleEditor"
+              title="Ocultar Editor"
+            >
+              <ChevronLeft :size="20" />
+            </button>
+
+            <input
+              ref="fileInputRef"
+              type="file"
+              accept=".sql,text/sql,.txt"
+              @change="handleFileImport"
+              style="display: none"
+            />
+          </div>
         </div>
 
         <SqlEditor
@@ -405,6 +440,17 @@ import { SqlParserService } from "./models/sqlParser.service.js";
 import ProblemsPanel from "./components/ProblemsPanel.vue";
 import { XCircle, AlertTriangle } from "lucide-vue-next";
 import { useDiagramStore } from "./stores/diagram.js";
+import {
+    Eraser, // Para Limpar
+  Upload, // Para Importar
+  Download, // Para Exportar
+  ChevronLeft, // Para Fechar Editor
+  ChevronRight, // Para Abrir Editor
+  FileCode, // Icone SQL
+  Image as ImageIcon, // Icone PNG
+  Code2, // Icone SVG
+} from "lucide-vue-next";
+import logoBrDiagrama from "@/assets/images/logo/logo-completa.svg";
 
 const diagramStore = useDiagramStore();
 
@@ -822,7 +868,6 @@ const triggerImport = () => {
   fileInputRef.value?.click();
 };
 
-
 const MAX_FILE_SIZE = 100 * 1024; // 100 KB
 const ALLOWED_EXT_RE = /\.sql$/i;
 const FORBIDDEN_EXT_RE = /\.(exe|bin|dll|sh|bat|jar|class|com|py)$/i;
@@ -847,7 +892,7 @@ const isLikelyBinary = (arrayBuffer) => {
     nonText++;
   }
   // Se mais de 10% forem não-text, considera binário
-  return nonText / len > 0.10;
+  return nonText / len > 0.1;
 };
 
 const handleFileImport = async (event) => {
@@ -963,17 +1008,20 @@ const exportSql = () => {
 
 const calculateDiagramBounds = () => {
   const padding = 80; // Aumentado o padding para garantir margem
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
 
-  Object.values(tables.value).forEach(table => {
+  Object.values(tables.value).forEach((table) => {
     const tableWidth = getTableWidth(table);
     const tableHeight = getTableHeight(table);
-    
+
     const x1 = table.x;
     const y1 = table.y;
     const x2 = table.x + tableWidth;
     const y2 = table.y + tableHeight;
-    
+
     minX = Math.min(minX, x1);
     minY = Math.min(minY, y1);
     maxX = Math.max(maxX, x2);
@@ -988,129 +1036,145 @@ const calculateDiagramBounds = () => {
     x: minX - padding,
     y: minY - padding,
     width: maxX - minX + padding * 2,
-    height: maxY - minY + padding * 2
+    height: maxY - minY + padding * 2,
   };
-  
-  console.log('Bounds calculados:', bounds);
-  console.log('Tabelas:', Object.keys(tables.value).length);
-  
+
+  console.log("Bounds calculados:", bounds);
+  console.log("Tabelas:", Object.keys(tables.value).length);
+
   return bounds;
 };
 
 const exportDiagramPNG = async () => {
   showExportDropdown.value = false;
-  
+
   try {
     // Verifica se há tabelas
     if (!tables.value || Object.keys(tables.value).length === 0) {
-      alert('Não há tabelas para exportar');
+      alert("Não há tabelas para exportar");
       return;
     }
-    
+
     // Acessa o SVG através da ref do componente
     const svgElement = diagramCanvasRef.value?.svgRoot;
     if (!svgElement) {
-      alert('Erro: SVG não encontrado');
+      alert("Erro: SVG não encontrado");
       return;
     }
 
     const bounds = calculateDiagramBounds();
-    
-    console.log('Exportando PNG com bounds:', bounds);
-    
+
+    console.log("Exportando PNG com bounds:", bounds);
+
     // Clona o SVG para não afetar a visualização atual
     const svgClone = svgElement.cloneNode(true);
-    
+
     // Configura o SVG clonado com dimensões e viewBox corretos
-    svgClone.setAttribute('width', Math.ceil(bounds.width));
-    svgClone.setAttribute('height', Math.ceil(bounds.height));
-    svgClone.setAttribute('viewBox', `${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}`);
-    svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-    
+    svgClone.setAttribute("width", Math.ceil(bounds.width));
+    svgClone.setAttribute("height", Math.ceil(bounds.height));
+    svgClone.setAttribute(
+      "viewBox",
+      `${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}`
+    );
+    svgClone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+
     // Remove TODAS as transformações relacionadas ao zoom/pan
-    const viewportLayer = svgClone.querySelector('#viewport-layer');
+    const viewportLayer = svgClone.querySelector("#viewport-layer");
     if (viewportLayer) {
-      viewportLayer.removeAttribute('transform');
-      viewportLayer.style.transform = '';
+      viewportLayer.removeAttribute("transform");
+      viewportLayer.style.transform = "";
     }
-    
+
     // Remove transformações de qualquer elemento g com transform
-    const allGroups = svgClone.querySelectorAll('g[transform]');
-    allGroups.forEach(g => {
+    const allGroups = svgClone.querySelectorAll("g[transform]");
+    allGroups.forEach((g) => {
       // Não remove transform de elementos que são parte do design (como markers)
-      if (!g.id || !g.id.includes('marker')) {
-        const currentTransform = g.getAttribute('transform');
+      if (!g.id || !g.id.includes("marker")) {
+        const currentTransform = g.getAttribute("transform");
         // Mantém apenas transforms de translate que são posicionamento de tabelas
-        if (currentTransform && !currentTransform.startsWith('translate(') && currentTransform.includes('scale')) {
-          g.removeAttribute('transform');
+        if (
+          currentTransform &&
+          !currentTransform.startsWith("translate(") &&
+          currentTransform.includes("scale")
+        ) {
+          g.removeAttribute("transform");
         }
       }
     });
-    
+
     // Remove elementos de seleção e grid
-    const selectionsToRemove = svgClone.querySelectorAll('rect[fill="rgba(59, 130, 246, 0.1)"]');
-    selectionsToRemove.forEach(el => el.remove());
-    
-    const gridToRemove = svgClone.querySelector('.grid-background');
+    const selectionsToRemove = svgClone.querySelectorAll(
+      'rect[fill="rgba(59, 130, 246, 0.1)"]'
+    );
+    selectionsToRemove.forEach((el) => el.remove());
+
+    const gridToRemove = svgClone.querySelector(".grid-background");
     if (gridToRemove) gridToRemove.remove();
-    
+
     // Aplica estilos inline no SVG clonado
     const styleSheets = Array.from(document.styleSheets);
-    let cssText = '';
-    
-    styleSheets.forEach(sheet => {
+    let cssText = "";
+
+    styleSheets.forEach((sheet) => {
       try {
         const rules = sheet.cssRules || sheet.rules;
         if (rules) {
-          Array.from(rules).forEach(rule => {
-            cssText += rule.cssText + '\n';
+          Array.from(rules).forEach((rule) => {
+            cssText += rule.cssText + "\n";
           });
         }
       } catch (e) {
         // Ignora erros de CORS
       }
     });
-    
-    const styleElement = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+
+    const styleElement = document.createElementNS("http://www.w3.org/2000/svg", "style");
     styleElement.textContent = cssText;
-    const defsElement = svgClone.querySelector('defs');
+    const defsElement = svgClone.querySelector("defs");
     if (defsElement) {
       defsElement.appendChild(styleElement);
     } else {
       svgClone.insertBefore(styleElement, svgClone.firstChild);
     }
-    
+
     // Converte SVG para string
     const svgString = new XMLSerializer().serializeToString(svgClone);
-    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
     const svgUrl = URL.createObjectURL(svgBlob);
-    
+
     // Cria imagem a partir do SVG
     const img = new Image();
     img.onload = () => {
       // Cria canvas para conversão
-      const canvas = document.createElement('canvas');
-      
+      const canvas = document.createElement("canvas");
+
       // Limite máximo de canvas (maioria dos browsers suporta até 32767x32767)
       const MAX_DIMENSION = 16000;
       let scale = 2; // 2x para melhor qualidade
-      
+
       // Ajusta scale se as dimensões excederem o limite
       if (bounds.width * scale > MAX_DIMENSION || bounds.height * scale > MAX_DIMENSION) {
         scale = Math.min(MAX_DIMENSION / bounds.width, MAX_DIMENSION / bounds.height);
       }
-      
+
       canvas.width = Math.floor(bounds.width * scale);
       canvas.height = Math.floor(bounds.height * scale);
-      
-      console.log('Canvas dimensions:', canvas.width, 'x', canvas.height, 'scale:', scale);
-      
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#ffffff';
+
+      console.log(
+        "Canvas dimensions:",
+        canvas.width,
+        "x",
+        canvas.height,
+        "scale:",
+        scale
+      );
+
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.scale(scale, scale);
       ctx.drawImage(img, 0, 0, bounds.width, bounds.height);
-      
+
       // Adiciona marca d'água (logo) no canto inferior direito
       const logoImg = new Image();
       logoImg.onload = () => {
@@ -1118,304 +1182,333 @@ const exportDiagramPNG = async () => {
         const logoHeight = 20; // Altura da logo
         const logoWidth = (logoImg.width / logoImg.height) * logoHeight; // Mantém proporção
         const logoPadding = 20;
-        
+
         // Adiciona sombra sutil para legibilidade
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+        ctx.shadowColor = "rgba(0, 0, 0, 0.2)";
         ctx.shadowBlur = 4;
         ctx.shadowOffsetX = 1;
         ctx.shadowOffsetY = 1;
-        
+
         // Desenha a logo com opacidade
         ctx.globalAlpha = 0.7;
         ctx.drawImage(
-          logoImg, 
-          bounds.width - logoWidth - logoPadding, 
-          bounds.height - logoHeight - logoPadding, 
-          logoWidth, 
+          logoImg,
+          bounds.width - logoWidth - logoPadding,
+          bounds.height - logoHeight - logoPadding,
+          logoWidth,
           logoHeight
         );
         ctx.restore();
-        
+
         // Converte para PNG e faz download
         canvas.toBlob((blob) => {
           const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
+          const a = document.createElement("a");
           a.href = url;
-          a.download = 'diagrama.png';
+          a.download = "diagrama.png";
           document.body.appendChild(a);
           a.click();
           a.remove();
           URL.revokeObjectURL(url);
           URL.revokeObjectURL(svgUrl);
-        }, 'image/png');
+        }, "image/png");
       };
-      
+
       logoImg.onerror = () => {
-        console.error('Erro ao carregar logo');
+        console.error("Erro ao carregar logo");
         // Se falhar, faz download sem logo
         canvas.toBlob((blob) => {
           const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
+          const a = document.createElement("a");
           a.href = url;
-          a.download = 'diagrama.png';
+          a.download = "diagrama.png";
           document.body.appendChild(a);
           a.click();
           a.remove();
           URL.revokeObjectURL(url);
           URL.revokeObjectURL(svgUrl);
-        }, 'image/png');
+        }, "image/png");
       };
-      
+
       // Carrega a logo
-      logoImg.src = new URL('@/assets/images/logo/logo-completa.svg', import.meta.url).href;
+      logoImg.src = new URL(
+        "@/assets/images/logo/logo-completa.svg",
+        import.meta.url
+      ).href;
     };
-    
+
     img.onerror = (error) => {
-      console.error('Erro ao carregar imagem:', error);
-      alert('Erro ao gerar PNG. Verifique o console para mais detalhes.');
+      console.error("Erro ao carregar imagem:", error);
+      alert("Erro ao gerar PNG. Verifique o console para mais detalhes.");
       URL.revokeObjectURL(svgUrl);
     };
-    
+
     img.src = svgUrl;
   } catch (error) {
-    console.error('Erro ao exportar PNG:', error);
-    alert('Erro ao exportar PNG: ' + (error?.message || 'Erro desconhecido'));
+    console.error("Erro ao exportar PNG:", error);
+    alert("Erro ao exportar PNG: " + (error?.message || "Erro desconhecido"));
   }
 };
 
 const exportDiagramSVG = () => {
   showExportDropdown.value = false;
-  
+
   try {
     // Verifica se há tabelas
     if (!tables.value || Object.keys(tables.value).length === 0) {
-      alert('Não há tabelas para exportar');
+      alert("Não há tabelas para exportar");
       return;
     }
 
     // Acessa o SVG através da ref do componente
     const svgElement = diagramCanvasRef.value?.svgRoot;
     if (!svgElement) {
-      alert('Erro: SVG não encontrado');
+      alert("Erro: SVG não encontrado");
       return;
     }
 
     const bounds = calculateDiagramBounds();
-    
-    console.log('Exportando SVG com bounds:', bounds);
-    
+
+    console.log("Exportando SVG com bounds:", bounds);
+
     // Clona o SVG para não afetar a visualização atual
     const svgClone = svgElement.cloneNode(true);
-    
+
     // Remove atributos de estilo e adiciona dimensões fixas
-    svgClone.removeAttribute('style');
-    svgClone.setAttribute('width', Math.ceil(bounds.width));
-    svgClone.setAttribute('height', Math.ceil(bounds.height));
-    svgClone.setAttribute('viewBox', `${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}`);
-    svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-    
+    svgClone.removeAttribute("style");
+    svgClone.setAttribute("width", Math.ceil(bounds.width));
+    svgClone.setAttribute("height", Math.ceil(bounds.height));
+    svgClone.setAttribute(
+      "viewBox",
+      `${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}`
+    );
+    svgClone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+
     // Remove TODAS as transformações relacionadas ao zoom/pan
-    const viewportLayer = svgClone.querySelector('#viewport-layer');
+    const viewportLayer = svgClone.querySelector("#viewport-layer");
     if (viewportLayer) {
-      viewportLayer.removeAttribute('transform');
-      viewportLayer.style.transform = '';
+      viewportLayer.removeAttribute("transform");
+      viewportLayer.style.transform = "";
     }
-    
+
     // Remove transformações de qualquer elemento g com transform de zoom/scale
-    const allGroups = svgClone.querySelectorAll('g[transform]');
-    allGroups.forEach(g => {
+    const allGroups = svgClone.querySelectorAll("g[transform]");
+    allGroups.forEach((g) => {
       // Não remove transform de elementos que são parte do design
-      if (!g.id || !g.id.includes('marker')) {
-        const currentTransform = g.getAttribute('transform');
+      if (!g.id || !g.id.includes("marker")) {
+        const currentTransform = g.getAttribute("transform");
         // Mantém apenas transforms de translate que são posicionamento de tabelas
-        if (currentTransform && !currentTransform.startsWith('translate(') && currentTransform.includes('scale')) {
-          g.removeAttribute('transform');
+        if (
+          currentTransform &&
+          !currentTransform.startsWith("translate(") &&
+          currentTransform.includes("scale")
+        ) {
+          g.removeAttribute("transform");
         }
       }
     });
-    
+
     // Remove elementos de seleção e grid
-    const selectionsToRemove = svgClone.querySelectorAll('rect[fill="rgba(59, 130, 246, 0.1)"]');
-    selectionsToRemove.forEach(el => el.remove());
-    
-    const gridToRemove = svgClone.querySelector('.grid-background');
+    const selectionsToRemove = svgClone.querySelectorAll(
+      'rect[fill="rgba(59, 130, 246, 0.1)"]'
+    );
+    selectionsToRemove.forEach((el) => el.remove());
+
+    const gridToRemove = svgClone.querySelector(".grid-background");
     if (gridToRemove) gridToRemove.remove();
-    
+
     // Remove elementos interativos (hover areas, pointer-events)
-    const hoverAreas = svgClone.querySelectorAll('.column-hover-area, rect[fill="transparent"]');
-    hoverAreas.forEach(el => el.remove());
-    
+    const hoverAreas = svgClone.querySelectorAll(
+      '.column-hover-area, rect[fill="transparent"]'
+    );
+    hoverAreas.forEach((el) => el.remove());
+
     // Remove todos os markers de hover do <defs>
-    const svgDefs = svgClone.querySelector('defs');
+    const svgDefs = svgClone.querySelector("defs");
     if (svgDefs) {
       const hoverMarkers = svgDefs.querySelectorAll('marker[id*="Hover"]');
-      hoverMarkers.forEach(marker => marker.remove());
+      hoverMarkers.forEach((marker) => marker.remove());
     }
-    
+
     // Remove retângulos de highlight/hover das colunas
-    const highlightRects = svgClone.querySelectorAll('rect[fill="#EDFEFC"], rect[fill="#eff6ff"]');
-    highlightRects.forEach(rect => rect.remove());
-    
+    const highlightRects = svgClone.querySelectorAll(
+      'rect[fill="#EDFEFC"], rect[fill="#eff6ff"]'
+    );
+    highlightRects.forEach((rect) => rect.remove());
+
     // Remove linhas de destaque/borda das colunas (azul e verde água)
-    const highlightLines = svgClone.querySelectorAll('line[stroke="#70D8CC"], line[stroke="#93c5fd"]');
-    highlightLines.forEach(line => line.remove());
-    
+    const highlightLines = svgClone.querySelectorAll(
+      'line[stroke="#70D8CC"], line[stroke="#93c5fd"]'
+    );
+    highlightLines.forEach((line) => line.remove());
+
     // Remove elementos de relacionamento específicos (hitbox, flow, etc)
-    const connectorHitboxes = svgClone.querySelectorAll('.connector-hitbox');
-    connectorHitboxes.forEach(el => el.remove());
-    
-    const connectorFlows = svgClone.querySelectorAll('.connector-flow');
-    connectorFlows.forEach(el => el.remove());
-    
+    const connectorHitboxes = svgClone.querySelectorAll(".connector-hitbox");
+    connectorHitboxes.forEach((el) => el.remove());
+
+    const connectorFlows = svgClone.querySelectorAll(".connector-flow");
+    connectorFlows.forEach((el) => el.remove());
+
     // Remove grupos de relacionamento inativos/duplicados
-    const relationshipGroups = svgClone.querySelectorAll('.relationship-line');
-    relationshipGroups.forEach(group => {
-      group.classList.remove('is-active', 'hover', 'active');
+    const relationshipGroups = svgClone.querySelectorAll(".relationship-line");
+    relationshipGroups.forEach((group) => {
+      group.classList.remove("is-active", "hover", "active");
     });
-    
+
     // Remove textos de cardinalidade (labels de relacionamento)
-    const cardinalityLabels = svgClone.querySelectorAll('.cardinality-label');
-    cardinalityLabels.forEach(label => {
-      label.classList.remove('cardinality-hover');
+    const cardinalityLabels = svgClone.querySelectorAll(".cardinality-label");
+    cardinalityLabels.forEach((label) => {
+      label.classList.remove("cardinality-hover");
       // Opcional: remover completamente se não quiser mostrar cardinalidade
       // label.remove();
     });
-    
+
     // Força todas as linhas a usarem cor e stroke padrão
-    const relationshipLines = svgClone.querySelectorAll('line, path, polyline');
-    relationshipLines.forEach(line => {
+    const relationshipLines = svgClone.querySelectorAll("line, path, polyline");
+    relationshipLines.forEach((line) => {
       // Remove classes de hover/interação
       if (line.classList) {
-        line.classList.remove('hover', 'active', 'selected', 'highlighted', 'connector-hover-active');
+        line.classList.remove(
+          "hover",
+          "active",
+          "selected",
+          "highlighted",
+          "connector-hover-active"
+        );
       }
-      
+
       // Remove atributos de marker de hover
-      const markerStart = line.getAttribute('marker-start');
-      const markerEnd = line.getAttribute('marker-end');
-      
-      if (markerStart && markerStart.includes('Hover')) {
-        line.setAttribute('marker-start', markerStart.replace(/Hover/g, ''));
+      const markerStart = line.getAttribute("marker-start");
+      const markerEnd = line.getAttribute("marker-end");
+
+      if (markerStart && markerStart.includes("Hover")) {
+        line.setAttribute("marker-start", markerStart.replace(/Hover/g, ""));
       }
-      if (markerEnd && markerEnd.includes('Hover')) {
-        line.setAttribute('marker-end', markerEnd.replace(/Hover/g, ''));
+      if (markerEnd && markerEnd.includes("Hover")) {
+        line.setAttribute("marker-end", markerEnd.replace(/Hover/g, ""));
       }
-      
+
       // Força cor padrão (cinza) em todas as linhas de relacionamento
-      const stroke = line.getAttribute('stroke');
-      if (stroke && (stroke.includes('#192747') || stroke.includes('rgb(25, 39, 71)') || stroke.includes('#4facfe'))) {
-        line.setAttribute('stroke', '#7f8c8d');
+      const stroke = line.getAttribute("stroke");
+      if (
+        stroke &&
+        (stroke.includes("#192747") ||
+          stroke.includes("rgb(25, 39, 71)") ||
+          stroke.includes("#4facfe"))
+      ) {
+        line.setAttribute("stroke", "#7f8c8d");
       }
-      
+
       // Remove stroke-width aumentado de hover e força padrão
-      const strokeWidth = line.getAttribute('stroke-width');
+      const strokeWidth = line.getAttribute("stroke-width");
       if (strokeWidth && parseFloat(strokeWidth) !== 2) {
-        line.setAttribute('stroke-width', '2');
+        line.setAttribute("stroke-width", "2");
       }
-      
+
       // Remove animações
-      line.removeAttribute('style');
-      line.style.animation = 'none';
+      line.removeAttribute("style");
+      line.style.animation = "none";
     });
-    
+
     // Remove todos os event listeners e atributos interativos
-    const allElements = svgClone.querySelectorAll('*');
-    allElements.forEach(el => {
-      el.removeAttribute('style'); // Remove estilos inline que podem ter pointer-events
-      el.style.pointerEvents = 'none'; // Desabilita pointer events
-      el.removeAttribute('@mouseenter');
-      el.removeAttribute('@mouseleave');
-      el.removeAttribute('@mousedown');
-      el.removeAttribute('@click');
-      
+    const allElements = svgClone.querySelectorAll("*");
+    allElements.forEach((el) => {
+      el.removeAttribute("style"); // Remove estilos inline que podem ter pointer-events
+      el.style.pointerEvents = "none"; // Desabilita pointer events
+      el.removeAttribute("@mouseenter");
+      el.removeAttribute("@mouseleave");
+      el.removeAttribute("@mousedown");
+      el.removeAttribute("@click");
+
       // Remove classes de estado interativo
       if (el.classList) {
-        el.classList.remove('hover', 'active', 'selected', 'highlighted');
+        el.classList.remove("hover", "active", "selected", "highlighted");
       }
     });
-    
+
     // Aplica estilos inline diretamente nos elementos para compatibilidade com Figma
     // Tabelas
-    const tableRects = svgClone.querySelectorAll('.table-rect');
-    tableRects.forEach(rect => {
-      rect.setAttribute('fill', '#ffffff');
-      rect.setAttribute('stroke', '#e5e7eb');
-      rect.setAttribute('stroke-width', '1');
+    const tableRects = svgClone.querySelectorAll(".table-rect");
+    tableRects.forEach((rect) => {
+      rect.setAttribute("fill", "#ffffff");
+      rect.setAttribute("stroke", "#e5e7eb");
+      rect.setAttribute("stroke-width", "1");
     });
-    
-    const tableHeaders = svgClone.querySelectorAll('.table-header-rect');
-    tableHeaders.forEach(header => {
-      header.setAttribute('fill', '#1e293b');
+
+    const tableHeaders = svgClone.querySelectorAll(".table-header-rect");
+    tableHeaders.forEach((header) => {
+      header.setAttribute("fill", "#1e293b");
     });
-    
-    const tableTitles = svgClone.querySelectorAll('.table-title');
-    tableTitles.forEach(title => {
-      title.setAttribute('fill', '#ffffff');
-      title.setAttribute('font-size', '14');
-      title.setAttribute('font-weight', '600');
-      title.setAttribute('font-family', 'Arial, sans-serif');
+
+    const tableTitles = svgClone.querySelectorAll(".table-title");
+    tableTitles.forEach((title) => {
+      title.setAttribute("fill", "#ffffff");
+      title.setAttribute("font-size", "14");
+      title.setAttribute("font-weight", "600");
+      title.setAttribute("font-family", "Arial, sans-serif");
     });
-    
+
     // Textos de colunas
-    const colTexts = svgClone.querySelectorAll('.col-text');
-    colTexts.forEach(text => {
-      text.setAttribute('fill', '#1e293b');
-      text.setAttribute('font-size', '12');
-      text.setAttribute('font-family', 'Arial, sans-serif');
+    const colTexts = svgClone.querySelectorAll(".col-text");
+    colTexts.forEach((text) => {
+      text.setAttribute("fill", "#1e293b");
+      text.setAttribute("font-size", "12");
+      text.setAttribute("font-family", "Arial, sans-serif");
     });
-    
-    const colTypes = svgClone.querySelectorAll('.col-type');
-    colTypes.forEach(text => {
-      text.setAttribute('fill', '#6b7280');
-      text.setAttribute('font-size', '11');
-      text.setAttribute('font-family', 'Arial, sans-serif');
+
+    const colTypes = svgClone.querySelectorAll(".col-type");
+    colTypes.forEach((text) => {
+      text.setAttribute("fill", "#6b7280");
+      text.setAttribute("font-size", "11");
+      text.setAttribute("font-family", "Arial, sans-serif");
     });
-    
+
     // Ícones PK/FK
-    const pkIcons = svgClone.querySelectorAll('.pk-icon');
-    pkIcons.forEach(icon => {
-      icon.setAttribute('fill', '#10b981');
-      icon.setAttribute('font-size', '9');
-      icon.setAttribute('font-weight', 'bold');
+    const pkIcons = svgClone.querySelectorAll(".pk-icon");
+    pkIcons.forEach((icon) => {
+      icon.setAttribute("fill", "#10b981");
+      icon.setAttribute("font-size", "9");
+      icon.setAttribute("font-weight", "bold");
     });
-    
-    const fkIcons = svgClone.querySelectorAll('.fk-icon');
-    fkIcons.forEach(icon => {
-      icon.setAttribute('fill', '#3b82f6');
-      icon.setAttribute('font-size', '9');
-      icon.setAttribute('font-weight', 'bold');
+
+    const fkIcons = svgClone.querySelectorAll(".fk-icon");
+    fkIcons.forEach((icon) => {
+      icon.setAttribute("fill", "#3b82f6");
+      icon.setAttribute("font-size", "9");
+      icon.setAttribute("font-weight", "bold");
     });
-    
+
     // Linhas de relacionamento
-    const connectorVisuals = svgClone.querySelectorAll('.connector-visual');
-    connectorVisuals.forEach(line => {
-      line.setAttribute('fill', 'none');
-      line.setAttribute('stroke', '#7f8c8d');
-      line.setAttribute('stroke-width', '2');
+    const connectorVisuals = svgClone.querySelectorAll(".connector-visual");
+    connectorVisuals.forEach((line) => {
+      line.setAttribute("fill", "none");
+      line.setAttribute("stroke", "#7f8c8d");
+      line.setAttribute("stroke-width", "2");
     });
-    
+
     // Labels de cardinalidade
-    const cardLabels = svgClone.querySelectorAll('.cardinality-label');
-    cardLabels.forEach(label => {
-      label.setAttribute('font-size', '0'); // Esconde por padrão
-      label.setAttribute('fill', '#7f8c8d');
-      label.setAttribute('font-weight', '600');
-      label.setAttribute('font-family', 'Arial, sans-serif');
+    const cardLabels = svgClone.querySelectorAll(".cardinality-label");
+    cardLabels.forEach((label) => {
+      label.setAttribute("font-size", "0"); // Esconde por padrão
+      label.setAttribute("fill", "#7f8c8d");
+      label.setAttribute("font-weight", "600");
+      label.setAttribute("font-family", "Arial, sans-serif");
     });
-    
+
     // Serializa e faz download
     const svgData = new XMLSerializer().serializeToString(svgClone);
-    const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = 'diagrama.svg';
+    a.download = "diagrama.svg";
     document.body.appendChild(a);
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
   } catch (error) {
-    console.error('Erro ao exportar SVG:', error);
-    alert('Erro ao exportar SVG: ' + error.message);
+    console.error("Erro ao exportar SVG:", error);
+    alert("Erro ao exportar SVG: " + error.message);
   }
 };
 
@@ -1466,7 +1559,7 @@ const startDrag = (event, tableName) => {
   if (diagramStore.isPanMode) {
     return;
   }
-  
+
   if (!event.ctrlKey && !event.metaKey) {
     event.preventDefault();
   }
@@ -1493,7 +1586,7 @@ const startDrag = (event, tableName) => {
 
   const ctm = svgElement.getScreenCTM();
   const table = tables.value[tableName];
-  
+
   // Usa o zoom da store para cálculo consistente
   const zoom = diagramStore.zoom;
   dragState.value.offset.x = (event.clientX - ctm.e) / zoom - table.x;
@@ -1510,7 +1603,7 @@ const handleDrag = (event) => {
   if (!svgElement) return;
 
   const ctm = svgElement.getScreenCTM();
-  
+
   // Converte as coordenadas do mouse considerando o zoom atual
   const zoom = diagramStore.zoom;
   const newX = (event.clientX - ctm.e) / zoom - dragState.value.offset.x;
@@ -1705,41 +1798,35 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #020617;
-  padding: 0 15px;
-  white-space: nowrap;
-  /* 🔥 FIXO E SÓLIDO */
-  height: 40px;
-  flex-shrink: 0; /* Impede que o header amasse */
+  background-color: #020617; /* Fundo bem escuro */
+  padding: 0 16px;
+  height: 48px; /* Um pouco mais alto para respirar */
   border-bottom: 1px solid #1e293b;
-
-  /* 🔥 REMOVENDO Z-INDEX ALTO */
-  /* Não precisamos de z-index aqui. O Flexbox garante a ordem. */
-  /* Se precisar muito, use 1 ou 2, nunca 50 */
-  z-index: 10;
-  position: relative;
-
+  flex-shrink: 0;
   user-select: none;
 }
-
-.editor-header h1 {
-  font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  /* Verde Água da Marca */
-  color: #5eead4;
-  font-weight: 700;
-  margin: 0;
+.brand-area {
+  display: flex;
+  align-items: center;
 }
 
-.editor-header h1 {
-  font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  /* Verde Água da Marca */
-  color: #5eead4;
-  font-weight: 700;
-  margin: 0;
+.editor-logo {
+  height: 40px; /* Ajuste conforme sua logo */
+  width: auto;
+  display: block;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px; /* Espaço entre os ícones */
+}
+
+.header-divider {
+  width: 1px;
+  height: 20px;
+  background-color: #334155;
+  margin: 0 8px;
 }
 
 .editor-panel :deep(.editor-container) {
@@ -1770,18 +1857,17 @@ onMounted(() => {
   width: 7px;
 }
 .icon-btn {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #64748b;
+  color: #94a3b8; /* Slate 400 */
   background: transparent;
   border: 1px solid transparent;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
   cursor: pointer;
-  user-select: none;
 }
 
 .collapsed-sidebar {
@@ -1814,13 +1900,23 @@ onMounted(() => {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.collapsed-sidebar:hover .expand-btn,
-.icon-btn:hover {
+.collapsed-sidebar:hover .expand-btn {
   background-color: rgba(45, 212, 191, 0.1); /* Fundo Teal bem suave */
   color: #2dd4bf; /* Texto Teal vibrante */
   border-color: rgba(45, 212, 191, 0.2); /* Borda sutil */
   transform: translateX(2px); /* Pequeno movimento para a direita (convite ao clique) */
   box-shadow: 0 0 10px rgba(45, 212, 191, 0.15); /* Glow suave */
+}
+
+.icon-btn:hover,
+.icon-btn.active {
+  background-color: rgba(45, 212, 191, 0.1); /* Teal bem suave */
+  color: #2dd4bf; /* Teal vibrante */
+}
+
+.toggle-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
 }
 
 .editor-header .icon-btn:hover {
@@ -1836,45 +1932,93 @@ onMounted(() => {
   display: inline-block;
 }
 
+
+.dropdown-header {
+  padding: 10px 14px; /* Mais espaço */
+  font-size: 11px;
+  text-transform: uppercase;
+  
+  /* CORREÇÃO AQUI: */
+  color: #94a3b8; /* Cinza claro (Slate 400) para ler no escuro */
+  font-family: "Segoe UI", sans-serif; /* Garante que não fique Times New Roman */
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  margin-bottom: 4px;
+}
+
 .dropdown-menu {
   position: absolute;
-  top: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
+  top: calc(100% + 4px); /* Um pouco mais perto */
+  right: 0; /* Alinha pela direita do pai */
+  left: auto; /* Remove alinhamento central */
+  transform: none; /* Remove transform antigo */
+  
   background-color: #1e293b;
   border: 1px solid #334155;
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  min-width: 160px;
-  overflow: hidden;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  min-width: 180px;
+  padding: 4px;
   z-index: 1000;
-  animation: dropdownFadeIn 0.15s ease-out;
+  animation: slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.dropdown-menu::before {
-  content: '';
+
+.dropdown-menu {
   position: absolute;
-  top: -6px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-bottom: 6px solid #334155;
+  top: calc(100% + 4px); /* Um pouco mais perto */
+  right: 0; /* Alinha pela direita do pai */
+  left: auto; /* Remove alinhamento central */
+  transform: none; /* Remove transform antigo */
+  
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  min-width: 180px;
+  padding: 4px;
+  z-index: 1000;
+  animation: slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.dropdown-menu::after {
-  content: '';
-  position: absolute;
-  top: -5px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-bottom: 5px solid #1e293b;
+.dropdown-item {
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px; /* Item arredondado */
+  background: transparent;
+  color: #cbd5e1;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  border-bottom: none; /* Remove borda antiga */
+  font-family: "Segoe UI", sans-serif;
+}
+
+.dropdown-icon-lucide {
+  display: block;
+  opacity: 0.7;
+}
+.dropdown-item:hover .dropdown-icon-lucide {
+  opacity: 1;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.expand-btn {
+   color: #64748b;
+}
+.expand-btn:hover {
+   color: #2dd4bf;
 }
 
 @keyframes dropdownFadeIn {
@@ -1886,23 +2030,6 @@ onMounted(() => {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
-}
-
-.dropdown-item {
-  width: 100%;
-  padding: 10px 14px;
-  border: none;
-  background: transparent;
-  color: #cbd5e1;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  font-size: 13px;
-  font-family: "Segoe UI", sans-serif;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border-bottom: 1px solid rgba(51, 65, 85, 0.3);
 }
 
 .dropdown-item:last-child {

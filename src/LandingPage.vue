@@ -311,7 +311,7 @@ onMounted(() => {
           </p>
 
           <a
-            href="/editor.html"
+            href="/gerador"
             class="cta-button text-lg inline-flex items-center justify-center relative z-20"
             id="hero-cta"
           >
@@ -759,5 +759,29 @@ onMounted(() => {
 .static-element {
     fill: none;
     transition: opacity 0.8s ease;
+}
+
+/* --- AJUSTE PARA NOTEBOOKS / TELAS MENORES --- */
+@media (max-width: 1366px) { 
+  .showcase-layer {
+    /* Antes estava 70%. 
+       Mudando para 80%, ele "senta" mais para baixo, 
+       liberando espaço para o botão.
+    */
+    transform: translateY(80%);
+    
+    /* OPCIONAL: Diminuir levemente a altura do card nessas telas 
+       para ele não ocupar tanto espaço vertical quando subir.
+       De 85vh para 75vh.
+    */
+    height: 75vh;
+  }
+}
+
+/* Ajuste extra para telas muito curtas na vertical (independente da largura) */
+@media (max-height: 800px) {
+  .showcase-layer {
+    transform: translateY(82%); /* Esconde ainda mais */
+  }
 }
 </style>
