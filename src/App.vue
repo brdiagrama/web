@@ -206,25 +206,26 @@
 
                   <g
                     :transform="`translate(15, ${headerHeight + 20 + colIndex * rowHeight - 12})`"
-                    :class="{ 'fk-icon': col.isFk, 'pk-icon': col.isPk && !col.isFk }"
                     style="pointer-events: none; transform-origin: top left;"
                   >
-                    <Key
-                      v-if="col.isPk && !col.isFk"
-                      :size="18"
-                      stroke-width="2"
-                      style="display: block;"
-                    />
+                    <!-- Caso HERANÇA: mostra PK + FK lado a lado -->
+                    <g v-if="isInheritanceColumn(table, col)" class="pk-icon" style="display:inline-block;">
+                      <Key :size="18" stroke-width="2" />
+                    </g>
+                    <g v-if="isInheritanceColumn(table, col)" class="fk-icon" style="display:inline-block; transform: translateX(22px);">
+                      <Link :size="17" stroke-width="2" />
+                    </g>
 
-                    <Link
-                      v-else-if="col.isFk"
-                      :size="17"
-                      stroke-width="2"
-                      style="display: block;"
-                    />
+                    <!-- Caso padrão: PK (quando não for FK) ou FK -->
+                    <g v-else-if="col.isPk && !col.isFk" class="pk-icon">
+                      <Key :size="18" stroke-width="2" style="display: block;" />
+                    </g>
+                    <g v-else-if="col.isFk" class="fk-icon">
+                      <Link :size="17" stroke-width="2" style="display: block;" />
+                    </g>
                   </g>
                   <text
-                    :x="col.isPk || col.isFk ? 40 : 15"
+                    :x="isInheritanceColumn(table, col) ? 64 : (col.isPk || col.isFk ? 40 : 15)"
                     :y="headerHeight + 20 + colIndex * rowHeight"
                     class="col-text"
                     :font-weight="col.isPk ? 'bold' : 'normal'"
@@ -359,25 +360,26 @@
 
                   <g
                     :transform="`translate(15, ${headerHeight + 20 + colIndex * rowHeight - 12})`"
-                    :class="{ 'fk-icon': col.isFk, 'pk-icon': col.isPk && !col.isFk }"
                     style="pointer-events: none; transform-origin: top left;"
                   >
-                    <Key
-                      v-if="col.isPk && !col.isFk"
-                      :size="18"
-                      stroke-width="2"
-                      style="display: block;"
-                    />
+                    <!-- Caso HERANÇA: mostra PK + FK lado a lado -->
+                    <g v-if="isInheritanceColumn(table, col)" class="pk-icon" style="display:inline-block;">
+                      <Key :size="18" stroke-width="2" />
+                    </g>
+                    <g v-if="isInheritanceColumn(table, col)" class="fk-icon" style="display:inline-block; transform: translateX(22px);">
+                      <Link :size="17" stroke-width="2" />
+                    </g>
 
-                    <Link
-                      v-else-if="col.isFk"
-                      :size="17"
-                      stroke-width="2"
-                      style="display: block;"
-                    />
+                    <!-- Caso padrão: PK (quando não for FK) ou FK -->
+                    <g v-else-if="col.isPk && !col.isFk" class="pk-icon">
+                      <Key :size="18" stroke-width="2" style="display: block;" />
+                    </g>
+                    <g v-else-if="col.isFk" class="fk-icon">
+                      <Link :size="17" stroke-width="2" style="display: block;" />
+                    </g>
                   </g>
                   <text
-                    :x="col.isPk || col.isFk ? 40 : 15"
+                    :x="isInheritanceColumn(table, col) ? 64 : (col.isPk || col.isFk ? 40 : 15)"
                     :y="headerHeight + 20 + colIndex * rowHeight"
                     class="col-text"
                     :font-weight="col.isPk ? 'bold' : 'normal'"
@@ -673,6 +675,12 @@ const sortColumns = (columns) => {
   return [...pk, ...fk, ...others];
 };
 
+// Retorna true se a coluna atual pertence a uma tabela de herança
+// (exatamente 1 PK na tabela e essa PK também é FK)
+const isInheritanceColumn = (table, col) => {
+  return !!(table && table.isInheritance && col && col.isPk && col.isFk);
+};
+
 // Constantes para renderização (conforme index.html anexado)
 const headerHeight = 35;
 const rowHeight = 32;
@@ -686,15 +694,18 @@ const getTableWidth = (table) => {
   const nameLength = table.name.length * 8 + HORIZONTAL_PADDING;
   maxWidth = Math.max(maxWidth, nameLength);
 
-  table.columns.forEach((col) => {
-    const colNameLength = col.name.length * 7 + (col.isPk || col.isFk ? 40 : 0);
+    table.columns.forEach((col) => {
+      // Se a tabela for herança e a coluna é a PK que também é FK, reserva espaço extra
+      const reservedIconWidth = table.isInheritance && col.isPk && col.isFk ? 64 : (col.isPk || col.isFk ? 40 : 0);
 
-    const colTypeLength = col.type.length * 7;
+      const colNameLength = col.name.length * 7 + reservedIconWidth;
 
-    const totalRowWidth = colNameLength + colTypeLength + HORIZONTAL_PADDING + 20;
+      const colTypeLength = col.type.length * 7;
 
-    maxWidth = Math.max(maxWidth, totalRowWidth);
-  });
+      const totalRowWidth = colNameLength + colTypeLength + HORIZONTAL_PADDING + 20;
+
+      maxWidth = Math.max(maxWidth, totalRowWidth);
+    });
 
   return Math.ceil(maxWidth);
 };
@@ -810,6 +821,22 @@ const updateDiagram = async () => {
         };
       }
       tempRelationships = parseResult.relationships;
+
+      // Detecta tabelas de HERANÇA: quando há exatamente 1 PK e essa PK também é FK
+      // Marca a tabela com a flag `isInheritance` para uso na renderização
+      Object.values(tempTables).forEach((t) => {
+        const pkCount = (t.columns || []).filter((c) => c.isPk).length;
+        if (pkCount === 1) {
+          const pkCol = (t.columns || []).find((c) => c.isPk);
+          if (pkCol && pkCol.isFk) {
+            t.isInheritance = true;
+          } else {
+            t.isInheritance = false;
+          }
+        } else {
+          t.isInheritance = false;
+        }
+      });
 
       lastValidState.value = {
         tables: JSON.parse(JSON.stringify(tempTables)),
