@@ -1,7 +1,8 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { RefreshCw, ArrowLeft } from "lucide-vue-next";
 
 // Registra o plugin do ScrollTrigger
 gsap.registerPlugin(ScrollTrigger);
@@ -80,6 +81,27 @@ const startTypewriter = () => {
   const first = setTimeout(type, 700);
   _typewriterTimeouts.push(first);
 };
+
+// Video controls
+const previewVideo = ref(null);
+const videoEnded = ref(false);
+const onVideoEnded = () => {
+  videoEnded.value = true;
+};
+const restartVideo = () => {
+  try {
+    const v = previewVideo.value;
+    if (!v) return;
+    v.currentTime = 0;
+    const playPromise = v.play();
+    if (playPromise && typeof playPromise.catch === 'function') playPromise.catch(()=>{});
+    videoEnded.value = false;
+  } catch (e) {}
+};
+
+watch(activeTab, () => {
+  videoEnded.value = false;
+});
 
 onBeforeUnmount(() => {
   // limpa timeouts da máquina de escrever
@@ -405,19 +427,21 @@ onMounted(() => {
                   <span class="text-xs text-gray-500 ml-2 font-mono"
                     >{{ activeTab }}.sql</span
                   >
+                  <!-- header controls (removed back button) -->
                 </div>
 
                 <div class="flex-1 relative w-full h-full bg-[#0d1117]">
                   <transition name="fade" mode="out-in">
                     <template v-if="currentTabContent.videoSrc">
                       <video
+                        ref="previewVideo"
                         :key="activeTab"
                         autoplay
-                        loop
                         muted
                         playsinline
                         class="w-full h-full object-cover"
                         :src="currentTabContent.videoSrc"
+                        @ended="onVideoEnded"
                       ></video>
                     </template>
                     <template v-else>
@@ -438,6 +462,9 @@ onMounted(() => {
       {{ currentTabContent.description }}
     </p>
   </div>
+                  <button class="video-restart-btn" @click="restartVideo" :aria-pressed="videoEnded" title="Reiniciar vídeo">
+                    <RefreshCw :size="16" />
+                  </button>
                 </div>
               </div>
             </div>
@@ -848,6 +875,37 @@ onMounted(() => {
 .active-pill:hover {
   background-color: rgba(26, 188, 156, 0.2);
 }
+
+/* Botão de reiniciar vídeo (canto inferior direito do card) */
+.video-restart-btn {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 40;
+  /* Fundo escuro similar ao card, com borda e ícone na cor primária (ativo) */
+  background: rgba(3, 7, 15, 0.6);
+  color: var(--clr-primary);
+  border-radius: 10px;
+  padding: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 18px rgba(16,185,129,0.06), inset 0 1px 0 rgba(255,255,255,0.02);
+  border: 1px solid rgba(26,188,156,0.25); /* borda ciano suave */
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.video-restart-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(16,185,129,0.14); }
+
+/* Força a cor do SVG/ícone para usar a cor primária */
+.video-restart-btn svg {
+  color: var(--clr-primary) !important;
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+/* Botão de voltar no header (pequeno) */
+/* header-back-btn removed */
 
 /* Transições Vue */
 .fade-enter-active,
