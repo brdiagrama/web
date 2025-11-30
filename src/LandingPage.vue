@@ -18,7 +18,7 @@ const tabs = [
   { id: "1:N", label: "Um para Muitos" },
   { id: "apenas1:N", label: "Somente 1:N" },
   { id: "N:N", label: "Muitos para Muitos" },
-  { id: "heritage", label: "Herança" },
+  { id: "heranca", label: "Herança" },
 ];
 
 const contents = {
@@ -44,10 +44,10 @@ const contents = {
     description: "Criação automática da tabela associativa entre duas entidades.",
     videoSrc: "/videos/N-N.mp4",
   },
-  heritage: {
+  "heranca": {
     title: "Especialização / Herança",
     description: "Diagramas que entendem hierarquia de classes e tabelas estendidas.",
-    codeBg: "CREATE TABLE Vehicle (...);\nCREATE TABLE Car INHERITS (Vehicle);",
+    videoSrc: "/videos/heranca.mp4",
   },
 };
 
