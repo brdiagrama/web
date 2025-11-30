@@ -567,7 +567,7 @@ const updateGesture = () => {
       panZoomInstance.value.pan({ x: newPanX, y: newPanY });
     }
   } catch (err) {
-    console.error('Erro no gesture update', err);
+    // gesture update error (suppressed)
   }
 };
 
@@ -590,7 +590,7 @@ const onPointerMoveGlobal = (ev) => {
       const currentPan = panZoomInstance.value.getPan();
       panZoomInstance.value.pan({ x: currentPan.x + dx, y: currentPan.y + dy });
     } catch (err) {
-      console.error('Erro ao aplicar pan manual:', err);
+      // pan manual error (suppressed)
     }
 
     // Atualiza o ponto armazenado
@@ -781,10 +781,7 @@ const handleMouseDown = (e) => {
       endY: startPoint.y,
     };
 
-    // 🔥 CORREÇÃO: Adiciona listeners na JANELA (window).
-    // Isso garante que se soltar o mouse em cima de qualquer coisa (tabela, overlay, fora da tela),
-    // o evento será capturado.
-    // Usa pointer events quando disponível (melhor suporte touch) e fallback para mouse
+  // Adiciona listeners na janela para garantir que o mouse/up seja capturado mesmo fora do SVG
     if (window.PointerEvent) {
       window.addEventListener("pointermove", handleMouseMove, { passive: false });
       window.addEventListener("pointerup", handleWindowMouseUp);
@@ -960,14 +957,11 @@ const handleZoom = (e) => {
   // Força os limites
   newZoom = Math.max(minZoom, Math.min(maxZoom, newZoom));
 
-  console.log(
-    "Zoom:",
-    Math.round(currentZoom * 100) + "% → " + Math.round(newZoom * 100) + "%"
-  );
+  // debug logs removed
 
   // Se o zoom não mudou significativamente, não faz nada
   if (Math.abs(newZoom - currentZoom) < 0.001) {
-    console.log("Zoom no limite!");
+  // debug logs removed
     return;
   } // FORÇA o zoom diretamente, ignorando os limites internos da biblioteca
   try {
@@ -984,7 +978,7 @@ const handleZoom = (e) => {
 
     saveState();
   } catch (error) {
-    console.error("Erro ao aplicar zoom:", error);
+    // zoom apply error (suppressed)
   }
 };
 
@@ -1036,7 +1030,7 @@ onMounted(() => {
            window.addEventListener("mouseup", handleGlobalMouseUp);
          }
       } catch (error) {
-        console.error("Erro ao inicializar svg-pan-zoom:", error);
+        // svg-pan-zoom init error (suppressed)
       }
     }, 100);
   }
@@ -1110,7 +1104,7 @@ defineExpose({
   fill: #ffffff;
   font-weight: 700; /* Negrito mais forte como na imagem */
   font-size: 14px;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; /* 🔥 A Mágica */
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   pointer-events: none;
   text-shadow: 0 1px 2px rgba(0,0,0,0.1); /* Leve sombra para leitura */
 }
@@ -1118,14 +1112,14 @@ defineExpose({
 .col-text {
   font-size: 12px;
   fill: #2c3e50;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; /* 🔥 A Mágica */
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   pointer-events: none;
 }
 
 .col-type {
   font-size: 11px;
   fill: #95a5a6;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; /* 🔥 A Mágica */
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   pointer-events: none;
   text-transform: uppercase; /* Fica mais elegante */
 }

@@ -236,8 +236,8 @@ const resetZoom = () => {
 }
 
 .grid-btn.active {
-    background-color: #e8f4ff;
-    color: #007acc;
+    background-color: rgba(45,212,191,0.14); /* light turquoise */
+    color: #24a897;
 }
 
 .grid-btn:hover {
@@ -245,7 +245,7 @@ const resetZoom = () => {
 }
 
 .grid-btn.active:hover {
-    background-color: #d0e8ff;
+    background-color: rgba(45,212,191,0.18);
 }
 
 .pan-mode-btn {
@@ -262,8 +262,8 @@ const resetZoom = () => {
 }
 
 .pan-mode-btn.active {
-    background-color: #e8f4ff;
-    color: #007acc;
+    background-color: rgba(45,212,191,0.14);
+    color: #24a897;
 }
 
 .pan-mode-btn:hover {
@@ -271,7 +271,7 @@ const resetZoom = () => {
 }
 
 .pan-mode-btn.active:hover {
-    background-color: #d0e8ff;
+    background-color: rgba(45,212,191,0.18);
 }
 
 @media (max-width: 768px) {

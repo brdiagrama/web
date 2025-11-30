@@ -1,5 +1,12 @@
 <template>
   <div class="editor-container">
+    <div v-if="!editorMounted" class="editor-loading">
+      <div class="editor-loading-box">
+        <div class="spinner" aria-hidden="true"></div>
+        <div class="loading-text">Carregando...</div>
+      </div>
+    </div>
+
     <VueMonacoEditor
       v-model:value="localCode"
       language="br-sql"
@@ -28,10 +35,11 @@ const localCode = ref(props.modelValue);
 const editorRef = shallowRef();
 const monacoRef = shallowRef();
 const themeName = "BrDiagramaSoft";
+const editorMounted = ref(false);
 
 defineExpose({
   gotoLine: (lineNumber) => {
-    // 🔥 CRUCIAL: Usar toRaw para garantir que não é um Proxy do Vue
+    // Usar toRaw para garantir que não é um Proxy do Vue
     const editor = toRaw(editorRef.value);
 
     if (!editor) return;
@@ -45,7 +53,6 @@ defineExpose({
     // Executa na próxima renderização para evitar conflito de layout
     setTimeout(() => {
       try {
-        // 1. Rola a tela até a linha (Faltava isso!)
         editor.revealLineInCenter(safeLine);
 
         // 2. Posiciona o cursor
@@ -54,7 +61,7 @@ defineExpose({
         // 3. Dá o foco
         editor.focus();
       } catch (e) {
-        console.error("[SqlEditor] Erro ao navegar:", e);
+        // navigation error (suppressed)
       }
     }, 50);
   },
@@ -113,9 +120,7 @@ const editorOptions = {
   lineNumbers: "on",
   guides: { indentation: true },
 
-  // 🔥 CORREÇÃO DOS DUPLICADOS:
-  // Desliga a sugestão baseada em texto do arquivo.
-  // Agora só aparece o que a gente configurou no provider.
+  // Correção: desliga sugestões baseadas em texto do arquivo (usamos provedores customizados)
   wordBasedSuggestions: "off",
 
   suggest: {
@@ -129,8 +134,8 @@ const editorOptions = {
   renderValidationDecorations: "on",
   // Mostrar a barra de rolagem horizontal quando necessário (ajuda no mobile/linhas longas)
   scrollbar: {
-    horizontal: 'auto',
-    vertical: 'auto',
+    horizontal: "auto",
+    vertical: "auto",
     handleMouseWheel: true,
     horizontalScrollbarSize: 12,
     verticalScrollbarSize: 12,
@@ -187,7 +192,7 @@ const handleMount = (editor, monaco) => {
         endColumn: word.endColumn,
       };
 
-      // 🔥 SUGESTÕES DINÂMICAS DE TABELAS
+      // Sugestões dinâmicas de tabelas
       const tableSuggestions = props.dbTables.map((tableName) => ({
         label: tableName, // O que aparece na lista
         kind: monaco.languages.CompletionItemKind.Class, // Ícone de "Classe/Tabela"
@@ -279,8 +284,7 @@ const handleMount = (editor, monaco) => {
     base: "vs-dark",
     inherit: true,
     rules: [
-      // 🔥 REMOVI O FONT-STYLE: BOLD DE TUDO
-      // Isso deixa a cor mais "flat" e menos agressiva
+      // Ajustes de tema e tokens
 
       { token: "keyword", foreground: "5EEAD4" }, // Teal Pastel (Marca Suave)
       { token: "dataType", foreground: "FDBA74" }, // Pêssego
@@ -339,6 +343,9 @@ const handleMount = (editor, monaco) => {
 
   emit("editor-ready", { editor: toRaw(editor), monaco: toRaw(monaco) });
 
+  // marca que o editor está pronto para esconder o placeholder
+  editorMounted.value = true;
+
   // Ajusta o layout quando visualViewport muda (teclado virtual em iOS/Android)
   if (window.visualViewport) {
     const onVVResize = () => {
@@ -347,18 +354,18 @@ const handleMount = (editor, monaco) => {
         const ed = toRaw(editorRef.value);
         if (ed && ed.layout) ed.layout();
       } catch (err) {
-        console.error('[SqlEditor] visualViewport layout error', err);
+        // visualViewport layout error (suppressed)
       }
     };
 
-    window.visualViewport.addEventListener('resize', onVVResize);
-    window.visualViewport.addEventListener('scroll', onVVResize);
+    window.visualViewport.addEventListener("resize", onVVResize);
+    window.visualViewport.addEventListener("scroll", onVVResize);
 
     // Cleanup on unmount
     onUnmounted(() => {
       try {
-        window.visualViewport.removeEventListener('resize', onVVResize);
-        window.visualViewport.removeEventListener('scroll', onVVResize);
+        window.visualViewport.removeEventListener("resize", onVVResize);
+        window.visualViewport.removeEventListener("scroll", onVVResize);
       } catch (e) {}
     });
   }
@@ -378,6 +385,44 @@ const handleChange = (value) => {
 .monaco-editor-instance {
   width: 100%;
   height: 100%;
+}
+
+.editor-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+.editor-loading-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: rgba(2, 6, 23, 0.98);
+  color: #e2e8f0;
+  padding: 12px 18px;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(2, 6, 23, 0.5);
+}
+.editor-loading .spinner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.12);
+  border-top-color: #2dd4bf;
+  animation: spin 1s linear infinite;
+}
+.loading-text {
+  font-weight: 600;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Sim, deixei essa bomba desse jeito pois nao consegui de jeito nenhum fazer com que o hover do monaco ficasse acima do header fixo

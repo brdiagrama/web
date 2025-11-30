@@ -87,6 +87,16 @@
           </div>
         </div>
 
+      <!-- Botão de fechar rápido dentro do editor (apenas mobile) -->
+      <button
+        v-if="isMobile && activeTab === 'editor'"
+        class="mobile-editor-close"
+        @click="toggleEditor"
+        title="Fechar editor"
+      >
+        ✕
+      </button>
+
         <SqlEditor
           v-model="sqlCode"
           :markers="[...validationResult.errors, ...validationResult.warnings]"
@@ -113,15 +123,7 @@
           <!-- Definições SVG -->
           <defs> </defs>
           <!-- Debug: Mostrar informações dos dados -->
-          <text
-            v-if="!tables || Object.keys(tables).length === 0"
-            x="50"
-            y="50"
-            fill="#666"
-            font-size="14"
-          >
-            {{ debugMessage }}
-          </text>
+          <!-- A mensagem é exibida via overlay quando não há diagrama; mantemos o SVG limpo -->
           <g v-if="tables && Object.keys(tables).length > 0">
             <g class="relationships-back" ref="relationshipsBack">
               <RelationshipLine
@@ -436,6 +438,26 @@
           </g>
         </DiagramCanvas>
 
+        <!-- Overlay que bloqueia o canvas e instrui o usuário quando não há diagrama -->
+        <div v-if="Object.keys(tables).length === 0" class="canvas-empty-overlay">
+          <div class="canvas-empty-content">
+            <div class="canvas-empty-icon" aria-hidden>
+              <!-- Simple diagram/network SVG icon, styled with project turquoise -->
+              <svg width="56" height="56" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <rect x="2" y="3" width="7" height="6" rx="1.5" stroke="#2dd4bf" stroke-width="1.6" fill="#f8fffd"/>
+                <rect x="15" y="3" width="7" height="6" rx="1.5" stroke="#2dd4bf" stroke-width="1.6" fill="#f8fffd"/>
+                <rect x="2" y="15" width="7" height="6" rx="1.5" stroke="#2dd4bf" stroke-width="1.6" fill="#f8fffd"/>
+                <rect x="15" y="15" width="7" height="6" rx="1.5" stroke="#2dd4bf" stroke-width="1.6" fill="#f8fffd"/>
+                <path d="M9 6.5H15" stroke="#2dd4bf" stroke-width="1.2" stroke-linecap="round"/>
+                <path d="M9 17.5H15" stroke="#2dd4bf" stroke-width="1.2" stroke-linecap="round"/>
+                <circle cx="12" cy="12" r="1.2" fill="#2dd4bf" />
+              </svg>
+            </div>
+            <h3 class="canvas-empty-title">Sem diagrama</h3>
+            <p class="canvas-empty-desc">Digite o SQL no editor à esquerda para gerar o diagrama.</p>
+          </div>
+        </div>
+
           <DiagramToolbar v-if="diagramCanvasRef" :diagramRef="diagramCanvasRef" />
       </div>
     </div>
@@ -688,11 +710,12 @@ const isColumnHovered = (tableName, columnName) => {
 
 // Debug message
 const debugMessage = computed(() => {
+  // When there's no SQL or no tables, instruct the user to type SQL on the left.
   if (!sqlCode.value.trim()) {
-    return "Digite SQL no editor à esquerda para gerar o diagrama";
+    return "Digite o SQL à esquerda para gerar o diagrama";
   }
   if (Object.keys(tables.value).length === 0) {
-    return "Processando SQL... Se persistir, verifique o console (F12)";
+    return "Digite o SQL à esquerda para gerar o diagrama";
   }
   return "";
 });
@@ -806,7 +829,7 @@ const updateDiagram = async () => {
   let tempRelationships = [];
   let isValid = true;
 
-  // 🔥 1. "GUARDA REAL": Valida se começou com um comando SQL real
+  // Guard check: valida se começou com um comando SQL real
   // Pega a primeira palavra do texto (ignorando espaços e comentários)
   const cleanStart = sqlCode.value.replace(/--.*$/gm, "").trim();
   const firstWordMatch = cleanStart.match(/^([a-zA-Z]+)/);
@@ -876,7 +899,7 @@ const updateDiagram = async () => {
         relationships: [...tempRelationships],
       };
     } catch (parserError) {
-      console.error("Erro interno no parser:", parserError);
+    // parser error (suppressed)
       const rawMsg = parserError.message || "";
 
       const isJsError =
@@ -1042,7 +1065,7 @@ const handleFileImport = async (event) => {
     // Atualiza o diagrama imediatamente com o conteúdo importado
     await updateDiagram();
   } catch (err) {
-    console.error("Erro ao importar arquivo:", err);
+  // import error (suppressed)
     alert("Erro ao importar arquivo");
   } finally {
     // limpa o input para permitir reimportar o mesmo arquivo depois
@@ -1119,8 +1142,7 @@ const calculateDiagramBounds = () => {
     height: maxY - minY + padding * 2,
   };
 
-  console.log("Bounds calculados:", bounds);
-  console.log("Tabelas:", Object.keys(tables.value).length);
+  // debug logs removed
 
   return bounds;
 };
@@ -1144,7 +1166,7 @@ const exportDiagramPNG = async () => {
 
     const bounds = calculateDiagramBounds();
 
-    console.log("Exportando PNG com bounds:", bounds);
+  // debug logs removed
 
     // Clona o SVG para não afetar a visualização atual
     const svgClone = svgElement.cloneNode(true);
@@ -1240,14 +1262,7 @@ const exportDiagramPNG = async () => {
       canvas.width = Math.floor(bounds.width * scale);
       canvas.height = Math.floor(bounds.height * scale);
 
-      console.log(
-        "Canvas dimensions:",
-        canvas.width,
-        "x",
-        canvas.height,
-        "scale:",
-        scale
-      );
+      // debug logs removed
 
       const ctx = canvas.getContext("2d");
       ctx.fillStyle = "#ffffff";
@@ -1295,7 +1310,7 @@ const exportDiagramPNG = async () => {
       };
 
       logoImg.onerror = () => {
-        console.error("Erro ao carregar logo");
+  // logo load error (suppressed)
         // Se falhar, faz download sem logo
         canvas.toBlob((blob) => {
           const url = URL.createObjectURL(blob);
@@ -1318,14 +1333,14 @@ const exportDiagramPNG = async () => {
     };
 
     img.onerror = (error) => {
-      console.error("Erro ao carregar imagem:", error);
+  // image load error (suppressed)
       alert("Erro ao gerar PNG. Verifique o console para mais detalhes.");
       URL.revokeObjectURL(svgUrl);
     };
 
     img.src = svgUrl;
   } catch (error) {
-    console.error("Erro ao exportar PNG:", error);
+  // export PNG error (suppressed)
     alert("Erro ao exportar PNG: " + (error?.message || "Erro desconhecido"));
   }
 };
@@ -1349,7 +1364,7 @@ const exportDiagramSVG = () => {
 
     const bounds = calculateDiagramBounds();
 
-    console.log("Exportando SVG com bounds:", bounds);
+  // debug logs removed
 
     // Clona o SVG para não afetar a visualização atual
     const svgClone = svgElement.cloneNode(true);
@@ -1587,8 +1602,8 @@ const exportDiagramSVG = () => {
     a.remove();
     URL.revokeObjectURL(url);
   } catch (error) {
-    console.error("Erro ao exportar SVG:", error);
-    alert("Erro ao exportar SVG: " + error.message);
+  // export SVG error (suppressed)
+  alert("Erro ao exportar SVG: " + error.message);
   }
 };
 
@@ -1627,7 +1642,7 @@ const handleSelectionArea = (area) => {
     }
   }
 
-  console.log("Tabelas selecionadas:", Array.from(selectedTables.value));
+  // debug logs removed
 };
 
 const handleColumnHover = (data) => {
@@ -1879,23 +1894,52 @@ onMounted(() => {
 /* Botão pequeno no topo para abrir/fechar o editor no mobile (estilo dbdiagram) */
 .mobile-top-toggle {
   position: fixed;
-  top: 10px;
-  left: 12px;
+  /* place a bit below the header to avoid overlapping icons/badges */
+  top: calc(env(safe-area-inset-top, 12px) + 45px);
+  left: calc(env(safe-area-inset-left, 12px) + 8px);
   transform: none;
   z-index: 1200;
-  background: rgba(255,255,255,0.95);
+  background: #2dd4bf; /* Turquesa do site */
+  color: #fff;
   border-radius: 12px;
-  border: 1px solid rgba(0,0,0,0.08);
-  box-shadow: 0 6px 14px rgba(0,0,0,0.12);
-  padding: 6px 8px;
-  font-size: 16px;
+  border: none;
+  box-shadow: 0 10px 26px rgba(45, 212, 191, 0.18);
+  padding: 8px;
+  font-size: 18px;
   line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 36px;
+  width: 52px;
+  height: 52px;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
+
+.mobile-top-toggle:active { transform: translateY(1px) scale(0.995); }
+.mobile-top-toggle span { display: inline-block; font-size: 20px; line-height: 1; }
+
+/* Botão de fechar dentro do editor (mobile) */
+.mobile-editor-close {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 12px) + 55px);
+  right: calc(env(safe-area-inset-right, 12px) + 10px);
+  z-index: 1300;
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.06);
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(2,6,23,0.4);
+}
+.mobile-editor-close:hover { background: rgba(255,255,255,0.09); }
+
 
 /* Pequeno ajuste visual quando editor estiver aberto */
  
@@ -1992,7 +2036,7 @@ onMounted(() => {
   display: flex;
   flex: 1; /* Ocupa todo o espaço disponível verticalmente */
   overflow: hidden; /* Garante que não vaze scroll */
-  min-height: 0; /* 🔥 CRUCIAL para o Flexbox funcionar no Firefox/Chrome em aninhamento */
+  min-height: 0; /* Crucial para o Flexbox funcionar em casos aninhados */
   flex-direction: row; /* Garante que editor e canvas fiquem lado a lado */
 }
 
@@ -2116,7 +2160,7 @@ onMounted(() => {
 
 .resizer-handle:hover,
 .resizer-handle:active {
-  /* 🔥 MUDANÇA: Agora brilha em VERDE ÁGUA (Teal) */
+  /* Destaque visual na resizer-handle */
   background-color: #2dd4bf;
   /* Fica um pouquinho mais largo pra facilitar o clique */
   width: 7px;
@@ -2392,8 +2436,7 @@ onMounted(() => {
   filter: drop-shadow(0 0 2px currentColor);
 }
 
-/* 🔥 BLOQUEIO GERAL DE SELEÇÃO DE TEXTO NO DIAGRAMA */
-/* Isso impede que arrastar a tabela selecione o nome dela */
+/* Bloqueio de seleção de texto no diagrama para evitar seleção acidental durante drag */
 :deep(.table-group text),
 :deep(.table-title),
 :deep(.col-text),
@@ -2439,6 +2482,38 @@ onMounted(() => {
 </style>
 
 <style>
+/* Overlay quando o canvas está vazio */
+.canvas-empty-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.90);
+  z-index: 1100;
+  pointer-events: auto; /* bloqueia interações no canvas */
+}
+.canvas-empty-content {
+  text-align: center;
+  color: #0f172a;
+  background: linear-gradient(180deg, #ffffff 0%, #fbffff 100%);
+  padding: 22px 30px;
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(2,6,23,0.08);
+  border: 2px solid rgba(45,212,191,0.14);
+  max-width: 520px;
+  width: min(92%, 520px);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+.canvas-empty-icon {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.canvas-empty-title { margin: 6px 0; font-size: 20px; color: #05223a; font-weight: 700; }
+.canvas-empty-desc { margin: 0; color: #475569; font-size: 14px; }
+
 .monaco-editor-hover,
 .monaco-hover {
   z-index: 999999 !important; /* Prioridade Máxima */
