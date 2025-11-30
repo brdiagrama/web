@@ -1658,7 +1658,9 @@ const startDrag = (event, tableName) => {
 
   const svgElement = diagramCanvasRef.value?.svgRoot;
   if (!svgElement) return;
-
+  // Suppress global pointer handlers (gestures) while starting a table drag to avoid
+  // race conditions between gesture handlers and table drag logic.
+  try { window._brdiagrama_suppressGlobalPointerHandlers = true; } catch (e) {}
   if (event.ctrlKey || event.metaKey) {
     if (selectedTables.value.has(tableName)) {
       selectedTables.value.delete(tableName);
@@ -1678,6 +1680,21 @@ const startDrag = (event, tableName) => {
 
   dragState.value.draggedTable = tableName;
 
+  // Try to capture the pointer on the SVG root as early as possible so DOM updates
+  // (caused by changing selection) don't make us lose pointer events.
+  if (window.PointerEvent && event.pointerId != null) {
+    try {
+      const svgRootEl = diagramCanvasRef.value && diagramCanvasRef.value.svgRoot;
+      if (svgRootEl && svgRootEl.setPointerCapture) {
+        svgRootEl.setPointerCapture(event.pointerId);
+        dragState.value._pointerCapturedOn = svgRootEl;
+        dragState.value._pointerId = event.pointerId;
+      }
+    } catch (err) {
+      // ignore failures
+    }
+  }
+
   if (isTouch) {
     // Mark as pending; only start actual dragging when movement exceeds threshold
     dragState.value.pending = true;
@@ -1695,10 +1712,8 @@ const startDrag = (event, tableName) => {
     dragState.value.offset.y = (event.clientY - ctm.f) / zoom - table.y;
   }
 
-  // Suppress global pointer handlers (gestures) while dragging a table to avoid conflicts
-  try {
-    window._brdiagrama_suppressGlobalPointerHandlers = true;
-  } catch (e) {}
+  // (suppression already set earlier) ensure flag remains true
+  try { window._brdiagrama_suppressGlobalPointerHandlers = true; } catch (e) {}
 
   // Use Pointer Events when available (better touch support). Keep mouse as fallback.
   if (window.PointerEvent && event.pointerId != null) {

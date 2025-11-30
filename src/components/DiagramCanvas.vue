@@ -548,27 +548,7 @@ const updateGesture = () => {
   newZoom = clamp(newZoom, 0.01, 2.0);
 
   try {
-    // Detect two-finger pan: se o scale for ~1 (próximo a 1) e o midpoint se moveu, interpretamos como pan
-    const scaleCloseToOne = Math.abs(scale - 1) < 0.02; // small threshold
-    const midpointDx = midpoint.x - gestureInit.midpoint.x;
-    const midpointDy = midpoint.y - gestureInit.midpoint.y;
-    const midpointMoveDist = Math.hypot(midpointDx, midpointDy);
-
-    if (scaleCloseToOne && midpointMoveDist > 2) {
-      // Two-finger pan: aplica pan baseado no deslocamento do midpoint
-      const initPan = gestureInit.pan;
-      const newPan = { x: initPan.x + midpointDx, y: initPan.y + midpointDy };
-      if (typeof panZoomInstance.value.pan === 'function') {
-        panZoomInstance.value.pan(newPan);
-      } else if (panZoomInstance.value.setPan) {
-        panZoomInstance.value.setPan(newPan);
-      }
-      // Atualiza stored pan for consistency
-      gestureInit.pan = newPan;
-      return;
-    }
-
-    // Otherwise treat as pinch (zoom)
+    // Treat as pinch (zoom)
     if (typeof panZoomInstance.value.zoomAtPoint === 'function') {
       panZoomInstance.value.zoomAtPoint(newZoom, { x: midpoint.x - rect.left, y: midpoint.y - rect.top });
     } else {
