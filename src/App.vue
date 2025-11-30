@@ -204,16 +204,25 @@
                     style="pointer-events: none"
                   />
 
-                  <text
-                    :x="15"
-                    :y="headerHeight + 20 + colIndex * rowHeight"
-                    font-size="10"
-                    font-weight="bold"
+                  <g
+                    :transform="`translate(15, ${headerHeight + 20 + colIndex * rowHeight - 12})`"
                     :class="{ 'fk-icon': col.isFk, 'pk-icon': col.isPk && !col.isFk }"
-                    style="pointer-events: none"
+                    style="pointer-events: none; transform-origin: top left;"
                   >
-                    {{ col.isFk ? "FK" : col.isPk ? "PK" : "" }}
-                  </text>
+                    <Key
+                      v-if="col.isPk && !col.isFk"
+                      :size="18"
+                      stroke-width="2"
+                      style="display: block;"
+                    />
+
+                    <Link
+                      v-else-if="col.isFk"
+                      :size="17"
+                      stroke-width="2"
+                      style="display: block;"
+                    />
+                  </g>
                   <text
                     :x="col.isPk || col.isFk ? 40 : 15"
                     :y="headerHeight + 20 + colIndex * rowHeight"
@@ -348,16 +357,25 @@
                     style="pointer-events: none"
                   />
 
-                  <text
-                    :x="15"
-                    :y="headerHeight + 20 + colIndex * rowHeight"
-                    font-size="10"
-                    font-weight="bold"
+                  <g
+                    :transform="`translate(15, ${headerHeight + 20 + colIndex * rowHeight - 12})`"
                     :class="{ 'fk-icon': col.isFk, 'pk-icon': col.isPk && !col.isFk }"
-                    style="pointer-events: none"
+                    style="pointer-events: none; transform-origin: top left;"
                   >
-                    {{ col.isFk ? "FK" : col.isPk ? "PK" : "" }}
-                  </text>
+                    <Key
+                      v-if="col.isPk && !col.isFk"
+                      :size="18"
+                      stroke-width="2"
+                      style="display: block;"
+                    />
+
+                    <Link
+                      v-else-if="col.isFk"
+                      :size="17"
+                      stroke-width="2"
+                      style="display: block;"
+                    />
+                  </g>
                   <text
                     :x="col.isPk || col.isFk ? 40 : 15"
                     :y="headerHeight + 20 + colIndex * rowHeight"
@@ -441,7 +459,9 @@ import ProblemsPanel from "./components/ProblemsPanel.vue";
 import { XCircle, AlertTriangle } from "lucide-vue-next";
 import { useDiagramStore } from "./stores/diagram.js";
 import {
-    Eraser, // Para Limpar
+  Key,
+  Link,
+  Eraser, // Para Limpar
   Upload, // Para Importar
   Download, // Para Exportar
   ChevronLeft, // Para Fechar Editor

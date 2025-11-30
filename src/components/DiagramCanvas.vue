@@ -898,6 +898,17 @@ defineExpose({
   font-family: "Segoe UI", sans-serif;
 }
 
+/* Ajuste para ícones SVG do Lucide (prioriza cor via color e remove fill) */
+.pk-icon svg {
+  color: #10b981 !important; /* Teal para PK */
+  fill: none;
+}
+
+.fk-icon svg {
+  color: #3b82f6 !important; /* Azul para FK */
+  fill: none;
+}
+
 .table-group {
   cursor: move !important;
   transition: filter 0.2s ease;
