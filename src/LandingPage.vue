@@ -893,7 +893,7 @@ onMounted(() => {
 .video-restart-btn {
   position: absolute;
   right: 12px;
-  bottom: 12px;
+  bottom: 20px;
   z-index: 40;
   /* Fundo escuro similar ao card, com borda e ícone na cor primária (ativo) */
   background: rgba(3, 7, 15, 0.6);
