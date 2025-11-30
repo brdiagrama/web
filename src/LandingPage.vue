@@ -557,8 +557,8 @@ onMounted(() => {
   pointer-events: auto;
 
   /* --- A REGRA DE OURO DO VÍDEO --- */
-  width: 90%; 
-  max-width: 1200px;
+  width: auto; 
+  max-width: 65vh;
   
   /* 1. Trava a proporção em 16:9 (Cinema). 
      O card vai aumentar/diminuir a altura automaticamente baseado na largura. */
@@ -567,7 +567,7 @@ onMounted(() => {
   /* 2. Impede que fique muito pequeno em Notebooks.
      Se a tela for menor que 900px, vai aparecer barra de rolagem horizontal 
      (comportamento que você pediu) em vez de esmagar o vídeo. */
-  min-width: 900px;
+  min-width: 1100px;
 
   /* Flexibilidade */
   flex-shrink: 0;
@@ -686,15 +686,30 @@ onMounted(() => {
 
 /* --- AJUSTE PARA NOTEBOOKS (Telas Baixas) --- */
 @media (min-width: 769px) and (max-height: 800px) {
-  .showcase-layer {
-    /* Em telas "achatadas" (tipo 1366x768), empurramos o card mais pra baixo
-       para ele não bater no Header/Título */
-    transform: translateY(25%); 
+  .pin-wrapper .showcase-layer {
+    
+    /* 1. Mantenha no chão */
+    justify-content: flex-end;
+    
+    /* 2. O PULO DO GATO: */
+    /* Coloque um valor alto (como você testou no original e gostou). */
+    /* Isso faz ele começar BEM escondido lá embaixo. */
+    /* SEM !important aqui, senão o GSAP não consegue puxar ele de volta! */
+    transform: translateY(120%); 
+    
+    /* Zera o padding para o card descer o máximo possível */
+    padding-bottom: 0;
   }
   
   .glass-card {
-    /* Reduz um pouco o mínimo para caber melhor */
-    min-width: 800px;
+    /* AQUI ESTAVA O PROBLEMA: */
+    /* Removemos a trava de largura e forçamos a altura a caber */
+    min-width: 900px; 
+    height: 55vh; /* Ocupa pouco mais da metade da tela */
+    width: auto;  /* A largura será calculada automaticamente (55vh * 1.77) */
+    
+    /* Garante que não fique minúsculo também */
+    min-height: 600px;
   }
 }
 
@@ -748,15 +763,14 @@ onMounted(() => {
   bottom: 0;
   z-index: 10;
 
-  /* PEEK EFFECT: Começa escondido (40% visível) */
-  transform: translateY(70%);
 
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   align-items: flex-end;
   flex-direction: column;
   margin-left: auto;
   margin-right: auto;
+  transform: translateY(75%);
 }
 
 /* Janela interna do código */
