@@ -2,8 +2,9 @@
   <svg
     ref="svgRoot"
     class="diagram-canvas"
-    @wheel="handleWheelEvent"
-    @mousedown="handleMouseDown"
+  @wheel="handleWheelEvent"
+  @pointerdown="handleMouseDown"
+  @mousedown="handleMouseDown"
     @mouseleave="handleMouseLeave"
     :style="{ width: '100%', height: '100%', cursor: store.isPanMode ? (isLeftMousePanning ? 'grabbing' : 'grab') : currentCursor }"
   >
@@ -504,6 +505,120 @@ const isLeftMousePanning = ref(false); // Para rastrear pan com botão esquerdo
 // Estado do cursor
 const currentCursor = ref("default");
 
+// --- Pointer/Gesture state (Fase B) ---
+const activePointers = new Map(); // pointerId -> { x, y }
+let gestureActive = false;
+let gestureInit = {
+  distance: 0,
+  zoom: 1,
+  pan: { x: 0, y: 0 },
+  midpoint: { x: 0, y: 0 },
+};
+
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+const startGestureInit = () => {
+  if (!panZoomInstance.value || activePointers.size < 2) return;
+
+  const points = Array.from(activePointers.values()).slice(0, 2);
+  const p1 = points[0];
+  const p2 = points[1];
+  const distance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+  const midpoint = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+
+  gestureInit.distance = distance;
+  gestureInit.zoom = panZoomInstance.value.getZoom();
+  gestureInit.pan = panZoomInstance.value.getPan();
+  gestureInit.midpoint = midpoint;
+  gestureActive = true;
+};
+
+const updateGesture = () => {
+  if (!gestureActive || !panZoomInstance.value) return;
+
+  const rect = svgRoot.value.getBoundingClientRect();
+  const pts = Array.from(activePointers.values()).slice(0, 2);
+  const p1 = pts[0];
+  const p2 = pts[1];
+  const distance = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+  const midpoint = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+
+  const scale = distance / gestureInit.distance;
+  let newZoom = gestureInit.zoom * scale;
+  newZoom = clamp(newZoom, 0.01, 2.0);
+
+  try {
+    // Prefer zoomAtPoint if disponível
+    if (typeof panZoomInstance.value.zoomAtPoint === 'function') {
+      panZoomInstance.value.zoomAtPoint(newZoom, { x: midpoint.x - rect.left, y: midpoint.y - rect.top });
+    } else {
+      // Fallback: calcula content coords e reaplica pan após setZoom
+      const initPan = gestureInit.pan;
+      const initZoom = gestureInit.zoom;
+      const contentX = (gestureInit.midpoint.x - rect.left - initPan.x) / initZoom;
+      const contentY = (gestureInit.midpoint.y - rect.top - initPan.y) / initZoom;
+
+      // Aplica zoom
+      panZoomInstance.value.zoom(newZoom);
+
+      // Calcula novo pan para manter o ponto no lugar do midpoint atual
+      const newPanX = midpoint.x - rect.left - contentX * newZoom;
+      const newPanY = midpoint.y - rect.top - contentY * newZoom;
+      panZoomInstance.value.pan({ x: newPanX, y: newPanY });
+    }
+  } catch (err) {
+    console.error('Erro no gesture update', err);
+  }
+};
+
+// Handlers globais para pointer (registrados dinamicamente)
+const onPointerMoveGlobal = (ev) => {
+  // Se não temos um registro prévio, ignoramos (registro feito no pointerdown)
+  const prev = activePointers.get(ev.pointerId);
+  if (!prev) return;
+
+  // Se estamos em panning com um único ponteiro (botão do meio ou modo mão), aplicamos pan manualmente
+  if ((isMiddleMouseDown || isLeftMousePanning.value) && activePointers.size === 1 && panZoomInstance.value) {
+    const dx = ev.clientX - prev.x;
+    const dy = ev.clientY - prev.y;
+
+    // Atualiza o pan absoluto
+    try {
+      const currentPan = panZoomInstance.value.getPan();
+      panZoomInstance.value.pan({ x: currentPan.x + dx, y: currentPan.y + dy });
+    } catch (err) {
+      console.error('Erro ao aplicar pan manual:', err);
+    }
+
+    // Atualiza o ponto armazenado
+    activePointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    // Salva estado para persistir se necessário
+    saveState();
+    return;
+  }
+
+  // Atualiza posição e, caso tenhamos >=2 ponteiros, processa gesture (pinch/pan)
+  activePointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+  if (activePointers.size >= 2) {
+    if (!gestureActive) startGestureInit();
+    updateGesture();
+  }
+};
+
+const onPointerUpGlobal = (ev) => {
+  if (activePointers.has(ev.pointerId)) activePointers.delete(ev.pointerId);
+  if (gestureActive && activePointers.size < 2) {
+    gestureActive = false;
+    saveState();
+  }
+  if (activePointers.size === 0 && window._brdiagrama_hasPointerListeners) {
+    window.removeEventListener('pointermove', onPointerMoveGlobal);
+    window.removeEventListener('pointerup', onPointerUpGlobal);
+    window.removeEventListener('pointercancel', onPointerUpGlobal);
+    window._brdiagrama_hasPointerListeners = false;
+  }
+};
+
 // Estado do retângulo de seleção
 const selectionBox = ref({
   visible: false,
@@ -530,6 +645,16 @@ const saveState = () => {
 // --- Funções de Panorâmica (Arrastar) ---
 
 const handleMouseDown = (e) => {
+  // Se for PointerEvent, registre o ponteiro para suportar gestos
+  if (window.PointerEvent && e.pointerId != null) {
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (!window._brdiagrama_hasPointerListeners) {
+      window.addEventListener('pointermove', onPointerMoveGlobal, { passive: false });
+      window.addEventListener('pointerup', onPointerUpGlobal);
+      window.addEventListener('pointercancel', onPointerUpGlobal);
+      window._brdiagrama_hasPointerListeners = true;
+    }
+  }
   // Ignora se o clique foi em um elemento que não seja o fundo (tabelas, etc)
   const targetClasses = e.target.classList;
   const isBackground = targetClasses.contains('diagram-background-rect') || 
@@ -546,8 +671,7 @@ const handleMouseDown = (e) => {
   else if (e.button === 0) {
     // Se Pan Mode estiver ativo, ativa o pan
     if (store.isPanMode) {
-      e.preventDefault();
-      e.stopPropagation();
+      // Não prevenir o evento para não bloquear o svg-pan-zoom interno
       isLeftMousePanning.value = true;
       enablePan();
       return;
@@ -581,8 +705,15 @@ const handleMouseDown = (e) => {
     // 🔥 CORREÇÃO: Adiciona listeners na JANELA (window).
     // Isso garante que se soltar o mouse em cima de qualquer coisa (tabela, overlay, fora da tela),
     // o evento será capturado.
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleWindowMouseUp);
+    // Usa pointer events quando disponível (melhor suporte touch) e fallback para mouse
+    if (window.PointerEvent) {
+      window.addEventListener("pointermove", handleMouseMove, { passive: false });
+      window.addEventListener("pointerup", handleWindowMouseUp);
+      window.addEventListener("pointercancel", handleWindowMouseUp);
+    } else {
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleWindowMouseUp);
+    }
   }
 };
 
@@ -590,7 +721,8 @@ const handleMouseMove = (e) => {
   if (!isSelecting) return;
   
   // Previne selecionar texto indesejado enquanto arrasta
-  e.preventDefault();
+  // Em eventos de touch precisamos prevenir scroll enquanto selecionamos
+  if (e.cancelable) e.preventDefault();
 
   const rect = svgRoot.value.getBoundingClientRect();
   const pan = panZoomInstance.value.getPan();
@@ -615,8 +747,14 @@ const handleWindowMouseUp = (e) => {
     isSelecting = false;
     
     // Remove os listeners globais para não pesar a memória
-    window.removeEventListener("mousemove", handleMouseMove);
-    window.removeEventListener("mouseup", handleWindowMouseUp);
+    if (window.PointerEvent) {
+      window.removeEventListener("pointermove", handleMouseMove);
+      window.removeEventListener("pointerup", handleWindowMouseUp);
+      window.removeEventListener("pointercancel", handleWindowMouseUp);
+    } else {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleWindowMouseUp);
+    }
 
     // Calcula área final
     const selectionArea = {
@@ -653,7 +791,11 @@ const handleMouseUp = (e) => {
   } else if (e.button === 0 && isSelecting) {
     // Finalizar seleção
     isSelecting = false;
-    svgRoot.value.removeEventListener("mousemove", handleMouseMove);
+    if (window.PointerEvent) {
+      svgRoot.value.removeEventListener("pointermove", handleMouseMove);
+    } else {
+      svgRoot.value.removeEventListener("mousemove", handleMouseMove);
+    }
 
     // Aqui você pode emitir um evento com as coordenadas do retângulo
     // para que o componente pai possa selecionar as tabelas dentro da área
@@ -807,8 +949,13 @@ onMounted(() => {
         panZoomInstance.value.setOnPan(saveState);
         panZoomInstance.value.setOnZoom(saveState);
 
-        // Listener global para capturar mouseup fora do SVG
-       window.addEventListener("mouseup", handleGlobalMouseUp);
+          // Listener global para capturar mouseup/pointerup fora do SVG
+         if (window.PointerEvent) {
+           window.addEventListener("pointerup", handleGlobalMouseUp);
+           window.addEventListener("pointercancel", handleGlobalMouseUp);
+         } else {
+           window.addEventListener("mouseup", handleGlobalMouseUp);
+         }
       } catch (error) {
         console.error("Erro ao inicializar svg-pan-zoom:", error);
       }
@@ -818,9 +965,26 @@ onMounted(() => {
 
 onUnmounted(() => {
   // Limpar listeners globais
- window.removeEventListener("mouseup", handleGlobalMouseUp);
-  window.removeEventListener("mouseup", handleWindowMouseUp);
-  window.removeEventListener("mousemove", handleMouseMove);
+  if (window.PointerEvent) {
+    window.removeEventListener("pointerup", handleGlobalMouseUp);
+    window.removeEventListener("pointercancel", handleGlobalMouseUp);
+
+    window.removeEventListener("pointerup", handleWindowMouseUp);
+    window.removeEventListener("pointercancel", handleWindowMouseUp);
+    window.removeEventListener("pointermove", handleMouseMove);
+
+    // Remover listeners de gesture caso existam
+    if (window._brdiagrama_hasPointerListeners) {
+      window.removeEventListener('pointermove', onPointerMoveGlobal);
+      window.removeEventListener('pointerup', onPointerUpGlobal);
+      window.removeEventListener('pointercancel', onPointerUpGlobal);
+      window._brdiagrama_hasPointerListeners = false;
+    }
+  } else {
+    window.removeEventListener("mouseup", handleGlobalMouseUp);
+    window.removeEventListener("mouseup", handleWindowMouseUp);
+    window.removeEventListener("mousemove", handleMouseMove);
+  }
 });
 
 // --- Métodos Expostos (Acessíveis pelo componente pai) ---

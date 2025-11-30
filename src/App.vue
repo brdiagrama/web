@@ -2,9 +2,10 @@
   <div class="app">
     <div class="main-content">
       <div
+        v-if="!isMobile || activeTab === 'editor'"
         class="editor-panel"
         :class="{ 'no-transition': isResizing, 'panel-hidden': !isEditorVisible }"
-        :style="{ width: isEditorVisible ? editorWidth + 'px' : '0px' }"
+        :style="{ width: isEditorVisible ? (isMobile ? '100%' : editorWidth + 'px') : '0px' }"
       >
         <div class="editor-header">
           <div class="brand-area">
@@ -95,13 +96,13 @@
         />
       </div>
 
-      <div v-if="!isEditorVisible" class="collapsed-sidebar" @click="toggleEditor">
+      <div v-if="!isEditorVisible && !isMobile" class="collapsed-sidebar" @click="toggleEditor">
         <button class="icon-btn expand-btn" title="Abrir Editor">❯</button>
       </div>
 
-      <div v-show="isEditorVisible" class="resizer-handle" @mousedown="startResize"></div>
+      <div v-show="isEditorVisible && !isMobile" class="resizer-handle" @mousedown="startResize"></div>
 
-      <div class="canvas-panel">
+      <div v-if="!isMobile || activeTab === 'diagram'" class="canvas-panel">
         <DiagramCanvas
           ref="diagramCanvasRef"
           class="canvas-container"
@@ -146,6 +147,7 @@
                 :transform="`translate(${table.x}, ${table.y})`"
                 class="table-group"
                 :style="{ cursor: diagramStore.isPanMode ? 'grab' : 'move' }"
+                @pointerdown="(event) => startDrag(event, table.name)"
                 @mousedown="(event) => startDrag(event, table.name)"
               >
                 <rect
@@ -300,6 +302,7 @@
                 :transform="`translate(${table.x}, ${table.y})`"
                 class="table-group selected"
                 :style="{ cursor: diagramStore.isPanMode ? 'grab' : 'move' }"
+                @pointerdown="(event) => startDrag(event, table.name)"
                 @mousedown="(event) => startDrag(event, table.name)"
               >
                 <rect
@@ -432,9 +435,14 @@
           </g>
         </DiagramCanvas>
 
-        <DiagramToolbar v-if="diagramCanvasRef" :diagramRef="diagramCanvasRef" />
+          <DiagramToolbar v-if="diagramCanvasRef" :diagramRef="diagramCanvasRef" />
       </div>
     </div>
+
+    <!-- Mobile: pequena setinha no canto esquerdo superior (mostra apenas quando o diagrama estiver visível) -->
+    <button v-if="isMobile && activeTab === 'diagram'" class="mobile-top-toggle" @click="toggleEditor" :title="'Abrir Editor'">
+      <span>◀</span>
+    </button>
 
     <ProblemsPanel
       :problems="[...validationResult.errors, ...validationResult.warnings]"
@@ -502,6 +510,20 @@ const handleEditorReady = ({ editor, monaco }) => {
 const editorWidth = ref(550); // Largura inicial do editor
 const isResizing = ref(false);
 const isEditorVisible = ref(true);
+// Mobile tabs state
+const activeTab = ref('diagram'); // 'diagram' | 'editor'
+const isMobile = ref(window.innerWidth < 768);
+
+const onResizeWindow = () => {
+  isMobile.value = window.innerWidth < 768;
+  // If switched to mobile, default to diagram view
+  if (isMobile.value) {
+    // Preserve previous visibility: if editor was visible keep it, else diagram
+    activeTab.value = isEditorVisible.value ? 'editor' : 'diagram';
+  }
+};
+
+window.addEventListener('resize', onResizeWindow);
 
 const MIN_WIDTH = 300;
 const MAX_WIDTH = 800;
@@ -563,7 +585,17 @@ const stopResize = () => {
 
 // Toggle para o botão de ocultar/mostrar
 const toggleEditor = () => {
-  isEditorVisible.value = !isEditorVisible.value;
+  if (isMobile.value) {
+    if (activeTab.value === 'editor') {
+      activeTab.value = 'diagram';
+      isEditorVisible.value = false;
+    } else {
+      activeTab.value = 'editor';
+      isEditorVisible.value = true;
+    }
+  } else {
+    isEditorVisible.value = !isEditorVisible.value;
+  }
 };
 
 const unselectedTablesList = computed(() => {
@@ -1628,22 +1660,95 @@ const startDrag = (event, tableName) => {
     }
   }
 
-  dragState.value.isDragging = true;
+  // Detect touch devices and use pending threshold to avoid "tap then drag" issues
+  const isTouch = (window.PointerEvent && event.pointerType === 'touch') || (!window.PointerEvent && 'ontouchstart' in window);
+
   dragState.value.draggedTable = tableName;
 
-  const ctm = svgElement.getScreenCTM();
-  const table = tables.value[tableName];
+  if (isTouch) {
+    // Mark as pending; only start actual dragging when movement exceeds threshold
+    dragState.value.pending = true;
+    dragState.value.pendingStart = { x: event.clientX, y: event.clientY };
+    dragState.value.pendingPointerId = event.pointerId || null;
+  } else {
+    dragState.value.isDragging = true;
 
-  // Usa o zoom da store para cálculo consistente
-  const zoom = diagramStore.zoom;
-  dragState.value.offset.x = (event.clientX - ctm.e) / zoom - table.x;
-  dragState.value.offset.y = (event.clientY - ctm.f) / zoom - table.y;
+    const ctm = svgElement.getScreenCTM();
+    const table = tables.value[tableName];
 
-  document.addEventListener("mousemove", handleDrag);
-  document.addEventListener("mouseup", endDrag);
+    // Usa o zoom da store para cálculo consistente
+    const zoom = diagramStore.zoom;
+    dragState.value.offset.x = (event.clientX - ctm.e) / zoom - table.x;
+    dragState.value.offset.y = (event.clientY - ctm.f) / zoom - table.y;
+  }
+
+  // Use Pointer Events when available (better touch support). Keep mouse as fallback.
+  if (window.PointerEvent && event.pointerId != null) {
+    try {
+      // Prefer to capture the pointer on the SVG root so we reliably receive move/up
+      const svgRootEl = diagramCanvasRef.value && diagramCanvasRef.value.svgRoot;
+      if (svgRootEl && svgRootEl.setPointerCapture) {
+        try {
+          svgRootEl.setPointerCapture(event.pointerId);
+          // Store where we captured so we can release later
+          dragState.value._pointerCapturedOn = svgRootEl;
+          dragState.value._pointerId = event.pointerId;
+        } catch (err) {
+          // fallback: try event.target
+          event.target && event.target.setPointerCapture && event.target.setPointerCapture(event.pointerId);
+          dragState.value._pointerCapturedOn = event.target;
+          dragState.value._pointerId = event.pointerId;
+        }
+      } else {
+        // fallback to event.target
+        event.target && event.target.setPointerCapture && event.target.setPointerCapture(event.pointerId);
+        dragState.value._pointerCapturedOn = event.target;
+        dragState.value._pointerId = event.pointerId;
+      }
+    } catch (err) {
+      // ignore
+    }
+
+    document.addEventListener("pointermove", handleDrag);
+    document.addEventListener("pointerup", endDrag);
+    document.addEventListener("pointercancel", endDrag);
+  } else {
+    document.addEventListener("mousemove", handleDrag);
+    document.addEventListener("mouseup", endDrag);
+  }
 };
 
+const TOUCH_DRAG_THRESHOLD = 6; // px
+
 const handleDrag = (event) => {
+  // If pending (touch) and not yet moved enough, check threshold
+  if (dragState.value.pending) {
+    // If pointerId exists and doesn't match, ignore
+    if (dragState.value.pendingPointerId != null && event.pointerId != null && dragState.value.pendingPointerId !== event.pointerId) return;
+
+    const dx = event.clientX - dragState.value.pendingStart.x;
+    const dy = event.clientY - dragState.value.pendingStart.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist < TOUCH_DRAG_THRESHOLD) {
+      // Not enough movement yet
+      return;
+    }
+
+    // Start actual dragging now
+    dragState.value.pending = false;
+    dragState.value.isDragging = true;
+
+    const svgElement = diagramCanvasRef.value?.svgRoot;
+    if (!svgElement) return;
+    const ctm = svgElement.getScreenCTM();
+    const table = tables.value[dragState.value.draggedTable];
+    const zoom = diagramStore.zoom;
+
+    dragState.value.offset.x = (dragState.value.pendingStart.x - ctm.e) / zoom - table.x;
+    dragState.value.offset.y = (dragState.value.pendingStart.y - ctm.f) / zoom - table.y;
+    // proceed to move below
+  }
+
   if (!dragState.value.isDragging || !dragState.value.draggedTable) return;
 
   const svgElement = diagramCanvasRef.value?.svgRoot;
@@ -1670,11 +1775,33 @@ const handleDrag = (event) => {
   });
 };
 
-const endDrag = () => {
+const endDrag = (e) => {
   dragState.value.isDragging = false;
   dragState.value.draggedTable = null;
+  dragState.value.pending = false;
+  dragState.value.pendingStart = null;
+  dragState.value.pendingPointerId = null;
 
-  // Remove event listeners globais
+  // If pointer capture was set, try to release it (best-effort)
+  try {
+    const capturedEl = dragState.value._pointerCapturedOn;
+    const pid = dragState.value._pointerId != null ? dragState.value._pointerId : (e && e.pointerId);
+    if (capturedEl && pid != null && capturedEl.releasePointerCapture) {
+      try { capturedEl.releasePointerCapture(pid); } catch (err) { /* ignore */ }
+    }
+    // clean internal fields
+    dragState.value._pointerCapturedOn = null;
+    dragState.value._pointerId = null;
+  } catch (err) {
+    // ignore
+  }
+
+  // Remove event listeners globais (pointer or mouse)
+  if (window.PointerEvent) {
+    document.removeEventListener("pointermove", handleDrag);
+    document.removeEventListener("pointerup", endDrag);
+    document.removeEventListener("pointercancel", endDrag);
+  }
   document.removeEventListener("mousemove", handleDrag);
   document.removeEventListener("mouseup", endDrag);
 };
@@ -1709,6 +1836,32 @@ onMounted(() => {
   updateDiagram();
 });
 </script>
+
+<style scoped>
+/* Botão pequeno no topo para abrir/fechar o editor no mobile (estilo dbdiagram) */
+.mobile-top-toggle {
+  position: fixed;
+  top: 10px;
+  left: 12px;
+  transform: none;
+  z-index: 1200;
+  background: rgba(255,255,255,0.95);
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+  padding: 6px 8px;
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 36px;
+}
+
+/* Pequeno ajuste visual quando editor estiver aberto */
+ 
+</style>
 
 <style scoped>
 .problems-badge {
@@ -1803,6 +1956,33 @@ onMounted(() => {
   overflow: hidden; /* Garante que não vaze scroll */
   min-height: 0; /* 🔥 CRUCIAL para o Flexbox funcionar no Firefox/Chrome em aninhamento */
   flex-direction: row; /* Garante que editor e canvas fiquem lado a lado */
+}
+
+/* Mobile tabbar */
+.mobile-tabbar {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  background: rgba(15,23,42,0.9);
+  padding: 8px;
+  border-radius: 999px;
+  z-index: 60;
+  box-shadow: 0 6px 24px rgba(2,6,23,0.6);
+}
+.mobile-tabbar .tab-btn {
+  background: transparent;
+  color: #cbd5e1;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.mobile-tabbar .tab-btn.active {
+  background: #0f172a;
+  color: #e2e8f0;
 }
 
 .app {
@@ -2107,8 +2287,10 @@ onMounted(() => {
 
   .editor-panel {
     width: 100% !important; /* Força largura total */
-    height: 50%; /* Ocupa metade da tela se aberto */
-    border-bottom: 2px solid #444;
+    height: 100% !important; /* Ocupa toda a altura do viewport quando aberto */
+    border-bottom: none;
+    position: relative;
+    z-index: 1200; /* Fica acima do canvas */
   }
 
   .resizer-handle {

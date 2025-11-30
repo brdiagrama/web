@@ -13,7 +13,7 @@
 </template>
 
 <script setup>
-import { ref, watch, shallowRef, toRaw } from "vue";
+import { ref, watch, shallowRef, toRaw, onUnmounted } from "vue";
 import { VueMonacoEditor } from "@guolao/vue-monaco-editor";
 
 const props = defineProps({
@@ -127,6 +127,14 @@ const editorOptions = {
   smoothScrolling: true, // Rolagem macia
   mouseWheelZoom: true,
   renderValidationDecorations: "on",
+  // Mostrar a barra de rolagem horizontal quando necessário (ajuda no mobile/linhas longas)
+  scrollbar: {
+    horizontal: 'auto',
+    vertical: 'auto',
+    handleMouseWheel: true,
+    horizontalScrollbarSize: 12,
+    verticalScrollbarSize: 12,
+  },
 };
 
 const handleMount = (editor, monaco) => {
@@ -330,6 +338,30 @@ const handleMount = (editor, monaco) => {
   monaco.editor.setTheme("BrDiagramaSoft");
 
   emit("editor-ready", { editor: toRaw(editor), monaco: toRaw(monaco) });
+
+  // Ajusta o layout quando visualViewport muda (teclado virtual em iOS/Android)
+  if (window.visualViewport) {
+    const onVVResize = () => {
+      try {
+        // Força o editor a recalcular o layout
+        const ed = toRaw(editorRef.value);
+        if (ed && ed.layout) ed.layout();
+      } catch (err) {
+        console.error('[SqlEditor] visualViewport layout error', err);
+      }
+    };
+
+    window.visualViewport.addEventListener('resize', onVVResize);
+    window.visualViewport.addEventListener('scroll', onVVResize);
+
+    // Cleanup on unmount
+    onUnmounted(() => {
+      try {
+        window.visualViewport.removeEventListener('resize', onVVResize);
+        window.visualViewport.removeEventListener('scroll', onVVResize);
+      } catch (e) {}
+    });
+  }
 };
 
 const handleChange = (value) => {

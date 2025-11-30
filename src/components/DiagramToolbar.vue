@@ -149,29 +149,35 @@ const resetZoom = () => {
     left: 50%;
     transform: translateX(-50%);
     background: #fff;
-    padding: 10px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 12px 14px;
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
     display: flex;
-    gap: 20px;
+    gap: 18px;
     align-items: center;
 }
 .toolbar-btn {
-    padding: 8px 15px;
+    padding: 10px 16px;
     cursor: pointer;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
 }
 
 .reset-zoom-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 36px;
+    width: 48px;
+    height: 48px;
     padding: 0;
     border: none;
     background: white;
-    border-radius: 7px;
-    transition: all 0.2s ease;
+    border-radius: 10px;
+    transition: all 0.18s ease;
 }
 
 .reset-zoom-btn:hover {
@@ -188,19 +194,19 @@ const resetZoom = () => {
 }
 
 .zoom-btn {
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
     padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
-    font-weight: bold;
+    font-size: 18px;
+    font-weight: 600;
     cursor: pointer;
     border: none;
     background: white;
-    border-radius: 4px;
-    transition: all 0.2s ease;
+    border-radius: 8px;
+    transition: all 0.16s ease;
 }
 
 .zoom-btn:hover {
@@ -221,12 +227,12 @@ const resetZoom = () => {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
+    transition: all 0.16s ease;
     width: 48px;
-    height: 36px;
+    height: 48px;
     border: none;
     background: white;
-    border-radius: 7px;
+    border-radius: 10px;
 }
 
 .grid-btn.active {
@@ -246,12 +252,12 @@ const resetZoom = () => {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
+    transition: all 0.16s ease;
     width: 48px;
-    height: 36px;
+    height: 48px;
     border: none;
     background: white;
-    border-radius: 7px;
+    border-radius: 10px;
     color: #666;
 }
 
@@ -266,5 +272,22 @@ const resetZoom = () => {
 
 .pan-mode-btn.active:hover {
     background-color: #d0e8ff;
+}
+
+@media (max-width: 768px) {
+    .diagram-toolbar {
+        bottom: 14px;
+        gap: 12px;
+        padding: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    .toolbar-btn, .zoom-btn, .reset-zoom-btn, .grid-btn, .pan-mode-btn {
+        min-width: 52px;
+        min-height: 52px;
+        width: 52px;
+        height: 52px;
+    }
+    .zoom-label { display: none; }
 }
 </style>
