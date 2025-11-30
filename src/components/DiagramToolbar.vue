@@ -276,7 +276,8 @@ const resetZoom = () => {
 
 @media (max-width: 768px) {
     .diagram-toolbar {
-        bottom: calc(14px + env(safe-area-inset-bottom));
+        /* Sobe um pouco mais para evitar corte em telefones com home indicator */
+        bottom: calc(18px + env(safe-area-inset-bottom, 16px));
         gap: 12px;
         padding: 12px;
         left: 50%;

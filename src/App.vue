@@ -1695,6 +1695,11 @@ const startDrag = (event, tableName) => {
     dragState.value.offset.y = (event.clientY - ctm.f) / zoom - table.y;
   }
 
+  // Suppress global pointer handlers (gestures) while dragging a table to avoid conflicts
+  try {
+    window._brdiagrama_suppressGlobalPointerHandlers = true;
+  } catch (e) {}
+
   // Use Pointer Events when available (better touch support). Keep mouse as fallback.
   if (window.PointerEvent && event.pointerId != null) {
     try {
@@ -1817,6 +1822,11 @@ const endDrag = (e) => {
   }
   document.removeEventListener("mousemove", handleDrag);
   document.removeEventListener("mouseup", endDrag);
+
+  // Re-enable global pointer handlers
+  try {
+    window._brdiagrama_suppressGlobalPointerHandlers = false;
+  } catch (e) {}
 };
 
 // --- Funções para Relacionamentos Avançados ---
