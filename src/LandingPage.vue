@@ -16,7 +16,7 @@ const typeWriterText = ref("");
 const tabs = [
   { id: "1:1", label: "Um para Um" },
   { id: "1:N", label: "Um para Muitos" },
-  { id: "only1:N", label: "Somente 1:N" },
+  { id: "apenas1:N", label: "Somente 1:N" },
   { id: "N:N", label: "Muitos para Muitos" },
   { id: "heritage", label: "Herança" },
 ];
@@ -32,18 +32,17 @@ const contents = {
     title: "Relacionamento 1:N",
     description:
       "O clássico pai-filho. Veja como uma categoria abriga múltiplos produtos.",
-    codeBg:
-      "CREATE TABLE Order (\n  customer_id INT\n  FOREIGN KEY REFERENCES Customers(id)\n);",
+    videoSrc: "/videos/1-N.mp4",
   },
-  "only1:N": {
+  "apenas1:N": {
     title: "Restrição Estrita",
     description: "Constraints avançadas garantindo integridade referencial.",
-    codeBg: "ALTER TABLE ...\nADD CONSTRAINT ...\nNOT NULL;",
+    videoSrc: "/videos/apenas1-N.mp4",
   },
   "N:N": {
     title: "Tabela Pivô (N:N)",
     description: "Criação automática da tabela associativa entre duas entidades.",
-    codeBg: "CREATE TABLE StudentCourses (\n  student_id INT,\n  course_id INT\n);",
+    videoSrc: "/videos/N-N.mp4",
   },
   heritage: {
     title: "Especialização / Herança",
