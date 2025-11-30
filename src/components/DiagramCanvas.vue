@@ -492,7 +492,7 @@ import svgPanZoom from "svg-pan-zoom";
 import { useDiagramStore } from "@/stores/diagram";
 
 
-const emit = defineEmits(["selectionArea", "selectionSelecting"]);
+const emit = defineEmits(["selectionArea", "selectionSelecting", "canvasPointerDown"]);
 
 const store = useDiagramStore();
 
@@ -600,6 +600,15 @@ const onPointerMoveGlobal = (ev) => {
   // Atualiza posição e, caso tenhamos >=2 ponteiros, processa gesture (pinch/pan)
   activePointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
   if (activePointers.size >= 2) {
+    // If selection was pending (waiting to see if a second pointer would arrive), cancel it
+    if (selectionPending) {
+      selectionPending = false;
+      if (selectionPendingTimeout) {
+        clearTimeout(selectionPendingTimeout);
+        selectionPendingTimeout = null;
+        selectionPendingStart = null;
+      }
+    }
     if (!gestureActive) startGestureInit();
     updateGesture();
   }
@@ -607,6 +616,15 @@ const onPointerMoveGlobal = (ev) => {
 
 const onPointerUpGlobal = (ev) => {
   if (activePointers.has(ev.pointerId)) activePointers.delete(ev.pointerId);
+  // Cancel any pending single-touch selection when pointers change
+  if (selectionPending) {
+    selectionPending = false;
+    if (selectionPendingTimeout) {
+      clearTimeout(selectionPendingTimeout);
+      selectionPendingTimeout = null;
+      selectionPendingStart = null;
+    }
+  }
   if (gestureActive && activePointers.size < 2) {
     gestureActive = false;
     saveState();
@@ -630,6 +648,37 @@ const selectionBox = ref({
 
 let isSelecting = false;
 let startPoint = { x: 0, y: 0 };
+let selectionPending = false;
+let selectionPendingTimeout = null;
+let selectionPendingStart = null;
+
+const startSelectionFromCoords = (startClient) => {
+  if (!svgRoot.value || !panZoomInstance.value) return;
+  const rect = svgRoot.value.getBoundingClientRect();
+  const pan = panZoomInstance.value.getPan();
+  const zoom = panZoomInstance.value.getZoom();
+
+  startPoint.x = (startClient.x - rect.left - pan.x) / zoom;
+  startPoint.y = (startClient.y - rect.top - pan.y) / zoom;
+
+  isSelecting = true;
+  selectionBox.value = {
+    visible: true,
+    startX: startPoint.x,
+    startY: startPoint.y,
+    endX: startPoint.x,
+    endY: startPoint.y,
+  };
+
+  if (window.PointerEvent) {
+    window.addEventListener("pointermove", handleMouseMove, { passive: false });
+    window.addEventListener("pointerup", handleWindowMouseUp);
+    window.addEventListener("pointercancel", handleWindowMouseUp);
+  } else {
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleWindowMouseUp);
+  }
+};
 
 // Função para salvar o estado de zoom e pan na store
 const saveState = () => {
@@ -660,6 +709,11 @@ const handleMouseDown = (e) => {
   const isBackground = targetClasses.contains('diagram-background-rect') || 
                        targetClasses.contains('grid-background') ||
                        e.target === svgRoot.value;
+
+  // Avisa o pai que o usuário tocou/clicou no canvas (permite desselcionar hover/colunas)
+  if (isBackground) {
+    emit('canvasPointerDown');
+  }
   
   // Botão do meio (Scroll/Pan)
   if (e.button === 1) {
@@ -681,18 +735,40 @@ const handleMouseDown = (e) => {
     if (!isBackground) {
       return;
     }
-    
+
+    // Se houver >=2 pointers ativos, isso é parte de um gesto (pinch) — não iniciar seleção
+    if (activePointers.size >= 2) {
+      return;
+    }
+
     // Caso contrário, inicia seleção
     const rect = svgRoot.value.getBoundingClientRect();
     const pan = panZoomInstance.value.getPan();
     const zoom = panZoomInstance.value.getZoom();
 
-    // Inicia coordenadas
+    // Para dispositivos touch, aguarda um curto delay para detectar segunda ponta (evita iniciar seleção quando o usuário começar um gesto com 2 dedos)
+    const isTouch = window.PointerEvent && e.pointerType === 'touch';
+    if (isTouch) {
+      selectionPending = true;
+      selectionPendingStart = { x: e.clientX, y: e.clientY };
+      if (selectionPendingTimeout) clearTimeout(selectionPendingTimeout);
+      selectionPendingTimeout = setTimeout(() => {
+        if (selectionPending && activePointers.size <= 1) {
+          startSelectionFromCoords(selectionPendingStart);
+        }
+        selectionPending = false;
+        selectionPendingStart = null;
+      }, 60);
+      // don't start selection immediately; wait a short moment to see if a second pointer arrives
+      return;
+    }
+
+    // Inicia coordenadas (desktop / immediate)
     startPoint.x = (e.clientX - rect.left - pan.x) / zoom;
     startPoint.y = (e.clientY - rect.top - pan.y) / zoom;
 
     isSelecting = true;
-    
+
     // Define caixa inicial (ponto único)
     selectionBox.value = {
       visible: true,

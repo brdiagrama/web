@@ -276,7 +276,7 @@ const resetZoom = () => {
 
 @media (max-width: 768px) {
     .diagram-toolbar {
-        bottom: 14px;
+        bottom: calc(14px + env(safe-area-inset-bottom));
         gap: 12px;
         padding: 12px;
         left: 50%;

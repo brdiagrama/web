@@ -108,6 +108,7 @@
           class="canvas-container"
           @selectionArea="handleSelectionArea"
           @selectionSelecting="handleSelectionArea"
+          @canvasPointerDown="clearSelectionOnCanvas"
         >
           <!-- Definições SVG -->
           <defs> </defs>
@@ -1597,6 +1598,8 @@ const handleSqlChange = debounce(updateDiagram, 300);
 // --- Funções de Seleção Múltipla ---
 
 const handleSelectionArea = (area) => {
+  // Limpar hover e seleção anterior (clique no canvas deve desselcionar)
+  hoveredColumn.value = null;
   // Limpar seleção anterior
   selectedTables.value.clear();
 
@@ -1629,6 +1632,16 @@ const handleSelectionArea = (area) => {
 
 const handleColumnHover = (data) => {
   hoveredColumn.value = data.isHovering ? data : null;
+};
+
+const clearSelectionOnCanvas = () => {
+  // Ao clicar no fundo do canvas, removemos qualquer hover e seleção
+  hoveredColumn.value = null;
+  selectedTables.value.clear();
+  // Também limpa quaisquer estados pendentes de drag
+  dragState.value.pending = false;
+  dragState.value.pendingStart = null;
+  dragState.value.pendingPointerId = null;
 };
 
 // --- Funções de Drag and Drop ---
