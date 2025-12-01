@@ -55,20 +55,8 @@ const contents = {
 const currentTabContent = computed(() => contents[activeTab.value]);
 
 // Navegação para o gerador (força navegação completa)
-const goToGerador = async (e) => {
+const goToGerador = (e) => {
   e.preventDefault();
-  
-  // Tenta limpar cache de navegação antes de ir
-  if ('caches' in window) {
-    try {
-      const cache = await caches.open('html-cache');
-      await cache.delete('/gerador');
-      console.log('Cache /gerador limpo antes de navegar');
-    } catch (err) {
-      console.warn('Não foi possível limpar cache:', err);
-    }
-  }
-  
   window.location.href = '/gerador';
 };
 

@@ -814,11 +814,12 @@ const lastValidState = ref(null);
 const errorCount = computed(() => validationResult.value.errors.length);
 const warningCount = computed(() => validationResult.value.warnings.length);
 
-watch(sqlCode, (newSql) => {
-  if (newSql && newSql.trim()) {
-    DiagramController.saveToCache(newSql, { tables: tables.value, relationships: relationships.value });
-  }
-}, { debounce: 500 });
+// Cache do SQL desabilitado temporariamente para debug
+// watch(sqlCode, (newSql) => {
+//   if (newSql && newSql.trim()) {
+//     DiagramController.saveToCache(newSql, { tables: tables.value, relationships: relationships.value });
+//   }
+// }, { debounce: 500 });
 
 const updateDiagram = async () => {
   const result = DiagramController.processSql(sqlCode.value);
@@ -1826,8 +1827,13 @@ const screenToSVG = (screenX, screenY) => {
 };
 
 onMounted(() => {
-  const savedSql = DiagramController.loadLastSql();
-  sqlCode.value = savedSql || defaultSql;
+  console.log('🔄 App.vue montado! URL:', window.location.href);
+  console.log('🔄 Pathname:', window.location.pathname);
+  
+  // Cache do SQL desabilitado temporariamente para debug
+  // const savedSql = DiagramController.loadLastSql();
+  // sqlCode.value = savedSql || defaultSql;
+  sqlCode.value = defaultSql;
   updateDiagram();
 });
 </script>
