@@ -36,7 +36,10 @@ export default defineConfig({
       workbox: {
         clientsClaim: true,
         skipWaiting: true,
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // NÃO cacheia HTMLs no precache - só JS, CSS, assets
+        globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
+        // Ignora HTMLs no precache
+        globIgnores: ['**/index.html', '**/editor.html'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         runtimeCaching: [
           {
@@ -65,24 +68,9 @@ export default defineConfig({
             }
           },
           {
-            urlPattern: ({ url }) => url.pathname === '/gerador',
+            // QUALQUER navegação HTML: SEMPRE da rede, NUNCA do cache
+            urlPattern: ({ request }) => request.destination === 'document' || request.mode === 'navigate',
             handler: 'NetworkOnly'
-          },
-          {
-            urlPattern: ({ url, request }) => {
-              // Cacheia apenas arquivos HTML estáticos (index.html, editor.html)
-              return request.destination === 'document' && 
-                     (url.pathname === '/' || url.pathname.endsWith('.html'));
-            },
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'html-cache',
-              networkTimeoutSeconds: 3,
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 // 1 dia
-              }
-            }
           }
         ]
       }

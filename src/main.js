@@ -7,7 +7,7 @@ import { registerSW } from 'virtual:pwa-register';
 const updateSW = registerSW({
   immediate: true,
   onNeedRefresh() {
-    console.log('Nova versão disponível!');
+    console.log('🔄 Nova versão disponível!');
     if (confirm('Nova versão disponível! Recarregar agora?')) {
       updateSW(true);
     }
@@ -16,7 +16,9 @@ const updateSW = registerSW({
     console.log('✅ PWA pronto! Editor funciona offline agora.');
   },
   onRegistered(registration) {
-    console.log('✅ Service Worker registrado!', registration);
+    console.log('✅ Service Worker registrado no Editor!', registration);
+    console.log('📍 Scope:', registration.scope);
+    console.log('📍 Active SW:', registration.active?.scriptURL);
   },
   onRegisterError(error) {
     console.error('❌ Erro ao registrar Service Worker:', error);
