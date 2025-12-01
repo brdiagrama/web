@@ -23,30 +23,30 @@ const tabs = [
 
 const contents = {
   "1:1": {
-    title: "Relacionamento 1:1",
+    title: "Conexão Exclusiva (1:1)",
     description:
-      "Visualize chaves únicas transformando duas tabelas em uma conexão direta.",
+      "O diagrama detecta automaticamente a constraint UNIQUE e NOT NULL na chave estrangeira, criando um vínculo exclusivo entre as tabelas.",
     videoSrc: "/videos/1-1.mp4",
   },
   "1:N": {
-    title: "Relacionamento 1:N",
+    title: "Um para Muitos (Opcional)",
     description:
-      "O clássico pai-filho. Veja como uma categoria abriga múltiplos produtos.",
+      "Quando a chave estrangeira aceita NULL, o diagrama representa visualmente que o relacionamento não é obrigatório (0..N).",
     videoSrc: "/videos/1-N.mp4",
   },
   "apenas1:N": {
-    title: "Restrição Estrita",
-    description: "Constraints avançadas garantindo integridade referencial.",
+    title: "Um para Muitos (Estrito)",
+    description: "Ao definir a chave como NOT NULL, o sistema desenha a obrigatoriedade do vínculo, impedindo registros órfãos no seu modelo.",
     videoSrc: "/videos/apenas1-N.mp4",
   },
   "N:N": {
-    title: "Tabela Pivô (N:N)",
-    description: "Criação automática da tabela associativa entre duas entidades.",
+    title: "Muitos para Muitos (N:N)",
+    description: "Detecção inteligente de tabelas de junção. O sistema reconhece Chaves Primárias Compostas para desenhar associações complexas sem poluição visual.",
     videoSrc: "/videos/N-N.mp4",
   },
   "heranca": {
-    title: "Especialização / Herança",
-    description: "Diagramas que entendem hierarquia de classes e tabelas estendidas.",
+    title: "Herança e Especialização",
+    description: "Arquitetura hierárquica visualizada. Quando a PK também é uma FK, o diagrama entende a extensão da tabela e desenha a estrutura de \"Pai e Filho\".",
     videoSrc: "/videos/heranca.mp4",
   },
 };

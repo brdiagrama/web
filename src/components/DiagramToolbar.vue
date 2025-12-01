@@ -178,6 +178,7 @@ const resetZoom = () => {
     background: white;
     border-radius: 10px;
     transition: all 0.18s ease;
+    color: #666;
 }
 
 .reset-zoom-btn:hover {
@@ -233,6 +234,7 @@ const resetZoom = () => {
     border: none;
     background: white;
     border-radius: 10px;
+    color: #666;
 }
 
 .grid-btn.active {
