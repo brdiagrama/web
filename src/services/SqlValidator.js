@@ -1,10 +1,9 @@
 /**
  * src/services/SqlValidator.js
- * Versão 3.1 - Tratamento de Vírgula Trailing + FK Validation
+ * - Tratamento de Vírgula Trailing + FK Validation
  * - Detecta vírgula antes de ')' (trailing comma)
  * - Valida Foreign Keys (tabela referenciada existe?)
- * - Correção do falso positivo de ';' faltando
- */
+ *  */
 
 export class SqlValidator {
     static RESERVED_WORDS = new Set([
@@ -44,7 +43,6 @@ export class SqlValidator {
 
         const lines = sql.split('\n');
 
-        // 1. Checagem de Ponto e Vírgula (MELHORADA: Ignora se tabela tem erro interno)
         const cleanSqlForCheck = sql.replace(/--.*$/gm, '');
         const missingSemicolonRegex = /\)\s*[\r\n]+\s*CREATE/gi;
         let match;
@@ -56,7 +54,6 @@ export class SqlValidator {
             semicolonErrors.push({ line: lineNumber, message: "Faltou ponto e vírgula ';' após a tabela anterior." });
         }
 
-        // 2. Extração e Análise (coleta erros internos primeiro)
         const statements = this.extractCreateStatements(sql);
         let hasInternalErrors = false;
 
@@ -93,7 +90,6 @@ export class SqlValidator {
             }
         });
 
-        // 🔥 CORREÇÃO: Só adiciona erro de ';' se NÃO houver erros internos nas tabelas
         if (!hasInternalErrors) {
             semicolonErrors.forEach(e => addIssue(e.line, e.message, 'error'));
         }
@@ -152,10 +148,8 @@ export class SqlValidator {
 
         const body = cleanStmt.substring(bodyStart + 1, bodyEnd);
 
-        // 🔥 NOVO: Detecta vírgula trailing (antes do ')' final)
         const textBeforeClosing = body.trimEnd();
         if (textBeforeClosing.endsWith(',')) {
-            // Encontra a ÚLTIMA vírgula no corpo
             const lastCommaIndex = body.lastIndexOf(',');
             const textUntilComma = body.substring(0, lastCommaIndex);
             const lineWithComma = startLine + textUntilComma.split('\n').length;
@@ -182,7 +176,6 @@ export class SqlValidator {
         const columns = [];
         const columnNames = new Set();
 
-        // 🔥 PASSO 1: Primeira passagem - coleta TODAS as colunas declaradas
         const firstPassRegex = /([a-zA-Z0-9_]+)\s+(INT|INTEGER|VARCHAR|TEXT|DATE|TIMESTAMP|BOOLEAN|FLOAT|DOUBLE|DECIMAL|CHAR|SERIAL|BIGINT|JSON|UUID|MONEY|TIME|BLOB|TINYINT|SMALLINT|LONGTEXT|MEDIUMTEXT|NUMERIC|REAL|BOOL|BIT|DATETIME|JSONB)/gi;
         let firstMatch;
         const declaredColumns = new Set();
@@ -191,18 +184,16 @@ export class SqlValidator {
             declaredColumns.add(firstMatch[1]);
         }
 
-        // 🔥 PASSO 2: Valida FOREIGN KEY (tabela + coluna referenciada)
         const fkRegex = /FOREIGN\s+KEY\s*\(\s*([a-zA-Z0-9_]+)\s*\)\s*REFERENCES\s+([a-zA-Z0-9_]+)\s*\(\s*([a-zA-Z0-9_]+)\s*\)/gi;
         let fkMatch;
         while ((fkMatch = fkRegex.exec(bodyContent)) !== null) {
-            const localColumn = fkMatch[1];      // Ex: user_id
-            const referencedTable = fkMatch[2];  // Ex: users
-            const referencedColumn = fkMatch[3]; // Ex: id
+            const localColumn = fkMatch[1];     
+            const referencedTable = fkMatch[2]; 
+            const referencedColumn = fkMatch[3];
 
             const textUntilFK = bodyContent.substring(0, fkMatch.index);
             const fkLine = tableStartLine + textUntilFK.split('\n').length - 1;
 
-            // Valida se a coluna LOCAL existe na tabela atual
             if (!declaredColumns.has(localColumn)) {
                 errors.push({
                     line: fkLine,
@@ -211,16 +202,13 @@ export class SqlValidator {
                 });
             }
 
-            // Valida se a TABELA referenciada existe
             if (!existingTables[referencedTable]) {
                 errors.push({
                     line: fkLine,
                     message: `A tabela referenciada '${referencedTable}' não foi encontrada. `,
                     type: 'error'
                 });
-            }
-            // Se a tabela existe, valida se a COLUNA referenciada existe nela
-            else {
+            } else {
                 const targetTableColumns = existingTables[referencedTable].columns.map(c => c.name);
                 if (!targetTableColumns.includes(referencedColumn)) {
                     errors.push({
@@ -231,8 +219,6 @@ export class SqlValidator {
                 }
             }
         }
-
-        // 🔥 PASSO 3: Valida PRIMARY KEY (coluna deve existir)
         const pkRegex = /PRIMARY\s+KEY\s*\(\s*([a-zA-Z0-9_]+)\s*\)/gi;
         let pkMatch;
         while ((pkMatch = pkRegex.exec(bodyContent)) !== null) {
@@ -259,16 +245,13 @@ export class SqlValidator {
             const textUntilFK = bodyContent.substring(0, inlineFkMatch.index);
             const fkLine = tableStartLine + textUntilFK.split('\n').length - 1;
 
-            // Valida se a TABELA referenciada existe
             if (!existingTables[referencedTable]) {
                 errors.push({
                     line: fkLine,
                     message: `A tabela referenciada '${referencedTable}' não foi encontrada. `,
                     type: 'error'
                 });
-            }
-            // Se a tabela existe, valida se a COLUNA referenciada existe nela
-            else {
+            } else {
                 const targetTableColumns = existingTables[referencedTable].columns.map(c => c.name);
                 if (!targetTableColumns.includes(referencedColumn)) {
                     errors.push({
@@ -280,7 +263,6 @@ export class SqlValidator {
             }
         }
 
-        // Regex Híbrido para colunas e constraints (ORIGINAL - FUNCIONA BEM)
         const itemRegex = /(CONSTRAINT|PRIMARY\s+KEY|FOREIGN\s+KEY|UNIQUE|CHECK|INDEX)|([a-zA-Z0-9_]+)\s+(INT|INTEGER|VARCHAR|TEXT|DATE|TIMESTAMP|BOOLEAN|FLOAT|DOUBLE|DECIMAL|CHAR|SERIAL|BIGINT|JSON|UUID|MONEY|TIME|BLOB|TINYINT|SMALLINT|LONGTEXT|MEDIUMTEXT|NUMERIC|REAL|BOOL|BIT|DATETIME|JSONB)/gi;
 
         let match;
@@ -295,7 +277,6 @@ export class SqlValidator {
             const colName = match[2];
             const colType = match[3];
 
-            // Checagem de vírgula inteligente (ORIGINAL - FUNCIONA)
             if (!isFirstItem) {
                 const textBetween = bodyContent.substring(lastEndIndex, startIndex);
                 const hasComma = textBetween.includes(',');

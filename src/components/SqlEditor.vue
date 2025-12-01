@@ -39,30 +39,20 @@ const editorMounted = ref(false);
 
 defineExpose({
   gotoLine: (lineNumber) => {
-    // Usar toRaw para garantir que não é um Proxy do Vue
     const editor = toRaw(editorRef.value);
-
     if (!editor) return;
 
     const model = editor.getModel();
     if (!model) return;
 
-    // Garante que a linha existe
     const safeLine = Math.max(1, Math.min(lineNumber, model.getLineCount()));
 
-    // Executa na próxima renderização para evitar conflito de layout
     setTimeout(() => {
       try {
         editor.revealLineInCenter(safeLine);
-
-        // 2. Posiciona o cursor
         editor.setPosition({ lineNumber: safeLine, column: 1 });
-
-        // 3. Dá o foco
         editor.focus();
-      } catch (e) {
-        // navigation error (suppressed)
-      }
+      } catch (e) {}
     }, 50);
   },
 });
@@ -79,7 +69,6 @@ watch(
 watch(
   () => props.markers,
   (newProblems) => {
-    // Pega as instâncias "cruas" sem reatividade do Vue
     const editor = toRaw(editorRef.value);
     const monaco = toRaw(monacoRef.value);
 
@@ -87,7 +76,6 @@ watch(
 
     const model = editor.getModel();
 
-    // Converte seus erros para o formato do Monaco
     const markersData = newProblems.map((p) => ({
       startLineNumber: p.line,
       startColumn: 1,
@@ -120,19 +108,17 @@ const editorOptions = {
   lineNumbers: "on",
   guides: { indentation: true },
 
-  // Correção: desliga sugestões baseadas em texto do arquivo (usamos provedores customizados)
   wordBasedSuggestions: "off",
 
   suggest: {
     showKeywords: true,
     showSnippets: true,
   },
-  cursorBlinking: "smooth", // O cursor pisca suavemente (fade in/out)
-  cursorSmoothCaretAnimation: "on", // O cursor "desliza" ao digitar em vez de pular
-  smoothScrolling: true, // Rolagem macia
+  cursorBlinking: "smooth",
+  cursorSmoothCaretAnimation: "on",
+  smoothScrolling: true,
   mouseWheelZoom: true,
   renderValidationDecorations: "on",
-  // Mostrar a barra de rolagem horizontal quando necessário (ajuda no mobile/linhas longas)
   scrollbar: {
     horizontal: "auto",
     vertical: "auto",
@@ -146,10 +132,7 @@ const handleMount = (editor, monaco) => {
   editorRef.value = editor;
   monacoRef.value = monaco;
 
-  // Registrar Linguagem
   monaco.languages.register({ id: "br-sql" });
-
-  // Regras de Cores (Tokenizer)
   monaco.languages.setMonarchTokensProvider("br-sql", {
     ignoreCase: true,
     tokenizer: {
@@ -192,10 +175,9 @@ const handleMount = (editor, monaco) => {
         endColumn: word.endColumn,
       };
 
-      // Sugestões dinâmicas de tabelas
       const tableSuggestions = props.dbTables.map((tableName) => ({
-        label: tableName, // O que aparece na lista
-        kind: monaco.languages.CompletionItemKind.Class, // Ícone de "Classe/Tabela"
+        label: tableName,
+        kind: monaco.languages.CompletionItemKind.Class,
         insertText: tableName,
         detail: "Tabela existente",
         range,
@@ -203,7 +185,6 @@ const handleMount = (editor, monaco) => {
 
       const suggestions = [
         ...tableSuggestions,
-        // Snippets
         {
           label: "create table",
           kind: monaco.languages.CompletionItemKind.Snippet,
@@ -221,8 +202,6 @@ const handleMount = (editor, monaco) => {
           documentation: "Snippet de Chave Estrangeira",
           range,
         },
-
-        // Keywords
         ...[
           "CREATE",
           "TABLE",
@@ -254,8 +233,6 @@ const handleMount = (editor, monaco) => {
           insertText: k,
           range,
         })),
-
-        // Types
         ...[
           "INT",
           "VARCHAR",
@@ -279,60 +256,44 @@ const handleMount = (editor, monaco) => {
     },
   });
 
-  // TEMA "BR DIAGRAMA SOFT"
   monaco.editor.defineTheme("BrDiagramaSoft", {
     base: "vs-dark",
     inherit: true,
     rules: [
-      // Ajustes de tema e tokens
-
-      { token: "keyword", foreground: "5EEAD4" }, // Teal Pastel (Marca Suave)
-      { token: "dataType", foreground: "FDBA74" }, // Pêssego
-      { token: "function", foreground: "93C5FD" }, // Azul Pastel
-      { token: "identifier.quoted", foreground: "FCA5A5" }, // Vermelho Pastel
-      { token: "identifier", foreground: "F1F5F9" }, // Branco
-      { token: "string", foreground: "86EFAC" }, // Verde Menta
-      { token: "number", foreground: "FCA5A5" }, // Vermelho Pastel
+      { token: "keyword", foreground: "5EEAD4" },
+      { token: "dataType", foreground: "FDBA74" },
+      { token: "function", foreground: "93C5FD" },
+      { token: "identifier.quoted", foreground: "FCA5A5" },
+      { token: "identifier", foreground: "F1F5F9" },
+      { token: "string", foreground: "86EFAC" },
+      { token: "number", foreground: "FCA5A5" },
       { token: "comment", foreground: "64748B", fontStyle: "italic" },
       { token: "delimiter", foreground: "94A3B8" },
     ],
     colors: {
-      // Editor Base
       "editor.background": "#0F172A",
       "editor.foreground": "#E2E8F0",
       "editorCursor.foreground": "#F8FAFC",
       "editor.lineHighlightBackground": "#1E293B",
       "editorLineNumber.foreground": "#475569",
       "editor.selectionBackground": "#334155",
-
-      // Erros e Avisos
       "editorError.foreground": "#EF4444",
       "editorWarning.foreground": "#F59E0B",
-
-      // WIDGETS (Caixa de Busca, Command Palette, Sugestões)
-      "editorWidget.background": "#020617", // Fundo bem escuro
-      "editorWidget.border": "#1E293B", // Borda sutil
-      "editorWidget.foreground": "#E2E8F0", // Texto
-
-      // INPUTS (Dentro do Find/Replace)
+      "editorWidget.background": "#020617",
+      "editorWidget.border": "#1E293B",
+      "editorWidget.foreground": "#E2E8F0",
       "input.background": "#0F172A",
       "input.foreground": "#E2E8F0",
       "input.border": "#334155",
-      "inputOption.activeBorder": "#5EEAD4", // Borda quando opção ativa (Case Sensitive etc)
-
-      // LISTAS (Dropdowns, Command Palette)
+      "inputOption.activeBorder": "#5EEAD4",
       "list.hoverBackground": "#1E293B",
       "list.activeSelectionBackground": "#334155",
       "list.activeSelectionForeground": "#FFFFFF",
-
-      // MENU DE CONTEXTO (Botão Direito)
       "menu.background": "#020617",
       "menu.foreground": "#E2E8F0",
       "menu.selectionBackground": "#1E293B",
       "menu.selectionForeground": "#5EEAD4",
       "menu.separatorBackground": "#334155",
-
-      // SCROLLBAR
       "scrollbarSlider.background": "#33415580",
       "scrollbarSlider.hoverBackground": "#475569",
       "scrollbarSlider.activeBackground": "#64748B",

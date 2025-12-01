@@ -8,9 +8,7 @@
     @mouseleave="handleMouseLeave"
     :style="{ width: '100%', height: '100%', cursor: store.isPanMode ? (isLeftMousePanning ? 'grabbing' : 'grab') : currentCursor }"
   >
-    <!-- NOVO: Definições de padrões para o grid -->
     <defs>
-      <!-- Linha 15-23 - Modificar o pattern: -->
       <pattern
         id="grid-pattern"
         :width="store.gridSize"
@@ -435,7 +433,6 @@
     </defs>
 
     <g id="background-layer">
-      <!-- Retângulo de fundo existente -->
       <rect
         class="diagram-background-rect"
         width="100%"
@@ -445,7 +442,6 @@
       />
     </g>
     <g id="viewport-layer">
-      <!-- Grid de fundo (condicional) -->
       <rect
         v-if="store.isGridVisible"
         class="grid-background"
@@ -458,8 +454,6 @@
       />
 
       <slot />
-
-      <!-- Retângulo de seleção -->
 
       <rect
         v-if="selectionBox.visible"
@@ -500,13 +494,11 @@ const svgRoot = ref(null);
 const panZoomInstance = ref(null);
 let isPanEnabled = false;
 let isMiddleMouseDown = false;
-const isLeftMousePanning = ref(false); // Para rastrear pan com botão esquerdo
+const isLeftMousePanning = ref(false);
 
-// Estado do cursor
 const currentCursor = ref("default");
 
-// --- Pointer/Gesture state (Fase B) ---
-const activePointers = new Map(); // pointerId -> { x, y }
+const activePointers = new Map();
 let gestureActive = false;
 let gestureInit = {
   distance: 0,
@@ -548,62 +540,45 @@ const updateGesture = () => {
   newZoom = clamp(newZoom, 0.01, 2.0);
 
   try {
-    // Treat as pinch (zoom)
     if (typeof panZoomInstance.value.zoomAtPoint === 'function') {
       panZoomInstance.value.zoomAtPoint(newZoom, { x: midpoint.x - rect.left, y: midpoint.y - rect.top });
     } else {
-      // Fallback: calcula content coords e reaplica pan após setZoom
       const initPan = gestureInit.pan;
       const initZoom = gestureInit.zoom;
       const contentX = (gestureInit.midpoint.x - rect.left - initPan.x) / initZoom;
       const contentY = (gestureInit.midpoint.y - rect.top - initPan.y) / initZoom;
 
-      // Aplica zoom
       panZoomInstance.value.zoom(newZoom);
 
-      // Calcula novo pan para manter o ponto no lugar do midpoint atual
       const newPanX = midpoint.x - rect.left - contentX * newZoom;
       const newPanY = midpoint.y - rect.top - contentY * newZoom;
       panZoomInstance.value.pan({ x: newPanX, y: newPanY });
     }
-  } catch (err) {
-    // gesture update error (suppressed)
-  }
+  } catch (err) {}
 };
 
-// Handlers globais para pointer (registrados dinamicamente)
 const onPointerMoveGlobal = (ev) => {
-  // Se estamos suprimindo handlers globais (ex: arrasto de tabela em App.vue), ignoramos
   if (window._brdiagrama_suppressGlobalPointerHandlers) return;
 
-  // Se não temos um registro prévio, ignoramos (registro feito no pointerdown)
   const prev = activePointers.get(ev.pointerId);
   if (!prev) return;
 
-  // Se estamos em panning com um único ponteiro (botão do meio ou modo mão), aplicamos pan manualmente
   if ((isMiddleMouseDown || isLeftMousePanning.value) && activePointers.size === 1 && panZoomInstance.value) {
     const dx = ev.clientX - prev.x;
     const dy = ev.clientY - prev.y;
 
-    // Atualiza o pan absoluto
     try {
       const currentPan = panZoomInstance.value.getPan();
       panZoomInstance.value.pan({ x: currentPan.x + dx, y: currentPan.y + dy });
-    } catch (err) {
-      // pan manual error (suppressed)
-    }
+    } catch (err) {}
 
-    // Atualiza o ponto armazenado
     activePointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
-    // Salva estado para persistir se necessário
     saveState();
     return;
   }
 
-  // Atualiza posição e, caso tenhamos >=2 ponteiros, processa gesture (pinch/pan)
   activePointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
   if (activePointers.size >= 2) {
-    // If selection was pending (waiting to see if a second pointer would arrive), cancel it
     if (selectionPending) {
       selectionPending = false;
       if (selectionPendingTimeout) {
@@ -619,7 +594,6 @@ const onPointerMoveGlobal = (ev) => {
 
 const onPointerUpGlobal = (ev) => {
   if (activePointers.has(ev.pointerId)) activePointers.delete(ev.pointerId);
-  // Cancel any pending single-touch selection when pointers change
   if (selectionPending) {
     selectionPending = false;
     if (selectionPendingTimeout) {
@@ -640,7 +614,6 @@ const onPointerUpGlobal = (ev) => {
   }
 };
 
-// Estado do retângulo de seleção
 const selectionBox = ref({
   visible: false,
   startX: 0,
@@ -683,7 +656,6 @@ const startSelectionFromCoords = (startClient) => {
   }
 };
 
-// Função para salvar o estado de zoom e pan na store
 const saveState = () => {
   if (!panZoomInstance.value) return;
 
@@ -694,10 +666,7 @@ const saveState = () => {
   store.updateZoom(zoom);
 };
 
-// --- Funções de Panorâmica (Arrastar) ---
-
 const handleMouseDown = (e) => {
-  // Se for PointerEvent, registre o ponteiro para suportar gestos
   if (window.PointerEvent && e.pointerId != null) {
     activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (!window._brdiagrama_hasPointerListeners) {
@@ -707,49 +676,39 @@ const handleMouseDown = (e) => {
       window._brdiagrama_hasPointerListeners = true;
     }
   }
-  // Ignora se o clique foi em um elemento que não seja o fundo (tabelas, etc)
   const targetClasses = e.target.classList;
   const isBackground = targetClasses.contains('diagram-background-rect') || 
                        targetClasses.contains('grid-background') ||
                        e.target === svgRoot.value;
 
-  // Avisa o pai que o usuário tocou/clicou no canvas (permite desselcionar hover/colunas)
   if (isBackground) {
     emit('canvasPointerDown');
   }
   
-  // Botão do meio (Scroll/Pan)
   if (e.button === 1) {
     e.preventDefault();
     isMiddleMouseDown = true;
     enablePan();
   }
-  // Botão esquerdo (Pan Mode ou Seleção)
   else if (e.button === 0) {
-    // Se Pan Mode estiver ativo, ativa o pan
     if (store.isPanMode) {
-      // Não prevenir o evento para não bloquear o svg-pan-zoom interno
       isLeftMousePanning.value = true;
       enablePan();
       return;
     }
     
-    // Só inicia seleção se clicou no fundo
     if (!isBackground) {
       return;
     }
 
-    // Se houver >=2 pointers ativos, isso é parte de um gesto (pinch) — não iniciar seleção
     if (activePointers.size >= 2) {
       return;
     }
 
-    // Caso contrário, inicia seleção
     const rect = svgRoot.value.getBoundingClientRect();
     const pan = panZoomInstance.value.getPan();
     const zoom = panZoomInstance.value.getZoom();
 
-    // Para dispositivos touch, aguarda um curto delay para detectar segunda ponta (evita iniciar seleção quando o usuário começar um gesto com 2 dedos)
     const isTouch = window.PointerEvent && e.pointerType === 'touch';
     if (isTouch) {
       selectionPending = true;
@@ -762,17 +721,14 @@ const handleMouseDown = (e) => {
         selectionPending = false;
         selectionPendingStart = null;
       }, 60);
-      // don't start selection immediately; wait a short moment to see if a second pointer arrives
       return;
     }
 
-    // Inicia coordenadas (desktop / immediate)
     startPoint.x = (e.clientX - rect.left - pan.x) / zoom;
     startPoint.y = (e.clientY - rect.top - pan.y) / zoom;
 
     isSelecting = true;
 
-    // Define caixa inicial (ponto único)
     selectionBox.value = {
       visible: true,
       startX: startPoint.x,
@@ -781,7 +737,6 @@ const handleMouseDown = (e) => {
       endY: startPoint.y,
     };
 
-  // Adiciona listeners na janela para garantir que o mouse/up seja capturado mesmo fora do SVG
     if (window.PointerEvent) {
       window.addEventListener("pointermove", handleMouseMove, { passive: false });
       window.addEventListener("pointerup", handleWindowMouseUp);
@@ -796,8 +751,6 @@ const handleMouseDown = (e) => {
 const handleMouseMove = (e) => {
   if (!isSelecting) return;
   
-  // Previne selecionar texto indesejado enquanto arrasta
-  // Em eventos de touch precisamos prevenir scroll enquanto selecionamos
   if (e.cancelable) e.preventDefault();
 
   const rect = svgRoot.value.getBoundingClientRect();
@@ -807,7 +760,6 @@ const handleMouseMove = (e) => {
   selectionBox.value.endX = (e.clientX - rect.left - pan.x) / zoom;
   selectionBox.value.endY = (e.clientY - rect.top - pan.y) / zoom;
 
-  // Emitindo em tempo real para o efeito visual
   const currentSelection = {
       x1: Math.min(selectionBox.value.startX, selectionBox.value.endX),
       y1: Math.min(selectionBox.value.startY, selectionBox.value.endY),
@@ -822,7 +774,6 @@ const handleWindowMouseUp = (e) => {
   if (isSelecting && e.button === 0) {
     isSelecting = false;
     
-    // Remove os listeners globais para não pesar a memória
     if (window.PointerEvent) {
       window.removeEventListener("pointermove", handleMouseMove);
       window.removeEventListener("pointerup", handleWindowMouseUp);
@@ -832,7 +783,6 @@ const handleWindowMouseUp = (e) => {
       window.removeEventListener("mouseup", handleWindowMouseUp);
     }
 
-    // Calcula área final
     const selectionArea = {
       x1: Math.min(selectionBox.value.startX, selectionBox.value.endX),
       y1: Math.min(selectionBox.value.startY, selectionBox.value.endY),
@@ -840,10 +790,8 @@ const handleWindowMouseUp = (e) => {
       y2: Math.max(selectionBox.value.startY, selectionBox.value.endY),
     };
 
-    // Emite evento final (App.vue vai processar e limpar se for clique vazio)
     emit("selectionArea", selectionArea);
 
-    // Esconde a caixa visualmente
     selectionBox.value.visible = false;
   }
 };
@@ -853,7 +801,6 @@ const handleGlobalMouseUp = (e) => {
         isMiddleMouseDown = false;
         disablePan();
     }
-    // Se Pan Mode estiver ativo e botão esquerdo for solto
     if (e.button === 0 && isLeftMousePanning.value) {
         isLeftMousePanning.value = false;
         disablePan();
@@ -865,7 +812,6 @@ const handleMouseUp = (e) => {
     isMiddleMouseDown = false;
     disablePan();
   } else if (e.button === 0 && isSelecting) {
-    // Finalizar seleção
     isSelecting = false;
     if (window.PointerEvent) {
       svgRoot.value.removeEventListener("pointermove", handleMouseMove);
@@ -873,8 +819,6 @@ const handleMouseUp = (e) => {
       svgRoot.value.removeEventListener("mousemove", handleMouseMove);
     }
 
-    // Aqui você pode emitir um evento com as coordenadas do retângulo
-    // para que o componente pai possa selecionar as tabelas dentro da área
     const selectionArea = {
       x1: Math.min(selectionBox.value.startX, selectionBox.value.endX),
       y1: Math.min(selectionBox.value.startY, selectionBox.value.endY),
@@ -882,10 +826,8 @@ const handleMouseUp = (e) => {
       y2: Math.max(selectionBox.value.startY, selectionBox.value.endY),
     };
 
-    // Emit event para o componente pai
     emit("selectionArea", selectionArea);
 
-    // Esconder o retângulo
     setTimeout(() => {
       selectionBox.value.visible = false;
     }, 100);
@@ -905,7 +847,6 @@ const handleMouseLeave = () => {
 
 const enablePan = () => {
   if (panZoomInstance.value) {
-    // Altera o cursor para indicar que é possível arrastar
     currentCursor.value = "grabbing";
     panZoomInstance.value.enablePan();
     isPanEnabled = true;
@@ -914,7 +855,6 @@ const enablePan = () => {
 
 const disablePan = () => {
   if (panZoomInstance.value && isPanEnabled) {
-    // Restaura o cursor
     currentCursor.value = "default";
     panZoomInstance.value.disablePan();
     isPanEnabled = false;
@@ -922,64 +862,43 @@ const disablePan = () => {
 };
 
 const handleWheelEvent = (e) => {
-  // Verifica se Ctrl está pressionado
   if (e.ctrlKey) {
-    // Previne o comportamento padrão apenas quando Ctrl estiver pressionado
     e.preventDefault();
     handleZoom(e);
   }
-  // Se Ctrl não estiver pressionado, permite o scroll normal da página
 };
 
-// --- Funções de Zoom ---
-
-// Lida com o zoom usando a roda do mouse (scroll)
 const handleZoom = (e) => {
   if (!panZoomInstance.value) return;
 
-  // Calcula as coordenadas do mouse no elemento SVG
   const rect = svgRoot.value.getBoundingClientRect();
   const clientX = e.clientX - rect.left;
-  const clientY = e.clientY - rect.top; // Pega o zoom atual
+  const clientY = e.clientY - rect.top;
   const currentZoom = panZoomInstance.value.getZoom();
 
-  // Decide a direção (in/out)
   const delta = e.deltaY < 0 ? 1 : -1;
-  // Usa uma sensibilidade menor para um zoom mais suave
   const scaleFactor = 1.1 ** delta;
-  // Calcula o novo zoom
   let newZoom = currentZoom * scaleFactor;
 
-  // Aplica os limites rigorosamente (1% a 200%)
-  const minZoom = 0.01; // 1%
-  const maxZoom = 2.0; // 200%
+  const minZoom = 0.01;
+  const maxZoom = 2.0;
 
-  // Força os limites
   newZoom = Math.max(minZoom, Math.min(maxZoom, newZoom));
 
-  // debug logs removed
-
-  // Se o zoom não mudou significativamente, não faz nada
   if (Math.abs(newZoom - currentZoom) < 0.001) {
-  // debug logs removed
     return;
-  } // FORÇA o zoom diretamente, ignorando os limites internos da biblioteca
+  }
   try {
-    // Temporariamente remove os limites da biblioteca
     panZoomInstance.value.setMinZoom(0.001);
     panZoomInstance.value.setMaxZoom(10);
 
-    // Aplica o novo zoom diretamente
     panZoomInstance.value.zoom(newZoom);
 
-    // Restaura os limites
     panZoomInstance.value.setMinZoom(0.01);
     panZoomInstance.value.setMaxZoom(2.0);
 
     saveState();
-  } catch (error) {
-    // zoom apply error (suppressed)
-  }
+  } catch (error) {}
 };
 
 // Monitora o zoom vindo da store (ex: do slider na toolbar)
@@ -996,7 +915,6 @@ watch(
 
 onMounted(() => {
   if (svgRoot.value) {
-    // Aguarda um momento para garantir que o DOM esteja pronto
     setTimeout(() => {
       try {
         panZoomInstance.value = svgPanZoom(svgRoot.value, {
@@ -1004,40 +922,33 @@ onMounted(() => {
           panEnabled: false,
           dblClickZoomEnabled: false,
           zoomScaleSensitivity: 0,
-          minZoom: 0.01, // 1% mínimo (0.01 * 100 = 1%)
-          maxZoom: 2.0, // 200% máximo (2.0 * 100 = 200%)
+          minZoom: 0.01,
+          maxZoom: 2.0,
           fit: false,
           center: false,
         });
 
-        // Força os limites novamente (às vezes a biblioteca ignora na inicialização)
         panZoomInstance.value.setMinZoom(0.01);
         panZoomInstance.value.setMaxZoom(2.0);
 
-        // Carrega o estado inicial
         panZoomInstance.value.zoom(store.zoom);
         panZoomInstance.value.pan(store.pan);
 
-        // Adiciona listeners para salvar o estado
         panZoomInstance.value.setOnPan(saveState);
         panZoomInstance.value.setOnZoom(saveState);
 
-          // Listener global para capturar mouseup/pointerup fora do SVG
          if (window.PointerEvent) {
            window.addEventListener("pointerup", handleGlobalMouseUp);
            window.addEventListener("pointercancel", handleGlobalMouseUp);
          } else {
            window.addEventListener("mouseup", handleGlobalMouseUp);
          }
-      } catch (error) {
-        // svg-pan-zoom init error (suppressed)
-      }
+      } catch (error) {}
     }, 100);
   }
 });
 
 onUnmounted(() => {
-  // Limpar listeners globais
   if (window.PointerEvent) {
     window.removeEventListener("pointerup", handleGlobalMouseUp);
     window.removeEventListener("pointercancel", handleGlobalMouseUp);
@@ -1046,7 +957,6 @@ onUnmounted(() => {
     window.removeEventListener("pointercancel", handleWindowMouseUp);
     window.removeEventListener("pointermove", handleMouseMove);
 
-    // Remover listeners de gesture caso existam
     if (window._brdiagrama_hasPointerListeners) {
       window.removeEventListener('pointermove', onPointerMoveGlobal);
       window.removeEventListener('pointerup', onPointerUpGlobal);
@@ -1059,16 +969,14 @@ onUnmounted(() => {
     window.removeEventListener("mousemove", handleMouseMove);
   }
 
-  // Ensure suppression flag removed on unmount
   try { window._brdiagrama_suppressGlobalPointerHandlers = false; } catch (e) {}
 });
 
-// --- Métodos Expostos (Acessíveis pelo componente pai) ---
 const fitToScreen = () => {
   if (panZoomInstance.value) {
     panZoomInstance.value.fit();
     panZoomInstance.value.center();
-    saveState(); // Salva o novo estado 'fit'
+    saveState();
   }
 };
 
@@ -1081,12 +989,10 @@ defineExpose({
 
 <style>
 .diagram-background-rect {
-  /* Retângulo de fundo do SVG */
   fill: none;
 }
 
 .grid-background {
-  /* Grid de fundo do SVG */
   pointer-events: none;
 }
 
@@ -1102,11 +1008,11 @@ defineExpose({
 
 .table-title {
   fill: #ffffff;
-  font-weight: 700; /* Negrito mais forte como na imagem */
+  font-weight: 700;
   font-size: 14px;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   pointer-events: none;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.1); /* Leve sombra para leitura */
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
 .col-text {
@@ -1121,7 +1027,7 @@ defineExpose({
   fill: #95a5a6;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   pointer-events: none;
-  text-transform: uppercase; /* Fica mais elegante */
+  text-transform: uppercase;
 }
 
 .pk-icon {
@@ -1138,14 +1044,13 @@ defineExpose({
   font-family: "Segoe UI", sans-serif;
 }
 
-/* Ajuste para ícones SVG do Lucide (prioriza cor via color e remove fill) */
 .pk-icon svg {
-  color: #10b981 !important; /* Teal para PK */
+  color: #10b981 !important;
   fill: none;
 }
 
 .fk-icon svg {
-  color: #3b82f6 !important; /* Azul para FK */
+  color: #3b82f6 !important;
   fill: none;
 }
 
@@ -1159,8 +1064,8 @@ defineExpose({
 }
 
 .table-group:hover .table-rect {
-  stroke: #192747; /* cor da borda ao passar o mouse */
-  stroke-width: 1px; /* opcional: engrossar */
+  stroke: #192747;
+  stroke-width: 1px;
 }
 
 .table-group:active {

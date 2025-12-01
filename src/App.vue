@@ -483,12 +483,10 @@
 import { ref, computed, onMounted, watch, nextTick, shallowRef } from "vue";
 import DiagramCanvas from "./components/DiagramCanvas.vue";
 import DiagramToolbar from "./components/DiagramToolbar.vue";
-//import { MockApiService } from "./services/mockApi.service.js";
 import RelationshipLine from "./components/RelationshipLine.vue";
 import SqlEditor from "./components/SqlEditor.vue";
-import { SqlValidator } from "./services/SqlValidator.js";
-import { SqlParserService } from "./models/sqlParser.service.js";
 import ProblemsPanel from "./components/ProblemsPanel.vue";
+import { DiagramController } from "./controllers/DiagramController.js";
 import { XCircle, AlertTriangle } from "lucide-vue-next";
 import { useDiagramStore } from "./stores/diagram.js";
 import {
@@ -815,7 +813,9 @@ const warningCount = computed(() => validationResult.value.warnings.length);
 
 // Função para atualizar o diagrama via API
 const updateDiagram = async () => {
-  // Limpeza Inicial
+  const result = DiagramController.processSql(sqlCode.value);
+
+  // Se SQL vazio, limpa tudo
   if (!sqlCode.value.trim()) {
     tables.value = {};
     relationships.value = [];
@@ -823,112 +823,45 @@ const updateDiagram = async () => {
     return;
   }
 
-  let tempErrors = [];
-  let tempWarnings = [];
-  let tempTables = {};
-  let tempRelationships = [];
-  let isValid = true;
-
-  // Guard check: valida se começou com um comando SQL real
-  // Pega a primeira palavra do texto (ignorando espaços e comentários)
-  const cleanStart = sqlCode.value.replace(/--.*$/gm, "").trim();
-  const firstWordMatch = cleanStart.match(/^([a-zA-Z]+)/);
-
-  if (firstWordMatch) {
-    const command = firstWordMatch[1].toUpperCase();
-    // Lista de comandos permitidos para iniciar (incluindo DROP e ALTER como pediu)
-    const validStarters = ["CREATE", "DROP", "ALTER", "USE", "SET"];
-
-    if (!validStarters.includes(command)) {
-      // SE FOR LIXO ("k2j13k12") -> ERRO VERMELHO IMEDIATO
-      tempErrors.push({
-        line: 1, // Assume linha 1 ou busca a linha
-        message: `Comando desconhecido: "${firstWordMatch[1]}". Comece com CREATE, DROP ou ALTER.`,
-        type: "error",
-      });
-      isValid = false;
-
-      // Não roda o resto para economizar processamento
-      finishUpdate(false, tempErrors, tempWarnings);
-      return;
+  // Se houve sucesso no parsing
+  if (result.success && result.data) {
+    const tempTables = {};
+    for (const tableName in result.data.tables) {
+      const oldTable = tables.value[tableName];
+      tempTables[tableName] = {
+        ...result.data.tables[tableName],
+        columns: sortColumns(result.data.tables[tableName].columns),
+        x: oldTable?.x || result.data.tables[tableName].x,
+        y: oldTable?.y || result.data.tables[tableName].y,
+      };
     }
-  }
 
-  // 2. VALIDAÇÃO ESTRUTURAL (SqlValidator)
-  const validation = SqlValidator.validate(sqlCode.value);
-  tempErrors.push(...validation.errors);
-  tempWarnings.push(...validation.warnings);
-
-  if (!validation.isValid) {
-    isValid = false;
-  } else {
-    // 3. PARSER (Geração do Diagrama)
-    try {
-      const parseResult = SqlParserService.parse(sqlCode.value);
-
-      // ... processamento das tabelas (mantive igual) ...
-      for (const tableName in parseResult.tables) {
-        const oldTable = tables.value[tableName];
-        tempTables[tableName] = {
-          ...parseResult.tables[tableName],
-          columns: sortColumns(parseResult.tables[tableName].columns),
-          x: oldTable?.x || parseResult.tables[tableName].x,
-          y: oldTable?.y || parseResult.tables[tableName].y,
-        };
-      }
-      tempRelationships = parseResult.relationships;
-
-      // Detecta tabelas de HERANÇA: quando há exatamente 1 PK e essa PK também é FK
-      // Marca a tabela com a flag `isInheritance` para uso na renderização
-      Object.values(tempTables).forEach((t) => {
-        const pkCount = (t.columns || []).filter((c) => c.isPk).length;
-        if (pkCount === 1) {
-          const pkCol = (t.columns || []).find((c) => c.isPk);
-          if (pkCol && pkCol.isFk) {
-            t.isInheritance = true;
-          } else {
-            t.isInheritance = false;
-          }
+    Object.values(tempTables).forEach((t) => {
+      const pkCount = (t.columns || []).filter((c) => c.isPk).length;
+      if (pkCount === 1) {
+        const pkCol = (t.columns || []).find((c) => c.isPk);
+        if (pkCol && pkCol.isFk) {
+          t.isInheritance = true;
         } else {
           t.isInheritance = false;
         }
-      });
-
-      lastValidState.value = {
-        tables: JSON.parse(JSON.stringify(tempTables)),
-        relationships: [...tempRelationships],
-      };
-    } catch (parserError) {
-    // parser error (suppressed)
-      const rawMsg = parserError.message || "";
-
-      const isJsError =
-        rawMsg.includes("Cannot read propert") || rawMsg.includes("is not iterable");
-
-      // 2. Erros de Parser (End of Input / Expected)
-      const isIncomplete = rawMsg.includes("end of input") || rawMsg.includes("Expected");
-
-      if (isJsError || isIncomplete) {
-        tempWarnings.push({
-          line: parserError.location ? parserError.location.start.line : 1,
-          message: "Termine de escrever o comando...", // Amarelo (Aviso)
-          type: "warning",
-        });
-        // Impede atualização do diagrama com estado quebrado
-        isValid = false;
       } else {
-        // Erro de sintaxe real e explícito (ex: tipo de dado errado detectado pelo parser)
-        tempErrors.push({
-          line: parserError.location ? parserError.location.start.line : 1,
-          message: "Erro de sintaxe: " + rawMsg,
-          type: "error",
-        });
-        isValid = false;
+        t.isInheritance = false;
       }
-    }
-  }
+    });
 
-  finishUpdate(isValid, tempErrors, tempWarnings, tempTables, tempRelationships);
+    tables.value = tempTables;
+    relationships.value = result.data.relationships;
+
+    lastValidState.value = {
+      tables: JSON.parse(JSON.stringify(tempTables)),
+      relationships: [...result.data.relationships],
+    };
+
+    finishUpdate(true, result.errors, result.warnings, tempTables, result.data.relationships);
+  } else {
+    finishUpdate(false, result.errors, result.warnings);
+  }
 };
 
 // Função auxiliar para não repetir o código de finalização/filtragem

@@ -56,8 +56,6 @@
 import { computed } from 'vue';
 import { useDiagramStore } from '@/stores/diagram';
 
-
-// Propriedade injetada: O componente pai deve passar a ref do DiagramCanvas
 const props = defineProps({
     diagramRef: {
         type: Object,
@@ -67,33 +65,23 @@ const props = defineProps({
 
 const store = useDiagramStore();
 
-// NOVA: Função para toggle do grid
 const toggleGrid = () => {
     store.toggleGrid();
 };
 
-// Função para toggle do pan mode
 const togglePanMode = () => {
     store.togglePanMode();
 };
 
-// Lógica para sincronizar o zoom com a store
 const zoomScale = computed({
     get() {
-        return store.zoom * 100; // Store 1.0 -> UI 100
+        return store.zoom * 100;
     },
     set(value) {
-        store.updateZoom(value / 100); // UI 100 -> Store 1.0
+        store.updateZoom(value / 100);
     }
 });
 
-/**
- * Calcula o próximo incremento baseado no valor atual do zoom
- * 1-30: +1
- * 31-100: +3
- * 101-150: +5
- * 151-200: +8
- */
 const getZoomIncrement = (currentZoom) => {
     if (currentZoom <= 30) return 1;
     if (currentZoom <= 100) return 3;
@@ -101,9 +89,6 @@ const getZoomIncrement = (currentZoom) => {
     return 8;
 };
 
-/**
- * Aumenta o zoom seguindo a lógica de incremento variável
- */
 const increaseZoom = () => {
     const current = Math.round(zoomScale.value);
     const increment = getZoomIncrement(current);
@@ -111,13 +96,8 @@ const increaseZoom = () => {
     zoomScale.value = newZoom;
 };
 
-/**
- * Diminui o zoom seguindo a lógica de incremento variável
- */
 const decreaseZoom = () => {
     const current = Math.round(zoomScale.value);
-    
-    // Determina o decremento baseado no valor APÓS a diminuição
     let newZoom = current;
     
     if (current > 151) {
@@ -133,9 +113,6 @@ const decreaseZoom = () => {
     zoomScale.value = newZoom;
 };
 
-/**
- * Reseta o zoom para 100%
- */
 const resetZoom = () => {
     zoomScale.value = 100;
 };
@@ -238,7 +215,7 @@ const resetZoom = () => {
 }
 
 .grid-btn.active {
-    background-color: rgba(45,212,191,0.14); /* light turquoise */
+    background-color: rgba(45,212,191,0.14);
     color: #24a897;
 }
 
@@ -278,7 +255,6 @@ const resetZoom = () => {
 
 @media (max-width: 768px) {
     .diagram-toolbar {
-        /* Sobe mais para evitar corte em telefones com home indicator */
         bottom: calc(80px + env(safe-area-inset-bottom, 20px));
         gap: 12px;
         padding: 12px;

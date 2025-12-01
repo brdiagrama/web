@@ -134,7 +134,6 @@ const sortedProblems = computed(() => {
   gap: 8px;
 }
 
-/* Badges Estilo Chip */
 .count-badge {
   font-size: 11px;
   padding: 3px 8px;
@@ -159,7 +158,6 @@ const sortedProblems = computed(() => {
   border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
-/* Botão Fechar */
 .icon-btn {
   background: none;
   border: none;
@@ -177,7 +175,6 @@ const sortedProblems = computed(() => {
   color: #F8FAFC;
 }
 
-/* Lista de Problemas */
 .problem-item {
   display: flex;
   position: relative;
@@ -205,7 +202,6 @@ const sortedProblems = computed(() => {
   background-color: rgba(245, 158, 11, 0.15);
 }
 
-/* Faixinha colorida na esquerda (estilo VS Code) */
 .problem-status-strip {
   position: absolute;
   left: 0;
@@ -272,12 +268,10 @@ const sortedProblems = computed(() => {
   min-height: 0;     /* Garante que o scroll funcione corretamente dentro do flexbox */
 }
 
-/* Scrollbar */
 .problems-list::-webkit-scrollbar { width: 8px; }
 .problems-list::-webkit-scrollbar-track { background: #020617; }
 .problems-list::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
 
-/* Animação Slide Up */
 .slide-up-enter-active,
 .slide-up-leave-active {
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
