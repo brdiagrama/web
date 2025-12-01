@@ -16,7 +16,6 @@ export default defineConfig({
         theme_color: '#1abc9c',
         background_color: '#0F172A',
         display: 'standalone',
-        scope: '/',
         start_url: '/gerador',
         icons: [
           {
