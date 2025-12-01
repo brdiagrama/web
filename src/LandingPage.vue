@@ -54,6 +54,12 @@ const contents = {
 
 const currentTabContent = computed(() => contents[activeTab.value]);
 
+// Navegação para o gerador (força navegação completa)
+const goToGerador = (e) => {
+  e.preventDefault();
+  window.location.href = '/gerador';
+};
+
 // Máquina de Escrever
 const typewriterStarted = ref(false);
 const _typewriterTimeouts = [];
@@ -291,7 +297,7 @@ onMounted(() => {
           class="text-sm font-medium hover:text-[var(--clr-primary)] transition-colors"
           >FAQ</a
         >
-        <InstallButton />
+        <InstallButton v-if="true" />
       </nav>
     </header>
 
@@ -399,6 +405,7 @@ onMounted(() => {
 
           <a
             href="/gerador"
+            @click="goToGerador"
             class="cta-button text-lg inline-flex items-center justify-center relative z-20"
             id="hero-cta"
           >

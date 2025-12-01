@@ -18,13 +18,20 @@ const showInstallPrompt = ref(false);
 let deferredPrompt = null;
 
 onMounted(() => {
+  // Debug: mostrar sempre em dev mode
+  if (import.meta.env.DEV) {
+    console.log('InstallButton montado! Aguardando beforeinstallprompt...');
+  }
+
   window.addEventListener('beforeinstallprompt', (e) => {
+    console.log('beforeinstallprompt disparado!');
     e.preventDefault();
     deferredPrompt = e;
     showInstallPrompt.value = true;
   });
 
   window.addEventListener('appinstalled', () => {
+    console.log('App instalado!');
     showInstallPrompt.value = false;
     deferredPrompt = null;
   });
