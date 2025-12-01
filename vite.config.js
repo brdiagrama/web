@@ -46,6 +46,9 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
         // Ignora HTMLs no precache
         globIgnores: ['**/index.html', '**/editor.html'],
+        // Desabilita navigateFallback para evitar erro
+        navigateFallback: null,
+        navigateFallbackDenylist: [/^\//],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         runtimeCaching: [
           {
