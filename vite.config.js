@@ -34,6 +34,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -59,6 +60,14 @@ export default defineConfig({
                 maxAgeSeconds: 60 * 60 * 24 * 7
               }
             }
+          },
+          {
+            urlPattern: /\/gerador$/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'pages-cache',
+              networkTimeoutSeconds: 3
+            }
           }
         ]
       }
@@ -75,11 +84,21 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
         editor: resolve(__dirname, 'editor.html'), 
       },
+      output: {
+        manualChunks: {
+          'vendor': ['vue', 'pinia'],
+          'monaco': ['@guolao/vue-monaco-editor'],
+          'svg-utils': ['svg-pan-zoom'],
+          'sql-parser': ['node-sql-parser'],
+          'icons': ['lucide-vue-next'],
+        }
+      }
     },
   },
 });
