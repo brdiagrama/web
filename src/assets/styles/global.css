@@ -18,3 +18,10 @@ body.is-resizing-global * {
 /* A exceção: O nosso escudo invisível (se ele existir no DOM) precisa receber eventos */
 /* Mas como estamos ouvindo o window no JS, nem isso é estritamente necessário, 
    mas o pointer-events: none no * resolve 99% dos bugs de arraste */
+
+/* Garante que o InstallButton seja visível */
+.install-btn {
+  z-index: 100 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}

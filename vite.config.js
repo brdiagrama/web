@@ -6,17 +6,6 @@ import { resolve } from 'path';
 export default defineConfig({
   plugins: [
     vue(),
-    {
-      name: 'rewrite-gerador',
-      configureServer(server) {
-        server.middlewares.use((req, res, next) => {
-          if (req.url === '/gerador' || req.url === '/gerador/') {
-            req.url = '/editor.html';
-          }
-          next();
-        });
-      },
-    },
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'logo.svg'],
@@ -73,11 +62,25 @@ export default defineConfig({
             }
           },
           {
-            urlPattern: /\/gerador$/,
+            urlPattern: ({ request }) => request.mode === 'navigate',
             handler: 'NetworkFirst',
             options: {
               cacheName: 'pages-cache',
-              networkTimeoutSeconds: 3
+              networkTimeoutSeconds: 5,
+              plugins: [
+                {
+                  cacheWillUpdate: async ({ response }) => {
+                    if (response && response.type === 'opaqueredirect') {
+                      return new Response(response.body, {
+                        status: 200,
+                        statusText: 'OK',
+                        headers: response.headers
+                      });
+                    }
+                    return response;
+                  }
+                }
+              ]
             }
           }
         ]
