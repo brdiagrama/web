@@ -6,6 +6,17 @@ import { resolve } from 'path';
 export default defineConfig({
   plugins: [
     vue(),
+    {
+      name: 'rewrite-gerador',
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          if (req.url === '/gerador' || req.url === '/gerador/') {
+            req.url = '/editor.html';
+          }
+          next();
+        });
+      },
+    },
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'logo.svg'],
@@ -80,6 +91,7 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    open: '/',
   },
   build: {
     outDir: 'dist',
