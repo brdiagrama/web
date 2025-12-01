@@ -16,7 +16,7 @@ export default defineConfig({
         theme_color: '#1abc9c',
         background_color: '#0F172A',
         display: 'standalone',
-        start_url: '/gerador',
+        start_url: '/',
         icons: [
           {
             src: '/web-app-manifest-192x192.png',
