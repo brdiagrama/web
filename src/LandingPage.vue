@@ -55,8 +55,20 @@ const contents = {
 const currentTabContent = computed(() => contents[activeTab.value]);
 
 // Navegação para o gerador (força navegação completa)
-const goToGerador = (e) => {
+const goToGerador = async (e) => {
   e.preventDefault();
+  
+  // Tenta limpar cache de navegação antes de ir
+  if ('caches' in window) {
+    try {
+      const cache = await caches.open('html-cache');
+      await cache.delete('/gerador');
+      console.log('Cache /gerador limpo antes de navegar');
+    } catch (err) {
+      console.warn('Não foi possível limpar cache:', err);
+    }
+  }
+  
   window.location.href = '/gerador';
 };
 
@@ -297,6 +309,13 @@ onMounted(() => {
           class="text-sm font-medium hover:text-[var(--clr-primary)] transition-colors"
           >FAQ</a
         >
+        <a
+          href="/gerador"
+          class="install-btn-fallback"
+          title="Ir para o Gerador (onde você pode instalar o app)"
+        >
+          Instalar App
+        </a>
       </nav>
     </header>
 
@@ -1103,5 +1122,32 @@ onMounted(() => {
     display: block !important;
     overflow: visible !important;
   }
+}
+
+/* Botão de instalar na landing (link para /gerador) */
+.install-btn-fallback {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);
+  color: white !important;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(26, 188, 156, 0.3);
+  text-decoration: none;
+}
+
+.install-btn-fallback:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 188, 156, 0.4);
+}
+
+.install-btn-fallback:active {
+  transform: translateY(0);
 }
 </style>
