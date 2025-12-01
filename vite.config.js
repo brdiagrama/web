@@ -22,32 +22,18 @@ export default defineConfig({
             src: '/web-app-manifest-192x192.png',
             sizes: '192x192',
             type: 'image/png',
-            purpose: 'maskable'
+            purpose: 'any maskable'
           },
           {
             src: '/web-app-manifest-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'maskable'
-          },
-          {
-            src: '/favicon-96x96.png',
-            sizes: '96x96',
-            type: 'image/png',
-            purpose: 'any'
+            purpose: 'any maskable'
           }
         ]
       },
       workbox: {
-        clientsClaim: true,
-        skipWaiting: true,
-        // NÃO cacheia HTMLs no precache - só JS, CSS, assets
-        globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
-        // Ignora HTMLs no precache
-        globIgnores: ['**/index.html', '**/editor.html'],
-        // Desabilita navigateFallback para evitar erro
-        navigateFallback: null,
-        navigateFallbackDenylist: [/^\//],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         runtimeCaching: [
           {
@@ -76,9 +62,12 @@ export default defineConfig({
             }
           },
           {
-            // QUALQUER navegação HTML: SEMPRE da rede, NUNCA do cache
-            urlPattern: ({ request }) => request.destination === 'document' || request.mode === 'navigate',
-            handler: 'NetworkOnly'
+            urlPattern: /\/gerador$/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'pages-cache',
+              networkTimeoutSeconds: 3
+            }
           }
         ]
       }
@@ -91,7 +80,6 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    open: '/',
   },
   build: {
     outDir: 'dist',
