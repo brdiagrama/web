@@ -65,7 +65,14 @@ export default defineConfig({
           },
           {
             urlPattern: ({ request }) => request.destination === 'document' || request.mode === 'navigate',
-            handler: 'NetworkOnly'
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'pages-cache',
+              networkTimeoutSeconds: 3,
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
           }
         ]
       }
