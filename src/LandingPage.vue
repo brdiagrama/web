@@ -3,7 +3,6 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { RefreshCw, ArrowLeft } from "lucide-vue-next";
-import InstallButton from './components/InstallButton.vue';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -296,7 +295,6 @@ onMounted(() => {
           class="text-sm font-medium hover:text-[var(--clr-primary)] transition-colors"
           >FAQ</a
         >
-        <InstallButton />
       </nav>
     </header>
 

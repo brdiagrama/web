@@ -113,6 +113,11 @@
       <div v-show="isEditorVisible && !isMobile" class="resizer-handle" @mousedown="startResize"></div>
 
       <div v-if="!isMobile || activeTab === 'diagram'" class="canvas-panel">
+        <!-- Botão de instalar PWA no canto superior direito -->
+        <div class="install-button-wrapper">
+          <InstallButton />
+        </div>
+        
         <DiagramCanvas
           ref="diagramCanvasRef"
           class="canvas-container"
@@ -122,8 +127,6 @@
         >
           <!-- Definições SVG -->
           <defs> </defs>
-          <!-- Debug: Mostrar informações dos dados -->
-          <!-- A mensagem é exibida via overlay quando não há diagrama; mantemos o SVG limpo -->
           <g v-if="tables && Object.keys(tables).length > 0">
             <g class="relationships-back" ref="relationshipsBack">
               <RelationshipLine
@@ -486,6 +489,7 @@ import DiagramToolbar from "./components/DiagramToolbar.vue";
 import RelationshipLine from "./components/RelationshipLine.vue";
 import SqlEditor from "./components/SqlEditor.vue";
 import ProblemsPanel from "./components/ProblemsPanel.vue";
+import InstallButton from "./components/InstallButton.vue";
 import { DiagramController } from "./controllers/DiagramController.js";
 import { XCircle, AlertTriangle } from "lucide-vue-next";
 import { useDiagramStore } from "./stores/diagram.js";
@@ -811,12 +815,11 @@ const lastValidState = ref(null);
 const errorCount = computed(() => validationResult.value.errors.length);
 const warningCount = computed(() => validationResult.value.warnings.length);
 
-// Cache do SQL desabilitado temporariamente para debug
-// watch(sqlCode, (newSql) => {
-//   if (newSql && newSql.trim()) {
-//     DiagramController.saveToCache(newSql, { tables: tables.value, relationships: relationships.value });
-//   }
-// }, { debounce: 500 });
+watch(sqlCode, (newSql) => {
+  if (newSql && newSql.trim()) {
+    DiagramController.saveToCache(newSql, { tables: tables.value, relationships: relationships.value });
+  }
+}, { debounce: 500 });
 
 const updateDiagram = async () => {
   const result = DiagramController.processSql(sqlCode.value);
@@ -1824,7 +1827,8 @@ const screenToSVG = (screenX, screenY) => {
 };
 
 onMounted(() => {
-  sqlCode.value = defaultSql;
+  const savedSql = DiagramController.loadLastSql();
+  sqlCode.value = savedSql || defaultSql;
   updateDiagram();
 });
 </script>
@@ -2068,6 +2072,23 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px; /* Espaço entre os ícones */
+}
+
+/* Wrapper do botão de instalar - fixo no canto superior direito */
+.install-button-wrapper {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 999;
+  pointer-events: auto;
+}
+
+/* Mobile: botão menor e mais discreto */
+@media (max-width: 768px) {
+  .install-button-wrapper {
+    top: 12px;
+    right: 12px;
+  }
 }
 
 .header-divider {
