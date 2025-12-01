@@ -62,25 +62,23 @@ export default defineConfig({
             }
           },
           {
-            urlPattern: ({ request }) => request.mode === 'navigate',
+            urlPattern: ({ url }) => url.pathname === '/gerador',
+            handler: 'NetworkOnly'
+          },
+          {
+            urlPattern: ({ url, request }) => {
+              // Cacheia apenas arquivos HTML estáticos (index.html, editor.html)
+              return request.destination === 'document' && 
+                     (url.pathname === '/' || url.pathname.endsWith('.html'));
+            },
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'pages-cache',
-              networkTimeoutSeconds: 5,
-              plugins: [
-                {
-                  cacheWillUpdate: async ({ response }) => {
-                    if (response && response.type === 'opaqueredirect') {
-                      return new Response(response.body, {
-                        status: 200,
-                        statusText: 'OK',
-                        headers: response.headers
-                      });
-                    }
-                    return response;
-                  }
-                }
-              ]
+              cacheName: 'html-cache',
+              networkTimeoutSeconds: 3,
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 // 1 dia
+              }
             }
           }
         ]

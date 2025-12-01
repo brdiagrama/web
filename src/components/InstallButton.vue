@@ -18,23 +18,35 @@ const showInstallPrompt = ref(false);
 let deferredPrompt = null;
 
 onMounted(() => {
-  // Debug: mostrar sempre em dev mode
-  if (import.meta.env.DEV) {
-    console.log('InstallButton montado! Aguardando beforeinstallprompt...');
+  console.log('🔧 InstallButton montado! Aguardando beforeinstallprompt...');
+  console.log('🔍 User Agent:', navigator.userAgent);
+  console.log('🔍 Standalone?', window.matchMedia('(display-mode: standalone)').matches);
+  
+  // Verifica se já está instalado
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    console.log('❌ App já está instalado!');
+    return;
   }
 
   window.addEventListener('beforeinstallprompt', (e) => {
-    console.log('beforeinstallprompt disparado!');
+    console.log('✅ beforeinstallprompt disparado!');
     e.preventDefault();
     deferredPrompt = e;
     showInstallPrompt.value = true;
   });
 
   window.addEventListener('appinstalled', () => {
-    console.log('App instalado!');
+    console.log('✅ App foi instalado!');
     showInstallPrompt.value = false;
     deferredPrompt = null;
   });
+  
+  // Debug: força mostrar depois de 3 segundos se não disparou
+  setTimeout(() => {
+    if (!showInstallPrompt.value) {
+      console.warn('⚠️ beforeinstallprompt NÃO disparou após 3s. Critérios PWA não atendidos ou app já instalado.');
+    }
+  }, 3000);
 });
 
 const installApp = async () => {
