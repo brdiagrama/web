@@ -33,7 +33,9 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
+        globIgnores: ['**/index.html', '**/editor.html'],
+        navigateFallback: null,
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         runtimeCaching: [
           {
@@ -62,12 +64,8 @@ export default defineConfig({
             }
           },
           {
-            urlPattern: /\/gerador$/,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'pages-cache',
-              networkTimeoutSeconds: 3
-            }
+            urlPattern: ({ request }) => request.destination === 'document' || request.mode === 'navigate',
+            handler: 'NetworkOnly'
           }
         ]
       }
