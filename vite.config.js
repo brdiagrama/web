@@ -18,18 +18,32 @@ export default defineConfig({
         display: 'standalone',
         scope: '/',
         start_url: '/',
+        categories: ['productivity', 'developer tools', 'utilities'],
+        prefer_related_applications: false,
         icons: [
           {
             src: '/web-app-manifest-192x192.png',
             sizes: '192x192',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any'
+          },
+          {
+            src: '/web-app-manifest-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'maskable'
           },
           {
             src: '/web-app-manifest-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'any'
+          },
+          {
+            src: '/web-app-manifest-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
           }
         ]
       },
@@ -92,7 +106,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        editor: resolve(__dirname, 'editor.html'), 
+        editor: resolve(__dirname, 'editor.html'),
       },
       output: {
         manualChunks: {
