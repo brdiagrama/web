@@ -15,6 +15,8 @@
           </div>
 
           <div class="header-actions">
+            <InstallButton />
+            
             <button
               v-if="errorCount > 0 || warningCount > 0"
               class="problems-badge"
@@ -486,6 +488,7 @@ import DiagramToolbar from "./components/DiagramToolbar.vue";
 import RelationshipLine from "./components/RelationshipLine.vue";
 import SqlEditor from "./components/SqlEditor.vue";
 import ProblemsPanel from "./components/ProblemsPanel.vue";
+import InstallButton from "./components/InstallButton.vue";
 import { DiagramController } from "./controllers/DiagramController.js";
 import { XCircle, AlertTriangle } from "lucide-vue-next";
 import { useDiagramStore } from "./stores/diagram.js";
@@ -811,7 +814,12 @@ const lastValidState = ref(null);
 const errorCount = computed(() => validationResult.value.errors.length);
 const warningCount = computed(() => validationResult.value.warnings.length);
 
-// Função para atualizar o diagrama via API
+watch(sqlCode, (newSql) => {
+  if (newSql && newSql.trim()) {
+    DiagramController.saveToCache(newSql, { tables: tables.value, relationships: relationships.value });
+  }
+}, { debounce: 500 });
+
 const updateDiagram = async () => {
   const result = DiagramController.processSql(sqlCode.value);
 
@@ -1816,9 +1824,10 @@ const screenToSVG = (screenX, screenY) => {
     y: (screenY - ctm.f) / ctm.d,
   };
 };
-// Inicialização
+
 onMounted(() => {
-  sqlCode.value = defaultSql;
+  const savedSql = DiagramController.loadLastSql();
+  sqlCode.value = savedSql || defaultSql;
   updateDiagram();
 });
 </script>

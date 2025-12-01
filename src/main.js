@@ -2,15 +2,23 @@ import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import App from './App.vue';
 import '@/assets/styles/variables.css';
+import { registerSW } from 'virtual:pwa-register';
 
-// Cria a instância do Pinia (gerenciamento de estado)
+const updateSW = registerSW({
+  onNeedRefresh() {
+    if (confirm('Nova versão disponível! Recarregar agora?')) {
+      updateSW(true);
+    }
+  },
+  onOfflineReady() {
+    console.log('App pronto para funcionar offline!');
+  },
+});
+
 const pinia = createPinia();
 
-// Cria a aplicação Vue
 const app = createApp(App);
 
-// Configura o Pinia na aplicação
 app.use(pinia);
 
-// Monta a aplicação no elemento #app
 app.mount('#app');
