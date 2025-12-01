@@ -10,14 +10,14 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'logo.svg'],
       manifest: {
-        name: 'BrDiagrama - Do SQL ao Diagrama Visual',
+        name: 'BrDiagrama - Gerador de Diagrama ER',
         short_name: 'BrDiagrama',
         description: 'Transforme SQL DDL em diagramas ER visuais instantaneamente',
         theme_color: '#1abc9c',
         background_color: '#0F172A',
         display: 'standalone',
         scope: '/',
-        start_url: '/',
+        start_url: '/gerador',
         icons: [
           {
             src: '/web-app-manifest-192x192.png',

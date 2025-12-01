@@ -15,6 +15,8 @@
           </div>
 
           <div class="header-actions">
+            <InstallButton />
+            
             <button
               v-if="errorCount > 0 || warningCount > 0"
               class="problems-badge"
@@ -486,6 +488,7 @@ import DiagramToolbar from "./components/DiagramToolbar.vue";
 import RelationshipLine from "./components/RelationshipLine.vue";
 import SqlEditor from "./components/SqlEditor.vue";
 import ProblemsPanel from "./components/ProblemsPanel.vue";
+import InstallButton from "./components/InstallButton.vue";
 import { DiagramController } from "./controllers/DiagramController.js";
 import { XCircle, AlertTriangle } from "lucide-vue-next";
 import { useDiagramStore } from "./stores/diagram.js";

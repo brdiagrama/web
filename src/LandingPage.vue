@@ -297,7 +297,6 @@ onMounted(() => {
           class="text-sm font-medium hover:text-[var(--clr-primary)] transition-colors"
           >FAQ</a
         >
-        <InstallButton v-if="true" />
       </nav>
     </header>
 
