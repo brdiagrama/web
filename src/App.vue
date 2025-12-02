@@ -472,6 +472,7 @@
 
     <AlertModal ref="alertModalRef" />
     <ExportConfirmModal ref="exportModalRef" />
+    <Toast ref="toastRef" />
 
     <ProblemsPanel
       :problems="[...validationResult.errors, ...validationResult.warnings]"
@@ -499,6 +500,8 @@ import InstallButton from "./components/InstallButton.vue";
 import { DiagramController } from "./controllers/DiagramController.js";
 import { XCircle, AlertTriangle } from "lucide-vue-next";
 import { useDiagramStore } from "./stores/diagram.js";
+import Toast from "./components/Toast.vue";
+import { setToastRef, toastSuccess, toastError } from "@/services/toastService.js";
 import {
   Key,
   Link,
@@ -518,6 +521,17 @@ const alertModalRef = ref(null);
 // Configura o serviço global quando o componente monta
 onMounted(() => {
   setAlertModalRef(alertModalRef.value);
+  
+  const savedSql = DiagramController.loadLastSql();
+  sqlCode.value = savedSql || defaultSql;
+  updateDiagram();
+});
+
+const toastRef = ref(null);
+
+onMounted(() => {
+  setAlertModalRef(alertModalRef.value);
+  setToastRef(toastRef.value); // Inicializa o serviço de Toast
   
   const savedSql = DiagramController.loadLastSql();
   sqlCode.value = savedSql || defaultSql;
@@ -1023,9 +1037,10 @@ const handleFileImport = async (event) => {
 
     // Atualiza o diagrama imediatamente com o conteúdo importado
     await updateDiagram();
+    toastSuccess("Arquivo importado", `${event.target.files[0].name} carregado com sucesso!`);
   } catch (err) {
   // import error (suppressed)
-    showError("Erro ao importar arquivo");
+    toastError("Erro na importação", "Ocorreu um erro ao importar o arquivo");
   } finally {
     // limpa o input para permitir reimportar o mesmo arquivo depois
     if (fileInputRef.value) fileInputRef.value.value = "";
@@ -1043,7 +1058,10 @@ const newProject = async () => {
     buttonText: "Apagar"
   });
 
-  if (!confirmed) return;
+  if (!confirmed) {
+    toastInfo("Ação cancelada", "Seu projeto foi preservado");
+    return;
+  }
 
   // Limpa estado do editor/diagrama
   sqlCode.value = "";
@@ -1060,6 +1078,8 @@ const newProject = async () => {
 
   // Atualiza visual do diagrama
   await updateDiagram();
+  toastSuccess("Projeto limpo", "Um novo projeto foi criado!");
+
 };
 // ...existing code...
 
@@ -1075,6 +1095,7 @@ const exportSql = () => {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+  toastSuccess("SQL exportado", "Arquivo SQL foi baixado com sucesso!");
 };
 
 const calculateDiagramBounds = () => {
