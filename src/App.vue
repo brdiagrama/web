@@ -470,6 +470,9 @@
       <span>◀</span>
     </button>
 
+    <AlertModal ref="alertModalRef" />
+    <ExportConfirmModal ref="exportModalRef" />
+
     <ProblemsPanel
       :problems="[...validationResult.errors, ...validationResult.warnings]"
       :is-visible="isProblemsVisible"
@@ -480,9 +483,12 @@
 
     <div v-if="isResizing" class="global-resize-overlay"></div>
   </div>
+    <popUp ref="popUpRef" />
 </template>
 
 <script setup>
+import AlertModal from "./components/AlertModal.vue";
+import { setAlertModalRef, showAlert, showError } from "@/services/alertService.js";
 import { ref, computed, onMounted, watch, nextTick, shallowRef } from "vue";
 import DiagramCanvas from "./components/DiagramCanvas.vue";
 import DiagramToolbar from "./components/DiagramToolbar.vue";
@@ -506,6 +512,17 @@ import {
   Code2, // Icone SVG
 } from "lucide-vue-next";
 import logoBrDiagrama from "@/assets/images/logo/logo-completa.svg";
+
+const alertModalRef = ref(null);
+
+// Configura o serviço global quando o componente monta
+onMounted(() => {
+  setAlertModalRef(alertModalRef.value);
+  
+  const savedSql = DiagramController.loadLastSql();
+  sqlCode.value = savedSql || defaultSql;
+  updateDiagram();
+});
 
 const diagramStore = useDiagramStore();
 
@@ -951,21 +968,21 @@ const handleFileImport = async (event) => {
 
   // Rejeita por extensão proibida (executáveis/binaries)
   if (FORBIDDEN_EXT_RE.test(file.name || "")) {
-    alert("somente arquivos .sql");
+    showError("Somente arquivos .sql são permitidos");
     if (fileInputRef.value) fileInputRef.value.value = "";
     return;
   }
 
   // Verifica extensão .sql
   if (!ALLOWED_EXT_RE.test(file.name || "")) {
-    alert("somente arquivos .sql");
+    showError("Somente arquivos .sql são permitidos");
     if (fileInputRef.value) fileInputRef.value.value = "";
     return;
   }
 
   // Verifica tamanho máximo
   if (file.size > MAX_FILE_SIZE) {
-    alert("Arquivo muito grande. Tamanho máximo: 100 KB");
+    showError("Arquivo muito grande", "Tamanho máximo: 100 KB");
     if (fileInputRef.value) fileInputRef.value.value = "";
     return;
   }
@@ -973,7 +990,7 @@ const handleFileImport = async (event) => {
   // Verifica MIME (quando disponível) — aceita text/plain também
   if (file.type && !ALLOWED_MIME.has(file.type)) {
     // Alguns navegadores deixam file.type vazio; aqui só bloqueia quando houver tipo e for inválido
-    alert("somente arquivos .sql");
+    showError("Somente arquivos .sql são permitidos");
     if (fileInputRef.value) fileInputRef.value.value = "";
     return;
   }
@@ -983,7 +1000,7 @@ const handleFileImport = async (event) => {
     const head = file.slice(0, 1024);
     const buf = await head.arrayBuffer();
     if (isLikelyBinary(buf)) {
-      alert("somente arquivos .sql");
+      showError("Somente arquivos .sql são permitidos");
       return;
     }
 
@@ -992,7 +1009,7 @@ const handleFileImport = async (event) => {
 
     // Segurança adicional: curto sanity-check no conteúdo (evita uploads de arquivos muito estranhos)
     if (!text.trim()) {
-      alert("Arquivo vazio ou inválido");
+      showError("Arquivo vazio ou inválido");
       return;
     }
 
@@ -1008,7 +1025,7 @@ const handleFileImport = async (event) => {
     await updateDiagram();
   } catch (err) {
   // import error (suppressed)
-    alert("Erro ao importar arquivo");
+    showError("Erro ao importar arquivo");
   } finally {
     // limpa o input para permitir reimportar o mesmo arquivo depois
     if (fileInputRef.value) fileInputRef.value.value = "";
@@ -1016,12 +1033,20 @@ const handleFileImport = async (event) => {
 };
 
 // apaga estado atual
+// ...existing code...
 const newProject = async () => {
-  const ok = confirm("Deseja apagará o projeto atual?");
-  if (!ok) return;
+  // Usa o AlertModal customizado em vez de confirm()
+  const confirmed = await showAlert({
+    title: "Novo Projeto",
+    message: "Deseja apagar o projeto atual?",
+    type: "warning",
+    buttonText: "Apagar"
+  });
+
+  if (!confirmed) return;
 
   // Limpa estado do editor/diagrama
-  sqlCode.value = ""; // ou setar defaultSql se preferir começar com exemplo
+  sqlCode.value = "";
   tables.value = {};
   relationships.value = [];
   selectedTables.value.clear();
@@ -1036,6 +1061,7 @@ const newProject = async () => {
   // Atualiza visual do diagrama
   await updateDiagram();
 };
+// ...existing code...
 
 const exportSql = () => {
   showExportDropdown.value = false;
