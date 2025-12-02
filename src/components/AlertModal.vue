@@ -33,6 +33,7 @@ const title = ref("");
 const message = ref("");
 const type = ref("info"); // info, success, error, warning
 const buttonText = ref("OK");
+const hasCancel = ref(false); // Se tem botão cancelar
 let resolveCallback = null;
 
 const getIcon = () => {
@@ -68,9 +69,17 @@ const confirm = () => {
   }
 };
 
+const cancel = () => {
+  isVisible.value = false;
+  if (resolveCallback) {
+    resolveCallback(false);
+    resolveCallback = null;
+  }
+};
+
 const handleBackdropClick = (e) => {
   if (e.target === e.currentTarget) {
-    confirm();
+    cancel();
   }
 };
 
@@ -98,12 +107,13 @@ defineExpose({ showAlert });
 .alert-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(2, 6, 23, 0.72);
+  background-color: rgba(2, 6, 23, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 99999;
   backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease-out;
 }
 
 @keyframes fadeIn {
