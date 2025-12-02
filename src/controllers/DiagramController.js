@@ -136,44 +136,6 @@ export class DiagramController {
     }
   }
 
-  static exportToJson(diagramData, filename = 'diagrama') {
-    try {
-      const json = JSON.stringify(diagramData, null, 2);
-      const blob = new Blob([json], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${filename}.json`;
-      link.click();
-      
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      throw new Error('Não foi possível exportar o diagrama');
-    }
-  }
-
-  static async importFromJson(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      
-      reader.onload = (e) => {
-        try {
-          const diagramData = JSON.parse(e.target.result);
-          if (!diagramData.tables || !diagramData.relationships) {
-            throw new Error('Arquivo JSON inválido');
-          }
-          resolve(diagramData);
-        } catch (error) {
-          reject(new Error('Arquivo JSON inválido ou corrompido'));
-        }
-      };
-      
-      reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
-      reader.readAsText(file);
-    });
-  }
-
   static getStatistics(diagramData) {
     if (!diagramData || !diagramData.tables) return null;
 
