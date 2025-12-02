@@ -77,7 +77,7 @@ const installApp = async () => {
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);
+  background: #2dd4bf;
   color: white;
   border: none;
   border-radius: 8px;

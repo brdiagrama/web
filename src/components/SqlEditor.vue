@@ -186,7 +186,7 @@ const handleMount = (editor, monaco) => {
       const suggestions = [
         ...tableSuggestions,
         {
-          label: "create table",
+          label: "CREATE TABLE",
           kind: monaco.languages.CompletionItemKind.Snippet,
           insertText:
             "CREATE TABLE ${1:nome_tabela} (\n\tid INT PRIMARY KEY,\n\t${2:coluna} VARCHAR(100)\n);",
@@ -195,7 +195,7 @@ const handleMount = (editor, monaco) => {
           range,
         },
         {
-          label: "fk",
+          label: "FK",
           kind: monaco.languages.CompletionItemKind.Snippet,
           insertText: "FOREIGN KEY (${1:coluna_id}) REFERENCES ${2:tabela}(id)",
           insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,

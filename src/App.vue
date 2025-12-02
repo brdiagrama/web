@@ -800,28 +800,42 @@ const getTableWidth = (table) => {
 };
 
 // Exemplo inicial de SQL
-const defaultSql = `CREATE TABLE users (
+const defaultSql = `CREATE TABLE clientes (
   id INT PRIMARY KEY,
-  username VARCHAR(50),
-  email VARCHAR(100),
-  created_at TIMESTAMP
+  nome_completo VARCHAR(100),
+  email VARCHAR(100) UNIQUE,
+  cpf VARCHAR(14)
 );
 
-CREATE TABLE posts (
+CREATE TABLE produtos (
   id INT PRIMARY KEY,
-  user_id INT,
-  title VARCHAR(200),
-  body TEXT,
+  nome VARCHAR(100),
+  preco DECIMAL(10,2),
+  estoque_atual INT
+);
+
+CREATE TABLE pedidos (
+  id INT PRIMARY KEY,
+  data_pedido TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   status VARCHAR(20),
-  FOREIGN KEY (user_id) REFERENCES users(id)
+  total DECIMAL(10,2),
+  
+  -- Um Pedido pertence a um Cliente
+  cliente_id INT NOT NULL,
+  FOREIGN KEY (cliente_id) REFERENCES clientes(id)
 );
 
-CREATE TABLE follows (
-  follower_id INT,
-  followed_id INT,
-  created_at TIMESTAMP,
-  FOREIGN KEY (follower_id) REFERENCES users(id),
-  FOREIGN KEY (followed_id) REFERENCES users(id)
+-- Tabela de Detalhes (Relacionamento N:N entre Pedido e Produto)
+CREATE TABLE itens_pedido (
+  pedido_id INT,
+  produto_id INT,
+  quantidade INT,
+  preco_unitario DECIMAL(10,2),
+  
+  -- Chave Composta (Impede duplicidade do mesmo produto no item)
+  PRIMARY KEY (pedido_id, produto_id),
+  FOREIGN KEY (pedido_id) REFERENCES pedidos(id),
+  FOREIGN KEY (produto_id) REFERENCES produtos(id)
 );`;
 
 // Função debounce para evitar muitas chamadas da API
