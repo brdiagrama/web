@@ -1,7 +1,7 @@
 // Controller - Camada MVC
 // Coordena validação, parsing e cache de diagramas
 
-import { SqlParserService } from '../models/sqlParser.service.js';
+import { SqlParserService } from '../models/SqlParser.service.js';
 import { SqlValidator } from '../services/SqlValidator.js';
 
 export class DiagramController {
