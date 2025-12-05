@@ -711,8 +711,6 @@ onMounted(() => {
   }
   
   .glass-card {
-    /* AQUI ESTAVA O PROBLEMA: */
-    /* Removemos a trava de largura e forçamos a altura a caber */
     min-width: 900px; 
     height: 55vh; /* Ocupa pouco mais da metade da tela */
     width: auto;  /* A largura será calculada automaticamente (55vh * 1.77) */
@@ -830,7 +828,7 @@ onMounted(() => {
   text-decoration: none;
 
   /* Layout e Visibilidade */
-  display: inline-flex; /* Corrigido de 'visible' para 'inline-flex' */
+  display: inline-flex; 
   align-items: center;
   justify-content: center;
   opacity: 1;

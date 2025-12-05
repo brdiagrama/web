@@ -9,14 +9,14 @@ export const useDiagramStore = defineStore('diagram', {
         zoom: 1.0, 
         // Posição da panorâmica inicial (pan)
         pan: { x: 0, y: 0 }, 
-        // NOVO: Estado do grid
+        // Estado do grid
         isGridVisible: false,
         gridSize: 20, // Tamanho da grade em pixels (espaçamento entre pontos)
         
         // Estado do Pan Mode
         isPanMode: false,
         
-        // NOVO: Estado dos relacionamentos
+        // Estado dos relacionamentos
         relationships: {}, // Store dos relacionamentos com vértices
         relationshipSettings: {
             showCardinalities: true,
@@ -72,7 +72,7 @@ export const useDiagramStore = defineStore('diagram', {
         setGridSize(size) {
             this.gridSize = size;
         },
-         // NOVO: Ações para relacionamentos
+         // Ações para relacionamentos
         updateRelationship(relationshipId, updates) {
             if (this.relationships[relationshipId]) {
                 Object.assign(this.relationships[relationshipId], updates);

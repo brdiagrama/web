@@ -87,7 +87,7 @@
           </div>
         </div>
 
-      <!-- Botão de fechar rápido dentro do editor (apenas mobile) -->
+      
       <button
         v-if="isMobile && activeTab === 'editor'"
         class="mobile-editor-close"
@@ -113,7 +113,7 @@
       <div v-show="isEditorVisible && !isMobile" class="resizer-handle" @mousedown="startResize"></div>
 
       <div v-if="!isMobile || activeTab === 'diagram'" class="canvas-panel">
-        <!-- Botão de instalar PWA no canto superior direito -->
+        
         <div class="install-button-wrapper">
           <InstallButton />
         </div>
@@ -172,7 +172,7 @@
                 />
                 <text :x="15" :y="22" class="table-title">{{ table.name }}</text>
                 <g v-for="(col, colIndex) in table.columns" :key="colIndex">
-                  <!-- Retângulo invisível para aumentar área de hover -->
+                  
                   <rect
                     v-if="col.isPk || col.isFk"
                     :x="0"
@@ -194,7 +194,7 @@
                     @mouseleave="handleColumnHover({ isHovering: false })"
                   />
 
-                  <!-- Background highlight - AGORA COLADO NO HEADER -->
+                  
                   <rect
                     v-if="
                       (col.isPk || col.isFk) &&
@@ -327,7 +327,7 @@
                 />
                 <text :x="15" :y="22" class="table-title">{{ table.name }}</text>
                 <g v-for="(col, colIndex) in table.columns" :key="colIndex">
-                  <!-- Retângulo invisível para aumentar área de hover -->
+                  
                   <rect
                     v-if="col.isPk || col.isFk"
                     :x="0"
@@ -349,7 +349,7 @@
                     @mouseleave="handleColumnHover({ isHovering: false })"
                   />
 
-                  <!-- Background highlight - AGORA COLADO NO HEADER -->
+                  
                   <rect
                     v-if="
                       (col.isPk || col.isFk) &&
@@ -743,7 +743,7 @@ const isColumnHovered = (tableName, columnName) => {
 
 // Debug message
 const debugMessage = computed(() => {
-  // When there's no SQL or no tables, instruct the user to type SQL on the left.
+  
   if (!sqlCode.value.trim()) {
     return "Digite o SQL à esquerda para gerar o diagrama";
   }
@@ -1062,7 +1062,6 @@ const handleFileImport = async (event) => {
 };
 
 // apaga estado atual
-// ...existing code...
 const newProject = async () => {
   // Usa o AlertModal customizado em vez de confirm()
   const confirmed = await showAlert({
@@ -1095,7 +1094,7 @@ const newProject = async () => {
   toastSuccess("Projeto limpo", "Um novo projeto foi criado!");
 
 };
-// ...existing code...
+
 
 const exportSql = () => {
   showExportDropdown.value = false;
@@ -1113,7 +1112,7 @@ const exportSql = () => {
 };
 
 const calculateDiagramBounds = () => {
-  const padding = 80; // Aumentado o padding para garantir margem
+  const padding = 80; 
   let minX = Infinity,
     minY = Infinity,
     maxX = -Infinity,
@@ -1145,7 +1144,7 @@ const calculateDiagramBounds = () => {
     height: maxY - minY + padding * 2,
   };
 
-  // debug logs removed
+  
 
   return bounds;
 };
@@ -1160,7 +1159,7 @@ const exportDiagramPNG = async () => {
       return;
     }
 
-    // Acessa o SVG através da ref do componente
+    
     const svgElement = diagramCanvasRef.value?.svgRoot;
     if (!svgElement) {
       alert("Erro: SVG não encontrado");
@@ -1169,7 +1168,7 @@ const exportDiagramPNG = async () => {
 
     const bounds = calculateDiagramBounds();
 
-  // debug logs removed
+  
 
     // Clona o SVG para não afetar a visualização atual
     const svgClone = svgElement.cloneNode(true);
@@ -1183,20 +1182,20 @@ const exportDiagramPNG = async () => {
     );
     svgClone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
 
-    // Remove TODAS as transformações relacionadas ao zoom/pan
+    // Remove TODAS as transformações relacionadas ao zoom/pan (Calcula as posições absolutas)
     const viewportLayer = svgClone.querySelector("#viewport-layer");
     if (viewportLayer) {
       viewportLayer.removeAttribute("transform");
       viewportLayer.style.transform = "";
     }
 
-    // Remove transformações de qualquer elemento g com transform
+    
     const allGroups = svgClone.querySelectorAll("g[transform]");
     allGroups.forEach((g) => {
-      // Não remove transform de elementos que são parte do design (como markers)
+      
       if (!g.id || !g.id.includes("marker")) {
         const currentTransform = g.getAttribute("transform");
-        // Mantém apenas transforms de translate que são posicionamento de tabelas
+        
         if (
           currentTransform &&
           !currentTransform.startsWith("translate(") &&
@@ -1207,7 +1206,7 @@ const exportDiagramPNG = async () => {
       }
     });
 
-    // Remove elementos de seleção e grid
+    
     const selectionsToRemove = svgClone.querySelectorAll(
       'rect[fill="rgba(59, 130, 246, 0.1)"]'
     );
@@ -1229,7 +1228,7 @@ const exportDiagramPNG = async () => {
           });
         }
       } catch (e) {
-        // Ignora erros de CORS
+        
       }
     });
 
@@ -1264,30 +1263,28 @@ const exportDiagramPNG = async () => {
 
       canvas.width = Math.floor(bounds.width * scale);
       canvas.height = Math.floor(bounds.height * scale);
-
-      // debug logs removed
-
+     
       const ctx = canvas.getContext("2d");
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.scale(scale, scale);
       ctx.drawImage(img, 0, 0, bounds.width, bounds.height);
 
-      // Adiciona marca d'água (logo) no canto inferior direito
+      // Adiciona marca d'água (logo) 
       const logoImg = new Image();
       logoImg.onload = () => {
         ctx.save();
-        const logoHeight = 20; // Altura da logo
-        const logoWidth = (logoImg.width / logoImg.height) * logoHeight; // Mantém proporção
+        const logoHeight = 20; 
+        const logoWidth = (logoImg.width / logoImg.height) * logoHeight;
         const logoPadding = 20;
 
-        // Adiciona sombra sutil para legibilidade
+        
         ctx.shadowColor = "rgba(0, 0, 0, 0.2)";
         ctx.shadowBlur = 4;
         ctx.shadowOffsetX = 1;
         ctx.shadowOffsetY = 1;
 
-        // Desenha a logo com opacidade
+        
         ctx.globalAlpha = 0.7;
         ctx.drawImage(
           logoImg,
@@ -1313,8 +1310,7 @@ const exportDiagramPNG = async () => {
       };
 
       logoImg.onerror = () => {
-  // logo load error (suppressed)
-        // Se falhar, faz download sem logo
+      // Se falhar, faz download sem logo
         canvas.toBlob((blob) => {
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
@@ -1336,15 +1332,13 @@ const exportDiagramPNG = async () => {
     };
 
     img.onerror = (error) => {
-  // image load error (suppressed)
-      alert("Erro ao gerar PNG. Verifique o console para mais detalhes.");
+        alert("Erro ao gerar PNG. Verifique o console para mais detalhes.");
       URL.revokeObjectURL(svgUrl);
     };
 
     img.src = svgUrl;
   } catch (error) {
-  // export PNG error (suppressed)
-    alert("Erro ao exportar PNG: " + (error?.message || "Erro desconhecido"));
+      alert("Erro ao exportar PNG: " + (error?.message || "Erro desconhecido"));
   }
 };
 
@@ -1367,12 +1361,10 @@ const exportDiagramSVG = () => {
 
     const bounds = calculateDiagramBounds();
 
-  // debug logs removed
-
-    // Clona o SVG para não afetar a visualização atual
+     // Clona o SVG para não afetar a visualização atual
     const svgClone = svgElement.cloneNode(true);
 
-    // Remove atributos de estilo e adiciona dimensões fixas
+    // Configuração para o SVG clonado com dimensões e viewBox corretos
     svgClone.removeAttribute("style");
     svgClone.setAttribute("width", Math.ceil(bounds.width));
     svgClone.setAttribute("height", Math.ceil(bounds.height));
@@ -1382,20 +1374,16 @@ const exportDiagramSVG = () => {
     );
     svgClone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
 
-    // Remove TODAS as transformações relacionadas ao zoom/pan
     const viewportLayer = svgClone.querySelector("#viewport-layer");
     if (viewportLayer) {
       viewportLayer.removeAttribute("transform");
       viewportLayer.style.transform = "";
     }
 
-    // Remove transformações de qualquer elemento g com transform de zoom/scale
     const allGroups = svgClone.querySelectorAll("g[transform]");
     allGroups.forEach((g) => {
-      // Não remove transform de elementos que são parte do design
       if (!g.id || !g.id.includes("marker")) {
         const currentTransform = g.getAttribute("transform");
-        // Mantém apenas transforms de translate que são posicionamento de tabelas
         if (
           currentTransform &&
           !currentTransform.startsWith("translate(") &&
@@ -1406,7 +1394,6 @@ const exportDiagramSVG = () => {
       }
     });
 
-    // Remove elementos de seleção e grid
     const selectionsToRemove = svgClone.querySelectorAll(
       'rect[fill="rgba(59, 130, 246, 0.1)"]'
     );
@@ -1415,56 +1402,45 @@ const exportDiagramSVG = () => {
     const gridToRemove = svgClone.querySelector(".grid-background");
     if (gridToRemove) gridToRemove.remove();
 
-    // Remove elementos interativos (hover areas, pointer-events)
     const hoverAreas = svgClone.querySelectorAll(
       '.column-hover-area, rect[fill="transparent"]'
     );
     hoverAreas.forEach((el) => el.remove());
 
-    // Remove todos os markers de hover do <defs>
     const svgDefs = svgClone.querySelector("defs");
     if (svgDefs) {
       const hoverMarkers = svgDefs.querySelectorAll('marker[id*="Hover"]');
       hoverMarkers.forEach((marker) => marker.remove());
     }
 
-    // Remove retângulos de highlight/hover das colunas
     const highlightRects = svgClone.querySelectorAll(
       'rect[fill="#EDFEFC"], rect[fill="#eff6ff"]'
     );
     highlightRects.forEach((rect) => rect.remove());
 
-    // Remove linhas de destaque/borda das colunas (azul e verde água)
     const highlightLines = svgClone.querySelectorAll(
       'line[stroke="#70D8CC"], line[stroke="#93c5fd"]'
     );
     highlightLines.forEach((line) => line.remove());
 
-    // Remove elementos de relacionamento específicos (hitbox, flow, etc)
     const connectorHitboxes = svgClone.querySelectorAll(".connector-hitbox");
     connectorHitboxes.forEach((el) => el.remove());
 
     const connectorFlows = svgClone.querySelectorAll(".connector-flow");
     connectorFlows.forEach((el) => el.remove());
 
-    // Remove grupos de relacionamento inativos/duplicados
     const relationshipGroups = svgClone.querySelectorAll(".relationship-line");
     relationshipGroups.forEach((group) => {
       group.classList.remove("is-active", "hover", "active");
     });
 
-    // Remove textos de cardinalidade (labels de relacionamento)
     const cardinalityLabels = svgClone.querySelectorAll(".cardinality-label");
     cardinalityLabels.forEach((label) => {
       label.classList.remove("cardinality-hover");
-      // Opcional: remover completamente se não quiser mostrar cardinalidade
-      // label.remove();
-    });
+       });
 
-    // Força todas as linhas a usarem cor e stroke padrão
     const relationshipLines = svgClone.querySelectorAll("line, path, polyline");
     relationshipLines.forEach((line) => {
-      // Remove classes de hover/interação
       if (line.classList) {
         line.classList.remove(
           "hover",
@@ -1475,7 +1451,6 @@ const exportDiagramSVG = () => {
         );
       }
 
-      // Remove atributos de marker de hover
       const markerStart = line.getAttribute("marker-start");
       const markerEnd = line.getAttribute("marker-end");
 
@@ -1486,7 +1461,6 @@ const exportDiagramSVG = () => {
         line.setAttribute("marker-end", markerEnd.replace(/Hover/g, ""));
       }
 
-      // Força cor padrão (cinza) em todas as linhas de relacionamento
       const stroke = line.getAttribute("stroke");
       if (
         stroke &&
@@ -1497,35 +1471,29 @@ const exportDiagramSVG = () => {
         line.setAttribute("stroke", "#7f8c8d");
       }
 
-      // Remove stroke-width aumentado de hover e força padrão
       const strokeWidth = line.getAttribute("stroke-width");
       if (strokeWidth && parseFloat(strokeWidth) !== 2) {
         line.setAttribute("stroke-width", "2");
       }
 
-      // Remove animações
       line.removeAttribute("style");
       line.style.animation = "none";
     });
 
-    // Remove todos os event listeners e atributos interativos
     const allElements = svgClone.querySelectorAll("*");
     allElements.forEach((el) => {
-      el.removeAttribute("style"); // Remove estilos inline que podem ter pointer-events
-      el.style.pointerEvents = "none"; // Desabilita pointer events
+      el.removeAttribute("style"); 
+      el.style.pointerEvents = "none"; 
       el.removeAttribute("@mouseenter");
       el.removeAttribute("@mouseleave");
       el.removeAttribute("@mousedown");
       el.removeAttribute("@click");
 
-      // Remove classes de estado interativo
       if (el.classList) {
         el.classList.remove("hover", "active", "selected", "highlighted");
       }
     });
 
-    // Aplica estilos inline diretamente nos elementos para compatibilidade com Figma
-    // Tabelas
     const tableRects = svgClone.querySelectorAll(".table-rect");
     tableRects.forEach((rect) => {
       rect.setAttribute("fill", "#ffffff");
@@ -1605,7 +1573,6 @@ const exportDiagramSVG = () => {
     a.remove();
     URL.revokeObjectURL(url);
   } catch (error) {
-  // export SVG error (suppressed)
   alert("Erro ao exportar SVG: " + error.message);
   }
 };
@@ -1644,8 +1611,6 @@ const handleSelectionArea = (area) => {
       selectedTables.value.add(tableName);
     }
   }
-
-  // debug logs removed
 };
 
 const handleColumnHover = (data) => {
@@ -1656,7 +1621,6 @@ const clearSelectionOnCanvas = () => {
   // Ao clicar no fundo do canvas, removemos qualquer hover e seleção
   hoveredColumn.value = null;
   selectedTables.value.clear();
-  // Também limpa quaisquer estados pendentes de drag
   dragState.value.pending = false;
   dragState.value.pendingStart = null;
   dragState.value.pendingPointerId = null;
@@ -1676,8 +1640,6 @@ const startDrag = (event, tableName) => {
 
   const svgElement = diagramCanvasRef.value?.svgRoot;
   if (!svgElement) return;
-  // Suppress global pointer handlers (gestures) while starting a table drag to avoid
-  // race conditions between gesture handlers and table drag logic.
   try { window._brdiagrama_suppressGlobalPointerHandlers = true; } catch (e) {}
   if (event.ctrlKey || event.metaKey) {
     if (selectedTables.value.has(tableName)) {
@@ -1693,13 +1655,10 @@ const startDrag = (event, tableName) => {
     }
   }
 
-  // Detect touch devices and use pending threshold to avoid "tap then drag" issues
   const isTouch = (window.PointerEvent && event.pointerType === 'touch') || (!window.PointerEvent && 'ontouchstart' in window);
 
   dragState.value.draggedTable = tableName;
 
-  // Try to capture the pointer on the SVG root as early as possible so DOM updates
-  // (caused by changing selection) don't make us lose pointer events.
   if (window.PointerEvent && event.pointerId != null) {
     try {
       const svgRootEl = diagramCanvasRef.value && diagramCanvasRef.value.svgRoot;
@@ -1709,12 +1668,10 @@ const startDrag = (event, tableName) => {
         dragState.value._pointerId = event.pointerId;
       }
     } catch (err) {
-      // ignore failures
     }
   }
 
   if (isTouch) {
-    // Mark as pending; only start actual dragging when movement exceeds threshold
     dragState.value.pending = true;
     dragState.value.pendingStart = { x: event.clientX, y: event.clientY };
     dragState.value.pendingPointerId = event.pointerId || null;
@@ -1724,40 +1681,32 @@ const startDrag = (event, tableName) => {
     const ctm = svgElement.getScreenCTM();
     const table = tables.value[tableName];
 
-    // Usa o zoom da store para cálculo consistente
     const zoom = diagramStore.zoom;
     dragState.value.offset.x = (event.clientX - ctm.e) / zoom - table.x;
     dragState.value.offset.y = (event.clientY - ctm.f) / zoom - table.y;
   }
 
-  // (suppression already set earlier) ensure flag remains true
   try { window._brdiagrama_suppressGlobalPointerHandlers = true; } catch (e) {}
 
-  // Use Pointer Events when available (better touch support). Keep mouse as fallback.
   if (window.PointerEvent && event.pointerId != null) {
     try {
-      // Prefer to capture the pointer on the SVG root so we reliably receive move/up
       const svgRootEl = diagramCanvasRef.value && diagramCanvasRef.value.svgRoot;
       if (svgRootEl && svgRootEl.setPointerCapture) {
         try {
           svgRootEl.setPointerCapture(event.pointerId);
-          // Store where we captured so we can release later
           dragState.value._pointerCapturedOn = svgRootEl;
           dragState.value._pointerId = event.pointerId;
         } catch (err) {
-          // fallback: try event.target
           event.target && event.target.setPointerCapture && event.target.setPointerCapture(event.pointerId);
           dragState.value._pointerCapturedOn = event.target;
           dragState.value._pointerId = event.pointerId;
         }
       } else {
-        // fallback to event.target
         event.target && event.target.setPointerCapture && event.target.setPointerCapture(event.pointerId);
         dragState.value._pointerCapturedOn = event.target;
         dragState.value._pointerId = event.pointerId;
       }
     } catch (err) {
-      // ignore
     }
 
     document.addEventListener("pointermove", handleDrag);
@@ -1772,20 +1721,16 @@ const startDrag = (event, tableName) => {
 const TOUCH_DRAG_THRESHOLD = 6; // px
 
 const handleDrag = (event) => {
-  // If pending (touch) and not yet moved enough, check threshold
   if (dragState.value.pending) {
-    // If pointerId exists and doesn't match, ignore
     if (dragState.value.pendingPointerId != null && event.pointerId != null && dragState.value.pendingPointerId !== event.pointerId) return;
 
     const dx = event.clientX - dragState.value.pendingStart.x;
     const dy = event.clientY - dragState.value.pendingStart.y;
     const dist = Math.hypot(dx, dy);
     if (dist < TOUCH_DRAG_THRESHOLD) {
-      // Not enough movement yet
       return;
     }
 
-    // Start actual dragging now
     dragState.value.pending = false;
     dragState.value.isDragging = true;
 
@@ -1797,7 +1742,6 @@ const handleDrag = (event) => {
 
     dragState.value.offset.x = (dragState.value.pendingStart.x - ctm.e) / zoom - table.x;
     dragState.value.offset.y = (dragState.value.pendingStart.y - ctm.f) / zoom - table.y;
-    // proceed to move below
   }
 
   if (!dragState.value.isDragging || !dragState.value.draggedTable) return;
@@ -1833,21 +1777,17 @@ const endDrag = (e) => {
   dragState.value.pendingStart = null;
   dragState.value.pendingPointerId = null;
 
-  // If pointer capture was set, try to release it (best-effort)
   try {
     const capturedEl = dragState.value._pointerCapturedOn;
     const pid = dragState.value._pointerId != null ? dragState.value._pointerId : (e && e.pointerId);
     if (capturedEl && pid != null && capturedEl.releasePointerCapture) {
       try { capturedEl.releasePointerCapture(pid); } catch (err) { /* ignore */ }
     }
-    // clean internal fields
     dragState.value._pointerCapturedOn = null;
     dragState.value._pointerId = null;
   } catch (err) {
-    // ignore
   }
 
-  // Remove event listeners globais (pointer or mouse)
   if (window.PointerEvent) {
     document.removeEventListener("pointermove", handleDrag);
     document.removeEventListener("pointerup", endDrag);
@@ -1856,7 +1796,6 @@ const endDrag = (e) => {
   document.removeEventListener("mousemove", handleDrag);
   document.removeEventListener("mouseup", endDrag);
 
-  // Re-enable global pointer handlers
   try {
     window._brdiagrama_suppressGlobalPointerHandlers = false;
   } catch (e) {}
@@ -1898,7 +1837,6 @@ onMounted(() => {
 /* Botão pequeno no topo para abrir/fechar o editor no mobile (estilo dbdiagram) */
 .mobile-top-toggle {
   position: fixed;
-  /* place a bit below the header to avoid overlapping icons/badges */
   top: calc(env(safe-area-inset-top, 12px) + 45px);
   left: calc(env(safe-area-inset-left, 12px) + 8px);
   transform: none;
@@ -1961,7 +1899,7 @@ onMounted(() => {
   transition: all 0.2s ease;
   margin-left: auto;
   margin-right: 8px;
-  background-color: rgba(255, 255, 255, 0.03); /* Fundo sutil padrão */
+  background-color: rgba(255, 255, 255, 0.03); 
 }
 
 .problems-badge.has-errors {
@@ -1999,7 +1937,7 @@ onMounted(() => {
 }
 
 .header-badge {
-  margin-left: auto; /* Empurra pra direita */
+  margin-left: auto; 
   margin-right: 10px;
   padding: 4px 12px;
   border-radius: 20px;
@@ -2038,9 +1976,9 @@ onMounted(() => {
 
 .main-content {
   display: flex;
-  flex: 1; /* Ocupa todo o espaço disponível verticalmente */
-  overflow: hidden; /* Garante que não vaze scroll */
-  min-height: 0; /* Crucial para o Flexbox funcionar em casos aninhados */
+  flex: 1; 
+  overflow: hidden; 
+  min-height: 0; 
   flex-direction: row; /* Garante que editor e canvas fiquem lado a lado */
 }
 
@@ -2102,7 +2040,6 @@ onMounted(() => {
 }
 
 .editor-panel.no-transition:not(.panel-hidden) {
-  /* Velocidade de arraste (Rápida para acompanhar o mouse) */
   transition: width 0.1s ease-out !important;
   will-change: width;
 }
@@ -2113,7 +2050,7 @@ onMounted(() => {
   align-items: center;
   background-color: #020617; /* Fundo bem escuro */
   padding: 0 16px;
-  height: 48px; /* Um pouco mais alto para respirar */
+  height: 48px; 
   border-bottom: 1px solid #1e293b;
   flex-shrink: 0;
   user-select: none;
@@ -2124,7 +2061,7 @@ onMounted(() => {
 }
 
 .editor-logo {
-  height: 40px; /* Ajuste conforme sua logo */
+  height: 40px; 
   width: auto;
   display: block;
 }
@@ -2132,7 +2069,7 @@ onMounted(() => {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 4px; /* Espaço entre os ícones */
+  gap: 4px; 
 }
 
 /* Wrapper do botão de instalar - fixo no canto superior direito */
@@ -2144,7 +2081,7 @@ onMounted(() => {
   pointer-events: auto;
 }
 
-/* Mobile: botão menor e mais discreto */
+
 @media (max-width: 768px) {
   .install-button-wrapper {
     top: 12px;
@@ -2169,13 +2106,10 @@ onMounted(() => {
 
 .resizer-handle {
   width: 5px;
-  /* Mesma cor do fundo para ficar invisível até passar o mouse */
   background-color: #0f172a;
   cursor: col-resize;
-  transition: background 0.2s, width 0.2s; /* Animação suave */
+  transition: background 0.2s, width 0.2s;
   flex-shrink: 0;
-
-  /* Borda sutil na esquerda para separar do editor */
   border-left: 1px solid #1e293b;
 }
 
@@ -2183,7 +2117,6 @@ onMounted(() => {
 .resizer-handle:active {
   /* Destaque visual na resizer-handle */
   background-color: #2dd4bf;
-  /* Fica um pouquinho mais largo pra facilitar o clique */
   width: 7px;
 }
 .icon-btn {
@@ -2193,7 +2126,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #94a3b8; /* Slate 400 */
+  color: #94a3b8; 
   background: transparent;
   border: 1px solid transparent;
   transition: all 0.2s ease;
@@ -2231,17 +2164,17 @@ onMounted(() => {
 }
 
 .collapsed-sidebar:hover .expand-btn {
-  background-color: rgba(45, 212, 191, 0.1); /* Fundo Teal bem suave */
-  color: #2dd4bf; /* Texto Teal vibrante */
-  border-color: rgba(45, 212, 191, 0.2); /* Borda sutil */
+  background-color: rgba(45, 212, 191, 0.1); 
+  color: #2dd4bf; 
+  border-color: rgba(45, 212, 191, 0.2); 
   transform: translateX(2px); /* Pequeno movimento para a direita (convite ao clique) */
-  box-shadow: 0 0 10px rgba(45, 212, 191, 0.15); /* Glow suave */
+  box-shadow: 0 0 10px rgba(45, 212, 191, 0.15); 
 }
 
 .icon-btn:hover,
 .icon-btn.active {
-  background-color: rgba(45, 212, 191, 0.1); /* Teal bem suave */
-  color: #2dd4bf; /* Teal vibrante */
+  background-color: rgba(45, 212, 191, 0.1);
+  color: #2dd4bf; 
 }
 
 .toggle-btn:hover {
@@ -2250,11 +2183,11 @@ onMounted(() => {
 }
 
 .editor-header .icon-btn:hover {
-  background-color: rgba(45, 212, 191, 0.1); /* Fundo Teal bem suave */
-  color: #2dd4bf; /* Texto Teal vibrante */
-  border-color: rgba(45, 212, 191, 0.2); /* Borda sutil */
+  background-color: rgba(45, 212, 191, 0.1); 
+  color: #2dd4bf;
+  border-color: rgba(45, 212, 191, 0.2); 
   transform: translateX(2px); /* Pequeno movimento para a direita (convite ao clique) */
-  box-shadow: 0 0 10px rgba(45, 212, 191, 0.15); /* Glow suave */
+  box-shadow: 0 0 10px rgba(45, 212, 191, 0.15); 
 }
 
 .export-dropdown {
@@ -2465,8 +2398,8 @@ onMounted(() => {
 :deep(.pk-icon),
 :deep(.fk-icon) {
   user-select: none;
-  -webkit-user-select: none; /* Para Safari/Chrome antigos */
-  pointer-events: none; /* Garante que o mouse "atravesse" o texto e pegue a tabela */
+  -webkit-user-select: none; 
+  pointer-events: none; 
 }
 
 .global-resize-overlay {

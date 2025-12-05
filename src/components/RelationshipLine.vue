@@ -105,7 +105,7 @@ const isActive = computed(() => {
       (isFk && tableName === rel.fromTable && columnName === rel.fromCol) ||
       (isPk && tableName === rel.toTable && columnName === rel.toCol);
 
-    // 🔥 NOVO: Trazer para frente quando hover em coluna relacionada
+    // Trazer para frente quando hover em coluna relacionada
     if (isRelated && relationshipGroup.value?.parentNode) {
       relationshipGroup.value.parentNode.appendChild(relationshipGroup.value);
     }
@@ -127,10 +127,10 @@ const onHover = () => {
 };
 
 const onUnhover = () => {
-  // 3. Em vez de remover o estado imediatamente, define um pequeno atraso (ex: 50ms)
+  // Em vez de remover o estado imediatamente, define um pequeno atraso (ex: 50ms)
   hoverTimeout = setTimeout(() => {
     isHovered.value = false;
-  }, 50); // 💡 Atraso de 50ms
+  }, 50); // Atraso de 50ms
 };
 // Computed properties para cardinalidade
 // Determina markers baseado na cardinalidade
@@ -365,7 +365,7 @@ const y2 = t2.y + getColumnOffset(t2, props.relationship.toCol) + targetOffset;
 .connector-hitbox {
   fill: none;
   stroke: transparent; /* Torna a linha invisível */
-  stroke-width: 25px; /* 💡 Aumenta a área de hover para 15px */
+  stroke-width: 25px; /* Aumenta a área de hover para 15px */
   cursor: pointer;
 }
 
@@ -403,7 +403,7 @@ const y2 = t2.y + getColumnOffset(t2, props.relationship.toCol) + targetOffset;
 }
 
 .relationship-line {
-  /* 💡 ESSENCIAL: Transição no estado base */
+  /*  ESSENCIAL: Transição no estado base */
   transition: transform 0.15s ease-out;
   /* Define o centro da transformação para a linha não "deslocar" */
   transform-origin: center center;
