@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { RefreshCw, ArrowLeft } from "lucide-vue-next";
+import AppFooter from "./components/AppFooter.vue";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -152,9 +153,10 @@ onMounted(() => {
 
         gsap.set(connectionLine, {
           strokeDasharray: length,
-          strokeDashoffset: length,
-          autoAlpha: 0.3,
+          strokeDashoffset: length - 0.4, // bagulho foi maluco pra conseguir um efeito suave
         });
+
+        heroTl.to(connectionLine, { opacity: 0.15, duration: 0.01 }, "<");
 
         heroTl.to(
           connectionLine,
@@ -275,26 +277,25 @@ onMounted(() => {
       class="fixed top-0 left-0 w-full z-50 px-6 py-4 flex justify-between items-center transition-all duration-500"
       :class="{ 'header-scrolled': hasScrolled }"
     >
-      <div class="flex items-center gap-2">
-        <!-- Mudei de h-6 para h-10 (40px) ou h-12 para ficar bem visível -->
+      <a href="/" class="flex items-center gap-2">
         <img
           src="../src/assets/images/logo/logo-completa.svg"
           alt="BrDiagrama Logo"
           class="h-10 md:h-12 transition-all"
         />
-      </div>
-      <!-- ... nav ... -->
-      <nav class="hidden md:flex gap-6 items-center">
+      </a>
+      <nav class="flex gap-4 md:gap-6 items-center">
         <a
-          href="#sobre"
-          class="text-sm font-medium hover:text-[var(--clr-primary)] transition-colors"
+          href="/sobre.html"
+          class="nav-link text-sm font-medium hover:text-[var(--clr-primary)] transition-colors"
           >Sobre</a
         >
         <a
-          href="#faq"
-          class="text-sm font-medium hover:text-[var(--clr-primary)] transition-colors"
+          href="/faq.html"
+          class="nav-link text-sm font-medium hover:text-[var(--clr-primary)] transition-colors"
           >FAQ</a
         >
+        <a href="/gerador" class="cta-button-small">Acessar Editor</a>
       </nav>
     </header>
 
@@ -334,7 +335,7 @@ onMounted(() => {
             <!-- Linha de Conexão Curva (A Animada) -->
             <path
               class="connection-line"
-              opacity="0.3"
+              opacity="0"
               d="M178 99.6105C757.573 405.738 375.005 -121.72 970 109.598"
               stroke="#334155"
               stroke-width="3"
@@ -520,6 +521,9 @@ onMounted(() => {
         <a href="/editor.html" class="cta-button text-lg">Acessar Editor</a>
       </div>
     </section>
+
+    <!-- Rodapé Animado -->
+    <AppFooter animated />
   </div>
 </template>
 
@@ -871,6 +875,47 @@ onMounted(() => {
   transition: left 0.6s ease-in-out; /* Duração da passagem do brilho */
 }
 
+/* Botão Pequeno (Header) */
+.cta-button-small {
+  background-color: #1abc9c;
+  color: #0f172a;
+  font-weight: 700;
+  padding: 8px 20px;
+  font-size: 0.875rem;
+  border-radius: 9999px;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 20px rgba(26, 188, 156, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-button-small:hover {
+  background-color: #31e0bd;
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(26, 188, 156, 0.6);
+}
+
+.cta-button-small::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  transform: skewX(-20deg);
+  transition: none;
+}
+
+.cta-button-small:hover::after {
+  left: 200%;
+  transition: left 0.6s ease-in-out;
+}
+
 /* Botões da Dock (Estilo Pill) */
 .tab-btn {
   color: #94a3b8;
@@ -1051,11 +1096,50 @@ onMounted(() => {
   transition: opacity 0.8s ease;
 }
 
+/* Indicador de página ativa */
+.nav-link {
+  position: relative;
+  color: #94a3b8;
+  transition: color 0.3s ease;
+}
+
+.nav-link:hover {
+  color: #e2e8f0;
+}
+
+.nav-link.active {
+  color: var(--clr-primary);
+}
+
+.nav-link.active::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--clr-primary);
+  border-radius: 2px;
+}
+
 /* FIX MOBILE: reduzir 'borda preta' do vídeo e garantir que o HERO apareça
    - Remove aspect-ratio for mobile and define a reasonable height
    - Use object-fit: cover para preencher o frame (menos letterbox)
    - Garante que .hero-layer seja posicionado normalmente no fluxo para aparecer */
 @media (max-width: 768px) {
+  header nav {
+    gap: 0.5rem;
+  }
+
+  .nav-link {
+    font-size: 0.75rem;
+  }
+
+  .cta-button-small {
+    padding: 5px 10px;
+    font-size: 0.6875rem;
+  }
+
   .glass-card {
     aspect-ratio: auto; /* não forçar 4/3 aqui */
     height: 55vh; /* ocupa boa parte da viewport sem criar bordas gigantes */

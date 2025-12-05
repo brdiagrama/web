@@ -1,0 +1,820 @@
+﻿<script setup>
+import { ref, onMounted } from "vue";
+import gsap from "gsap";
+import {
+  Lightbulb,
+  Users,
+  Palette,
+  Zap,
+  Code2,
+  Cpu,
+  Database,
+  Rocket,
+  Cloud,
+  Flag,
+  Sparkles,
+  Settings,
+  Brain,
+  Linkedin,
+} from "lucide-vue-next";
+import AppFooter from "../components/AppFooter.vue";
+
+const isMounted = ref(false);
+const hasScrolled = ref(false);
+
+onMounted(() => {
+  const handleScroll = () => {
+    hasScrolled.value = window.scrollY > 50;
+  };
+  window.addEventListener("scroll", handleScroll);
+
+  setTimeout(() => {
+    isMounted.value = true;
+  }, 10);
+});
+
+const technologies = [
+  {
+    icon: Code2,
+    name: "Vue 3",
+    description:
+      "Framework progressivo para interfaces reativas e dinâmicas com Composition API.",
+    color: "#42b883",
+    features: ["Composition API", "Reatividade", "Virtual DOM"],
+  },
+  {
+    icon: Palette,
+    name: "Tailwind CSS",
+    description:
+      "Utility-first CSS framework para criação rápida de interfaces modernas.",
+    color: "#06b6d4",
+    features: ["Utility Classes", "Responsivo", "Customizável"],
+  },
+  {
+    icon: Cpu,
+    name: "Canvas API",
+    description:
+      "Renderização nativa de diagramas com performance otimizada no navegador.",
+    color: "#f59e0b",
+    features: ["Alta Performance", "Zoom", "Exportação"],
+  },
+  {
+    icon: Database,
+    name: "Custom SQL Parser",
+    description:
+      "Engine proprietário que analisa e interpreta comandos DDL SQL em tempo real.",
+    color: "#8b5cf6",
+    features: ["DDL Support", "Validação", "AST Generation"],
+  },
+  {
+    icon: Zap,
+    name: "Vite",
+    description:
+      "Build tool de próxima geração com HMR instantâneo e otimização automática.",
+    color: "#a855f7",
+    features: ["Hot Reload", "Tree Shaking", "Fast Build"],
+  },
+  {
+    icon: Cloud,
+    name: "Vercel",
+    description: "Plataforma de deploy serverless com CDN global e SSL automático.",
+    color: "#0ea5e9",
+    features: ["Edge Network", "Auto Deploy", "Analytics"],
+  },
+];
+</script>
+
+<template>
+  <div id="about-page">
+    <header
+      class="fixed top-0 left-0 w-full z-50 flex justify-between items-center transition-all duration-500"
+      :class="[
+        hasScrolled ? 'header-scrolled' : '',
+        isMounted ? 'px-6 py-4' : 'px-0 py-0',
+      ]"
+    >
+      <a href="/" class="flex items-center gap-2">
+        <img
+          src="../assets/images/logo/logo-completa.svg"
+          alt="BrDiagrama Logo"
+          class="h-10 md:h-12 transition-all"
+        />
+      </a>
+      <nav class="flex gap-4 md:gap-6 items-center">
+        <a href="/sobre.html" class="nav-link active text-sm font-medium"
+          >Sobre</a
+        >
+        <a
+          href="/faq.html"
+          class="nav-link text-sm font-medium hover:text-[var(--clr-primary)] transition-colors"
+          >FAQ</a
+        >
+        <a href="/gerador" class="cta-button-small">Acessar Editor</a>
+      </nav>
+    </header>
+
+    <section class="hero-about pt-32 pb-20 px-6">
+      <div class="max-w-4xl mx-auto text-center">
+        <h1 class="text-5xl md:text-6xl font-bold mb-6">
+          <span class="text-gradient">Sobre o BrDiagrama</span>
+        </h1>
+        <p class="text-xl text-gray-400 leading-relaxed">
+          A ferramenta brasileira que transforma SQL em diagramas visuais de forma
+          prática, rápida e gratuita.
+        </p>
+      </div>
+    </section>
+
+    <section class="story-section py-20 px-6">
+      <div class="max-w-6xl mx-auto">
+        <div class="story-card">
+          <div class="story-icon"><Lightbulb :size="64" :stroke-width="1.5" /></div>
+          <h2 class="section-title">Como Tudo Começou</h2>
+          <div class="story-content">
+            <p>
+              Tudo começou na faculdade, quando estávamos aprendendo modelagem de dados.
+              Era necessário ficar arrastando elementos, criando relacionamentos
+              manualmente... Foi aí que surgiu uma ideia brilhante:
+              <strong
+                >e se existisse um sistema que transformasse SQL diretamente em
+                diagrama?</strong
+              >
+            </p>
+            <p>
+              Pesquisamos e descobrimos que já existiam algumas soluções no mercado.
+              Porém, todas tinham algo em comum:
+              <strong>nenhuma usava SQL de verdade, ou quando usava, não tinha a mágica de ser offline e gerado em tempo real!</strong> Algumas exigiam linguagens proprietárias, outras precisavam importar o banco de dados inteiro, e nenhuma oferecia a combinação perfeita de simplicidade, velocidade e privacidade.
+            </p>
+            <p>
+              Foi aí que identificamos nossa <strong>oportunidade de inovação</strong>:
+              criar uma ferramenta que seja
+              <span class="highlight">prática, rápida, offline e 100% gratuita</span>
+              permitindo que você cole seu código SQL e visualize o diagrama
+              instantaneamente!
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="identity-section py-20 px-6 bg-[#1e293b]/30">
+      <div class="max-w-6xl mx-auto">
+        <h2 class="section-title text-center mb-12">Por que BrDiagrama?</h2>
+        <div class="identity-grid">
+          <div class="identity-card">
+            <div class="identity-icon-circle"><Flag :size="32" /></div>
+            <h3>Orgulhosamente Brasileiro</h3>
+            <p>
+              Inspirados pelo <strong>brModelo</strong>, queríamos um nome que fosse fácil
+              de lembrar e pesquisar. Assim como draw.io, bastava digitar
+              <code>brdiagrama.com</code> e pronto! Além disso, conseguimos o domínio
+              <strong>.com</strong> não precisamos nem de .br!
+            </p>
+          </div>
+          <div class="identity-card">
+            <div class="identity-icon-circle"><Palette :size="32" /></div>
+            <h3>Identidade Visual Única</h3>
+            <p>
+              Inicialmente pensamos em azul, mas seria clichê demais. Escolhemos o
+              <strong>turquesa</strong> uma cor que lembra tecnologia, inovação e ainda
+              carrega o verde do Brasil. O resultado? Uma identidade visual moderna e
+              memorável!
+            </p>
+          </div>
+          <div class="identity-card">
+            <div class="identity-icon-circle"><Zap :size="32" /></div>
+            <h3>Foco em Agilidade</h3>
+            <p>
+              Nosso diferencial está na <strong>praticidade</strong>: sem cadastros, sem
+              instalação, sem complicação. Cole seu SQL, visualize o diagrama, exporte e
+              pronto. Simples assim!
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="team-section py-20 px-6">
+      <div class="max-w-6xl mx-auto">
+        <div class="flex items-center justify-center gap-3 mb-4">
+          <Users :size="32" class="text-[var(--clr-primary)]" />
+          <h2 class="section-title text-center mb-0">Equipe de Desenvolvimento</h2>
+        </div>
+        <p class="text-center text-gray-400 mb-12 max-w-2xl mx-auto">
+          Três estudantes de ADS (Análise e Desenvolvimento de Sistemas) unidos pela
+          paixão por criar soluções práticas e inovadoras.
+        </p>
+
+        <div class="team-grid">
+          <div class="team-card">
+            <a href="https://linkedin.com/in/SEU_PERFIL_AQUI" target="_blank" class="linkedin-btn" title="LinkedIn">
+              <Linkedin :size="18" />
+            </a>
+            <div class="team-avatar">
+              <img
+                src="/team/membro1.jpg"
+                alt="Davi Lima"
+                class="avatar-image"
+                @error="(e) => (e.target.style.display = 'none')"
+              />
+              <div class="avatar-placeholder"><span>👨‍💻</span></div>
+            </div>
+            <div class="team-info">
+              <h3 class="team-name">Davi Lima</h3>
+              <p class="team-role">Desenvolvedor e Analista</p>
+            </div>
+          </div>
+          <div class="team-card">
+            <a href="https://linkedin.com/in/SEU_PERFIL_AQUI" target="_blank" class="linkedin-btn" title="LinkedIn">
+              <Linkedin :size="18" />
+            </a>
+            <div class="team-avatar">
+              <img
+                src="/team/membro2.jpg"
+                alt="Leonardo Andrade"
+                class="avatar-image"
+                @error="(e) => (e.target.style.display = 'none')"
+              />
+              <div class="avatar-placeholder"><span>👨‍💻</span></div>
+            </div>
+            <div class="team-info">
+              <h3 class="team-name">Leonardo Andrade</h3>
+              <p class="team-role">Desenvolvedor e Analista</p>
+            </div>
+          </div>
+          <div class="team-card">
+            <a href="https://linkedin.com/in/SEU_PERFIL_AQUI" target="_blank" class="linkedin-btn" title="LinkedIn">
+              <Linkedin :size="18" />
+            </a>
+            <div class="team-avatar">
+              <img
+                src="/team/membro3.jpg"
+                alt="Lucas Blank"
+                class="avatar-image"
+                @error="(e) => (e.target.style.display = 'none')"
+              />
+              <div class="avatar-placeholder"><span>👨‍💻</span></div>
+            </div>
+            <div class="team-info">
+              <h3 class="team-name">Lucas Blank</h3>
+              <p class="team-role">Desenvolvedor e Analista</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card de Colaboração -->
+        <div class="collaboration-card">
+          <h3 class="collaboration-title">Desenvolvimento Colaborativo</h3>
+          <p class="collaboration-text">
+            Trabalhamos juntos em todas as etapas do projeto, desde o planejamento da
+            arquitetura até a implementação final. Cada decisão, seja sobre
+            <strong>UX/UI</strong>, <strong>estrutura de dados</strong>,
+            <strong>escolha de linguagem</strong> ou
+            <strong>otimização de performance</strong>, foi pensada e discutida em equipe.
+          </p>
+          <p class="collaboration-text">
+            Acreditamos que o melhor software nasce da colaboração genuína, onde todos
+            contribuem com ideias e compartilham o aprendizado. Não dividimos tarefas por
+            "áreas", dividimos responsabilidades por
+            <strong>funcionalidades completas</strong>, garantindo que todos tenham visão
+            do sistema como um todo.
+          </p>
+          <div class="collaboration-highlights">
+            <div class="highlight-item">
+              <Sparkles :size="24" class="highlight-icon" />
+              <span>Design de Interfaces</span>
+            </div>
+            <div class="highlight-item">
+              <Settings :size="24" class="highlight-icon" />
+              <span>Arquitetura do Sistema</span>
+            </div>
+            <div class="highlight-item">
+              <Brain :size="24" class="highlight-icon" />
+              <span>Algoritmos e Parser SQL</span>
+            </div>
+            <div class="highlight-item">
+              <Zap :size="24" class="highlight-icon" />
+              <span>Performance e UX</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tech-section py-20 px-6 bg-[#1e293b]/30">
+      <div class="max-w-6xl mx-auto">
+        <div class="flex items-center justify-center gap-3 mb-4">
+          <Rocket :size="32" class="text-[var(--clr-primary)]" />
+          <h2 class="section-title text-center mb-0">Tecnologias Utilizadas</h2>
+        </div>
+        <p class="text-center text-gray-400 mb-12 max-w-2xl mx-auto">
+          Stack moderna e poderosa para criar a melhor experiência possível
+        </p>
+        <div class="tech-grid">
+          <div
+            v-for="tech in technologies"
+            :key="tech.name"
+            class="tech-card"
+            :style="{ '--tech-color': tech.color }"
+          >
+            <div class="tech-header">
+              <div class="tech-icon-circle"><component :is="tech.icon" :size="28" /></div>
+              <h3>{{ tech.name }}</h3>
+            </div>
+            <p class="tech-description">{{ tech.description }}</p>
+            <div class="tech-features">
+              <span v-for="feature in tech.features" :key="feature" class="feature-tag">{{
+                feature
+              }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta-final py-20 px-6">
+      <div class="max-w-4xl mx-auto text-center">
+        <h2 class="text-4xl font-bold mb-6">Pronto para experimentar?</h2>
+        <p class="text-xl text-gray-400 mb-8">
+          Transforme seu SQL em diagramas visuais em segundos. Gratuito e sem cadastro!
+        </p>
+        <a href="/gerador" class="cta-button text-lg">Começar Agora</a>
+      </div>
+    </section>
+
+    <!-- Rodapé -->
+    <AppFooter />
+  </div>
+</template>
+
+<style scoped>
+#about-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #e2e8f0;
+}
+.header-scrolled {
+  background-color: rgba(15, 23, 42, 0.95);
+  animation: border-neutral-flash 0.8s ease-out forwards;
+}
+@keyframes border-neutral-flash {
+  0% {
+    border-bottom: 1px solid transparent;
+  }
+  40% {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.4);
+  }
+  100% {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+}
+.text-gradient {
+  background: linear-gradient(to right, #1abc9c, #a5f3fc);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800;
+}
+.section-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+.story-card {
+  background: #1e293b;
+  border-radius: 24px;
+  padding: 3rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+.story-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #1abc9c, #a5f3fc);
+}
+.story-icon {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #1abc9c;
+  display: flex;
+  justify-content: center;
+  filter: drop-shadow(0 0 20px rgba(26, 188, 156, 0.3));
+}
+.story-content {
+  font-size: 1.125rem;
+  line-height: 1.8;
+  color: #94a3b8;
+}
+.story-content p {
+  margin-bottom: 1.5rem;
+}
+.story-content p:last-child {
+  margin-bottom: 0;
+}
+.story-content strong {
+  color: #e2e8f0;
+  font-weight: 600;
+}
+.story-content .highlight {
+  color: #1abc9c;
+  font-weight: 600;
+}
+.story-content code {
+  background: rgba(26, 188, 156, 0.1);
+  color: #1abc9c;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.95em;
+}
+.identity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+.identity-card {
+  background: #1e293b;
+  border-radius: 16px;
+  padding: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.identity-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(26, 188, 156, 0.15);
+  border-color: rgba(26, 188, 156, 0.3);
+}
+.identity-icon-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(26, 188, 156, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1abc9c;
+  margin-bottom: 1.5rem;
+  transition: transform 0.3s ease;
+}
+.identity-card:hover .identity-icon-circle {
+  transform: scale(1.1) rotate(5deg);
+}
+.identity-card h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #e2e8f0;
+}
+.identity-card p {
+  color: #94a3b8;
+  line-height: 1.7;
+}
+.identity-card strong {
+  color: #1abc9c;
+}
+.identity-card code {
+  background: rgba(26, 188, 156, 0.1);
+  color: #1abc9c;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.95em;
+}
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+.team-card {
+  background: #1e293b;
+  border-radius: 20px;
+  padding: 2rem;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+}
+.team-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(26, 188, 156, 0.1);
+}
+.linkedin-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(26, 188, 156, 0.1);
+  border: 1px solid rgba(26, 188, 156, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1abc9c;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+.linkedin-btn:hover {
+  background: rgba(26, 188, 156, 0.2);
+  border-color: #1abc9c;
+  transform: scale(1.1);
+}
+.team-avatar {
+  margin-bottom: 1.5rem;
+  position: relative;
+  width: 140px;
+  height: 140px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.avatar-image {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid rgba(26, 188, 156, 0.3);
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+}
+.avatar-placeholder {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(26, 188, 156, 0.2), rgba(59, 130, 246, 0.2));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4.5rem;
+  border: 4px solid rgba(26, 188, 156, 0.3);
+  z-index: 1;
+}
+.team-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 0.5rem;
+}
+.team-role {
+  color: #1abc9c;
+  font-weight: 600;
+  margin-bottom: 0;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.collaboration-card {
+  margin-top: 4rem;
+  background: #1e293b;
+  border-radius: 20px;
+  padding: 3rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+.collaboration-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+.collaboration-text {
+  color: #94a3b8;
+  line-height: 1.8;
+  font-size: 1.0625rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.collaboration-text strong {
+  color: #1abc9c;
+  font-weight: 600;
+}
+.collaboration-highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 2rem;
+}
+.highlight-item {
+  background: rgba(26, 188, 156, 0.1);
+  padding: 0.75rem 1.25rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid rgba(26, 188, 156, 0.2);
+  transition: all 0.3s ease;
+}
+.highlight-item:hover {
+  background: rgba(26, 188, 156, 0.15);
+  border-color: rgba(26, 188, 156, 0.4);
+  transform: translateY(-2px);
+}
+.highlight-icon {
+  color: #1abc9c;
+  flex-shrink: 0;
+}
+.highlight-item span:last-child {
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+.tech-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+}
+.tech-card {
+  background: #1e293b;
+  border-radius: 16px;
+  padding: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.tech-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--tech-color);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.tech-card:hover::before {
+  opacity: 1;
+}
+.tech-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(26, 188, 156, 0.1);
+  border-color: var(--tech-color);
+}
+.tech-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.tech-icon-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: rgba(26, 188, 156, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.3s ease;
+  color: var(--tech-color);
+}
+.tech-card:hover .tech-icon-circle {
+  transform: scale(1.1);
+}
+.tech-header h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0;
+}
+.tech-description {
+  color: #94a3b8;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+.tech-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.feature-tag {
+  background: rgba(255, 255, 255, 0.05);
+  color: #94a3b8;
+  padding: 0.25rem 0.625rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+.tech-card:hover .feature-tag {
+  border-color: var(--tech-color);
+  color: #e2e8f0;
+}
+.cta-button,
+.cta-button-small {
+  background-color: #1abc9c;
+  color: #0f172a;
+  font-weight: 700;
+  padding: 12px 32px;
+  border-radius: 9999px;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 20px rgba(26, 188, 156, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+.cta-button-small {
+  padding: 8px 20px;
+  font-size: 0.875rem;
+}
+.cta-button:hover,
+.cta-button-small:hover {
+  background-color: #31e0bd;
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(26, 188, 156, 0.6);
+}
+.cta-button::after,
+.cta-button-small::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  transform: skewX(-20deg);
+  transition: none;
+}
+.cta-button:hover::after,
+.cta-button-small:hover::after {
+  left: 200%;
+  transition: left 0.6s ease-in-out;
+}
+/* Indicador de página ativa */
+.nav-link {
+  position: relative;
+  color: #94a3b8;
+  transition: color 0.3s ease;
+}
+
+.nav-link:hover {
+  color: #e2e8f0;
+}
+
+.nav-link.active {
+  color: var(--clr-primary);
+}
+
+.nav-link.active::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--clr-primary);
+  border-radius: 2px;
+}
+
+@media (max-width: 768px) {
+  header nav {
+    gap: 0.5rem;
+  }
+
+  .nav-link {
+    font-size: 0.75rem;
+  }
+
+  .cta-button-small {
+    padding: 5px 10px;
+    font-size: 0.6875rem;
+  }
+
+  .section-title {
+    font-size: 1.75rem;
+  }
+  .story-card {
+    padding: 2rem;
+  }
+  .story-content {
+    font-size: 1rem;
+  }
+  .identity-grid,
+  .team-grid,
+  .tech-grid {
+    grid-template-columns: 1fr;
+  }
+  .tech-header {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+</style>
