@@ -1,0 +1,19 @@
+# Robots.txt para BrDiagrama
+# https://brdiagrama.com/robots.txt
+
+# Permitir todos os crawlers
+User-agent: *
+Allow: /
+
+# Bloquear arquivos desnecessários para crawlers
+Disallow: /node_modules/
+Disallow: /dist/
+Disallow: /.git/
+Disallow: /package.json
+Disallow: /package-lock.json
+
+# Sitemap
+Sitemap: https://brdiagrama.com/sitemap.xml
+
+# Crawl-delay (opcional, ajuda a não sobrecarregar o servidor)
+Crawl-delay: 1
