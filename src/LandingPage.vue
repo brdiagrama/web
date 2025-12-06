@@ -427,13 +427,15 @@ onMounted(() => {
                 </div>
 
                 <div class="flex-1 relative w-full h-full bg-[#0F172A]">
-                  <!-- Spinner de Loading -->
-                  <div 
-                    v-if="videoLoading && currentTabContent.videoSrc" 
-                    class="absolute inset-0 flex items-center justify-center bg-[#0F172A] z-30"
-                  >
-                    <div class="spinner"></div>
-                  </div>
+                  <!-- Spinner de Loading com Transição -->
+                  <transition name="spinner-fade">
+                    <div 
+                      v-if="videoLoading && currentTabContent.videoSrc" 
+                      class="absolute inset-0 flex items-center justify-center bg-[#0F172A] z-30"
+                    >
+                      <div class="spinner"></div>
+                    </div>
+                  </transition>
 
                   <transition name="fade" mode="out-in">
                     <template v-if="currentTabContent.videoSrc">
@@ -1193,5 +1195,22 @@ onMounted(() => {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Transição do Spinner/Placeholder */
+.spinner-fade-enter-active {
+  transition: opacity 0.3s ease-out;
+}
+
+.spinner-fade-leave-active {
+  transition: opacity 0.25s ease-in;
+}
+
+.spinner-fade-enter-from {
+  opacity: 0;
+}
+
+.spinner-fade-leave-to {
+  opacity: 0;
 }
 </style>
