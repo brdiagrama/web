@@ -34,7 +34,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
-        globIgnores: ['**/index.html', '**/editor.html'],
+        globIgnores: ['**/index.html', '**/sobre.html', '**/faq.html', '**/gerador.html'],
         navigateFallback: null,
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         runtimeCaching: [
@@ -93,7 +93,9 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        editor: resolve(__dirname, 'editor.html'), 
+        sobre: resolve(__dirname, 'sobre.html'),
+        faq: resolve(__dirname, 'faq.html'),
+        gerador: resolve(__dirname, 'gerador.html'), 
       },
       output: {
         manualChunks: {
