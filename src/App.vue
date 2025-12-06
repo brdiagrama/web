@@ -532,23 +532,17 @@ import logoBrDiagrama from "@/assets/images/logo/logo-completa.svg";
 
 const alertModalRef = ref(null);
 
-// Configura o serviço global quando o componente monta
-onMounted(() => {
-  setAlertModalRef(alertModalRef.value);
-  
-  const savedSql = DiagramController.loadLastSql();
-  sqlCode.value = savedSql || defaultSql;
-  updateDiagram();
-});
-
 const toastRef = ref(null);
 
+// Configura o serviço global quando o componente monta
 onMounted(() => {
   setAlertModalRef(alertModalRef.value);
   setToastRef(toastRef.value); // Inicializa o serviço de Toast
   
   const savedSql = DiagramController.loadLastSql();
-  sqlCode.value = savedSql || defaultSql;
+  // Se savedSql é null (não existe no storage), usa defaultSql
+  // Se é string vazia (""), mantém vazio (usuário limpou deliberadamente)
+  sqlCode.value = savedSql !== null ? savedSql : defaultSql;
   updateDiagram();
 });
 
@@ -875,9 +869,8 @@ const errorCount = computed(() => validationResult.value.errors.length);
 const warningCount = computed(() => validationResult.value.warnings.length);
 
 watch(sqlCode, (newSql) => {
-  if (newSql && newSql.trim()) {
-    DiagramController.saveToCache(newSql, { tables: tables.value, relationships: relationships.value });
-  }
+  // Salva sempre, mesmo quando vazio (permite persistir o estado "limpo")
+  DiagramController.saveToCache(newSql || '', { tables: tables.value, relationships: relationships.value });
 }, { debounce: 500 });
 
 const updateDiagram = async () => {
@@ -1839,12 +1832,6 @@ const screenToSVG = (screenX, screenY) => {
     y: (screenY - ctm.f) / ctm.d,
   };
 };
-
-onMounted(() => {
-  const savedSql = DiagramController.loadLastSql();
-  sqlCode.value = savedSql || defaultSql;
-  updateDiagram();
-});
 </script>
 
 <style scoped>

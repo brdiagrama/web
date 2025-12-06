@@ -52,7 +52,7 @@ const faqs = [
       },
       {
         q: "Como funciona a detecção de herança?",
-        a: "Quando uma tabela possui uma Primary Key (PK) que também é Foreign Key (FK) apontando para outra tabela, o BrDiagrama identifica automaticamente a estrutura de herança e desenha a relação 'Pai-Filho' no diagrama."
+        a: "Quando uma tabela possui uma Primary Key (PK) que também é Foreign Key (FK) apontando para outra tabela, o BrDiagrama identifica automaticamente a estrutura de herança e desenha a relação \"Pai-Filho\" no diagrama."
       },
       {
         q: "Posso exportar o diagrama?",
@@ -98,7 +98,7 @@ const faqs = [
       },
       {
         q: "O BrDiagrama armazena meu SQL em algum lugar?",
-        a: "Não permanentemente. O SQL fica apenas na memória do navegador enquanto você está usando a ferramenta. Ao fechar a aba ou atualizar a página, tudo é apagado. Nenhum dado é salvo em servidores ou cookies."
+        a: "Sim, mas apenas localmente no seu navegador! Utilizamos localStorage para salvar automaticamente seu código SQL, permitindo que você retome o trabalho mesmo após fechar a aba ou atualizar a página. Os dados ficam salvos apenas no seu dispositivo e nunca são enviados para servidores externos. Para limpar, basta apagar o conteúdo do editor ou limpar o histórico/cache do navegador."
       },
       {
         q: "Posso usar com dados sensíveis?",
