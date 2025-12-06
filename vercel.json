@@ -107,6 +107,17 @@
       "has": [
         {
           "type": "host",
+          "value": "www.brdiagrama.com"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "destination": "https://brdiagrama.com/$1",
+      "permanent": true,
+      "has": [
+        {
+          "type": "host",
           "value": "web-brdiagrama.vercel.app"
         }
       ]
