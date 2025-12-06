@@ -91,9 +91,20 @@ const startTypewriter = () => {
 // Video controls
 const previewVideo = ref(null);
 const videoEnded = ref(false);
+const videoLoading = ref(true);
+
 const onVideoEnded = () => {
   videoEnded.value = true;
 };
+
+const onVideoLoaded = () => {
+  videoLoading.value = false;
+};
+
+const onVideoLoadStart = () => {
+  videoLoading.value = true;
+};
+
 const restartVideo = () => {
   try {
     const v = previewVideo.value;
@@ -107,6 +118,7 @@ const restartVideo = () => {
 
 watch(activeTab, () => {
   videoEnded.value = false;
+  videoLoading.value = true;
 });
 
 onBeforeUnmount(() => {
@@ -405,16 +417,24 @@ onMounted(() => {
                   class="window-header bg-[#161b22] p-3 flex gap-2 border-b border-[#30363d] z-10 relative"
                   aria-hidden="true"
                 >
-                  <div class="dot red w-3 h-3 rounded-full bg-[#ff5f56]"></div>
-                  <div class="dot yellow w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
-                  <div class="dot green w-3 h-3 rounded-full bg-[#27c93f]"></div>
+                  <div class="dot dot1 w-3 h-3 rounded-full"></div>
+                  <div class="dot dot2 w-3 h-3 rounded-full"></div>
+                  <div class="dot dot3 w-3 h-3 rounded-full"></div>
                   <span class="text-xs text-gray-500 ml-2 font-mono"
                     >{{ activeTab }}.sql</span
                   >
                   <!-- header controls (removed back button) -->
                 </div>
 
-                <div class="flex-1 relative w-full h-full bg-[#0d1117]">
+                <div class="flex-1 relative w-full h-full bg-[#0F172A]">
+                  <!-- Spinner de Loading -->
+                  <div 
+                    v-if="videoLoading && currentTabContent.videoSrc" 
+                    class="absolute inset-0 flex items-center justify-center bg-[#0F172A] z-30"
+                  >
+                    <div class="spinner"></div>
+                  </div>
+
                   <transition name="fade" mode="out-in">
                     <template v-if="currentTabContent.videoSrc">
                       <video
@@ -426,6 +446,8 @@ onMounted(() => {
                         class="w-full h-full object-cover"
                         :src="currentTabContent.videoSrc"
                         @ended="onVideoEnded"
+                        @loadeddata="onVideoLoaded"
+                        @loadstart="onVideoLoadStart"
                         :aria-label="`Demonstração: ${currentTabContent.title}`"
                       >
                         <track kind="captions" label="Português" srclang="pt-BR" />
@@ -433,7 +455,7 @@ onMounted(() => {
                       </video>
                     </template>
                     <template v-else>
-                      <div class="video-placeholder w-full h-full flex items-center justify-center bg-[#071018] text-gray-300">
+                      <div class="video-placeholder w-full h-full flex items-center justify-center bg-[#0F172A] text-gray-300">
                         <div class="px-6 text-center">
                           <h4 class="text-lg font-semibold mb-2">{{ currentTabContent.title }}</h4>
                           <p class="text-sm max-w-xs mx-auto">{{ currentTabContent.description || 'Visualização indisponível para esta aba.' }}</p>
@@ -786,7 +808,7 @@ onMounted(() => {
   box-sizing: border-box;
 }
 .window-header {
-  background: #161b22;
+  background: #020617;
   padding: 10px;
   display: flex;
   gap: 8px;
@@ -797,14 +819,18 @@ onMounted(() => {
   height: 12px;
   border-radius: 50%;
 }
-.red {
-  background: #ff5f56;
+/* Bolinhas em tons de turquesa harmoniosos */
+.dot1 {
+  background: #0d9488;
+  box-shadow: 0 0 8px rgba(13, 148, 136, 0.4);
 }
-.yellow {
-  background: #ffbd2e;
+.dot2 {
+  background: #1abc9c;
+  box-shadow: 0 0 8px rgba(26, 188, 156, 0.4);
 }
-.green {
-  background: #27c93f;
+.dot3 {
+  background: #5eead4;
+  box-shadow: 0 0 8px rgba(94, 234, 212, 0.4);
 }
 
 /* Botão Principal */
@@ -1119,7 +1145,7 @@ onMounted(() => {
     object-fit: cover !important;
     width: 100%;
     height: 100%;
-    background: #000;
+    background: hsl(0, 0%, 0%);
   }
 
   /* Caso o vídeo não exista, o placeholder fica mais compacto */
@@ -1149,6 +1175,23 @@ onMounted(() => {
     height: auto !important;
     display: block !important;
     overflow: visible !important;
+  }
+}
+
+/* Spinner de Carregamento */
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(26, 188, 156, 0.1);
+  border-top-color: var(--clr-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  box-shadow: 0 0 20px rgba(26, 188, 156, 0.3);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 </style>
