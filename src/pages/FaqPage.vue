@@ -92,7 +92,7 @@ const faqs = [
     questions: [
       {
         q: "O que é o BrDiagrama?",
-        a: "BrDiagrama é uma ferramenta online gratuita que transforma código SQL (DDL) em diagramas ER (Entidade-Relacionamento) de forma automática e instantânea. Basta colar seu código SQL e visualizar o diagrama imediatamente."
+        a: "O BrDiagrama é uma ferramenta online gratuita que transforma código SQL (DDL) em diagramas ER (Entidade-Relacionamento) de forma automática e instantânea. Basta colar seu código SQL e visualizar o diagrama imediatamente."
       },
       {
         q: "Preciso me cadastrar para usar?",
