@@ -27,28 +27,28 @@ const contents = {
     title: "Conexão Exclusiva (1:1)",
     description:
       "O diagrama detecta automaticamente a constraint UNIQUE e NOT NULL na chave estrangeira, criando um vínculo exclusivo entre as tabelas.",
-    videoSrc: "/videos/1-1.mp4",
+    youtubeId: "rJdxLFanZoo",
   },
   "1:N": {
     title: "Um para Muitos (Opcional)",
     description:
       "Quando a chave estrangeira aceita NULL, o diagrama representa visualmente que o relacionamento não é obrigatório (0..N).",
-    videoSrc: "/videos/1-N.mp4",
+    youtubeId: "2y40czV1KKw",
   },
   "apenas1:N": {
     title: "Um para Muitos (Estrito)",
     description: "Ao definir a chave como NOT NULL, o sistema desenha a obrigatoriedade do vínculo, impedindo registros órfãos no seu modelo.",
-    videoSrc: "/videos/apenas1-N.mp4",
+    youtubeId: "AbAfLUhv5Ys",
   },
   "N:N": {
     title: "Muitos para Muitos (N:N)",
     description: "Detecção inteligente de tabelas de junção. O sistema reconhece Chaves Primárias Compostas para desenhar associações complexas sem poluição visual.",
-    videoSrc: "/videos/N-N.mp4",
+    youtubeId: "Dqx2GfKxH7M",
   },
   "heranca": {
     title: "Herança e Especialização",
     description: "Arquitetura hierárquica visualizada. Quando a PK também é uma FK, o diagrama entende a extensão da tabela e desenha a estrutura de \"Pai e Filho\".",
-    videoSrc: "/videos/heranca.mp4",
+    youtubeId: "_SvCiD54R4w",
   },
 };
 
@@ -119,6 +119,13 @@ const restartVideo = () => {
 watch(activeTab, () => {
   videoEnded.value = false;
   videoLoading.value = true;
+  
+  // Se for YouTube, simula o carregamento (o iframe não dispara eventos)
+  if (contents[activeTab.value].youtubeId) {
+    setTimeout(() => {
+      videoLoading.value = false;
+    }, 400); // Tempo suficiente para o YouTube começar a carregar
+  }
 });
 
 onBeforeUnmount(() => {
@@ -128,6 +135,13 @@ onBeforeUnmount(() => {
 });
 
 onMounted(() => {
+  // Inicia o carregamento do primeiro vídeo (YouTube)
+  if (contents[activeTab.value].youtubeId) {
+    setTimeout(() => {
+      videoLoading.value = false;
+    }, 800); // Tempo para o primeiro vídeo carregar
+  }
+
   // Use ScrollTrigger.matchMedia para ativar animações pesadas apenas em telas maiores
   // e manter uma versão leve / sem pin no mobile. Isso evita travamentos e bugs
   // relacionados a 'pin' e transforms em dispositivos touch.
@@ -427,10 +441,10 @@ onMounted(() => {
                 </div>
 
                 <div class="flex-1 relative w-full h-full bg-[#0F172A]">
-                  <!-- Spinner de Loading com Transição -->
+                  <!-- Spinner de Loading durante troca de vídeo -->
                   <transition name="spinner-fade">
                     <div 
-                      v-if="videoLoading && currentTabContent.videoSrc" 
+                      v-if="videoLoading" 
                       class="absolute inset-0 flex items-center justify-center bg-[#0F172A] z-30"
                     >
                       <div class="spinner"></div>
@@ -438,7 +452,21 @@ onMounted(() => {
                   </transition>
 
                   <transition name="fade" mode="out-in">
-                    <template v-if="currentTabContent.videoSrc">
+                    <!-- YouTube Embed -->
+                    <template v-if="currentTabContent.youtubeId">
+                      <iframe
+                        :key="activeTab"
+                        class="w-full h-full"
+                        :src="`https://www.youtube.com/embed/${currentTabContent.youtubeId}?autoplay=1&mute=1&loop=1&playlist=${currentTabContent.youtubeId}&controls=0&modestbranding=1&rel=0&showinfo=0`"
+                        frameborder="0"
+                        allow="autoplay; encrypted-media"
+                        allowfullscreen
+                        loading="eager"
+                        :aria-label="`Demonstração: ${currentTabContent.title}`"
+                      ></iframe>
+                    </template>
+                    <!-- Vídeo Local -->
+                    <template v-else-if="currentTabContent.videoSrc">
                       <video
                         ref="previewVideo"
                         :key="activeTab"
@@ -456,6 +484,7 @@ onMounted(() => {
                         Seu navegador não suporta vídeos HTML5.
                       </video>
                     </template>
+                    <!-- Placeholder -->
                     <template v-else>
                       <div class="video-placeholder w-full h-full flex items-center justify-center bg-[#0F172A] text-gray-300">
                         <div class="px-6 text-center">
@@ -474,7 +503,14 @@ onMounted(() => {
       {{ currentTabContent.description }}
     </p>
   </div>
-                  <button class="video-restart-btn" @click="restartVideo" :aria-pressed="videoEnded" title="Reiniciar vídeo">
+                  <!-- Botão de restart apenas para vídeos locais -->
+                  <button 
+                    v-if="currentTabContent.videoSrc && !currentTabContent.youtubeId"
+                    class="video-restart-btn" 
+                    @click="restartVideo" 
+                    :aria-pressed="videoEnded" 
+                    title="Reiniciar vídeo"
+                  >
                     <RefreshCw :size="16" />
                   </button>
                 </div>
