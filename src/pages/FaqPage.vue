@@ -3,6 +3,10 @@ import { ref, onMounted } from "vue";
 import { ChevronDown, HelpCircle, Zap, Shield, Code, Download } from "lucide-vue-next";
 import AppHeader from "../components/AppHeader.vue";
 import AppFooter from "../components/AppFooter.vue";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const isMounted = ref(false);
 const openIndex = ref(null);
@@ -11,6 +15,69 @@ onMounted(() => {
   setTimeout(() => {
     isMounted.value = true;
   }, 10);
+
+  // Animações GSAP leves e modernas
+  const tl = gsap.timeline({ delay: 0.2 });
+
+  // Hero: fade + slide suave
+  tl.from('.hero-faq h1', {
+    opacity: 0,
+    y: 30,
+    duration: 0.8,
+    ease: 'power2.out'
+  })
+  .from('.hero-faq p', {
+    opacity: 0,
+    y: 20,
+    duration: 0.6,
+    ease: 'power2.out'
+  }, '-=0.4');
+
+  // ScrollTrigger apenas no desktop (matchMedia)
+  ScrollTrigger.matchMedia({
+    // Desktop: animações com scroll
+    "(min-width: 769px)": function() {
+      // Categorias aparecem com stagger ao rolar
+      gsap.utils.toArray('.category-section').forEach((section, i) => {
+        gsap.from(section, {
+          scrollTrigger: {
+            trigger: section,
+            start: 'top 85%',
+            toggleActions: 'play none none none'
+          },
+          opacity: 0,
+          y: 40,
+          duration: 0.7,
+          ease: 'power2.out'
+        });
+      });
+    },
+    
+    // Mobile: animação simples de entrada (sem scroll trigger)
+    "(max-width: 768px)": function() {
+      gsap.from('.category-section', {
+        opacity: 0,
+        y: 20,
+        duration: 0.6,
+        stagger: 0.15,
+        ease: 'power2.out',
+        delay: 0.8
+      });
+    }
+  });
+
+  // CTA final: fade simples
+  gsap.from('.cta-final', {
+    scrollTrigger: {
+      trigger: '.cta-final',
+      start: 'top 90%',
+      toggleActions: 'play none none none'
+    },
+    opacity: 0,
+    y: 30,
+    duration: 0.7,
+    ease: 'power2.out'
+  });
 });
 
 const toggleFaq = (index) => {
@@ -250,6 +317,12 @@ const faqs = [
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.category-icon:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 188, 156, 0.2);
 }
 
 .category-title {

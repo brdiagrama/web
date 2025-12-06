@@ -2051,7 +2051,7 @@ const screenToSVG = (screenX, screenY) => {
   align-items: center;
   background-color: #020617; /* Fundo bem escuro */
   padding: 0 16px;
-  height: 48px; 
+  height: 56px; 
   border-bottom: 1px solid #1e293b;
   flex-shrink: 0;
   user-select: none;

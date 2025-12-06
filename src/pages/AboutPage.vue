@@ -1,6 +1,7 @@
 ﻿<script setup>
 import { ref, onMounted } from "vue";
 import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import {
   Lightbulb,
   Users,
@@ -20,12 +21,152 @@ import {
 import AppHeader from "../components/AppHeader.vue";
 import AppFooter from "../components/AppFooter.vue";
 
+gsap.registerPlugin(ScrollTrigger);
+
 const isMounted = ref(false);
 
 onMounted(() => {
   setTimeout(() => {
     isMounted.value = true;
   }, 10);
+
+  // Animações GSAP leves e modernas
+  const tl = gsap.timeline({ delay: 0.2 });
+
+  // Hero: fade + slide suave
+  tl.from('.hero-about h1', {
+    opacity: 0,
+    y: 30,
+    duration: 0.8,
+    ease: 'power2.out'
+  })
+  .from('.hero-about p', {
+    opacity: 0,
+    y: 20,
+    duration: 0.6,
+    ease: 'power2.out'
+  }, '-=0.4');
+
+  // ScrollTrigger responsivo
+  ScrollTrigger.matchMedia({
+    // Desktop: animações com scroll
+    "(min-width: 769px)": function() {
+      // Story card
+      gsap.from('.story-card', {
+        scrollTrigger: {
+          trigger: '.story-card',
+          start: 'top 85%',
+          toggleActions: 'play none none reverse'
+        },
+        opacity: 0,
+        y: 50,
+        duration: 0.8,
+        ease: 'power2.out',
+        clearProps: 'opacity,y,transform'
+      });
+
+      // Identity cards com stagger
+      gsap.from('.identity-card', {
+        scrollTrigger: {
+          trigger: '.identity-grid',
+          start: 'top 80%',
+          toggleActions: 'play none none reverse'
+        },
+        opacity: 0,
+        y: 40,
+        stagger: 0.15,
+        duration: 0.7,
+        ease: 'power2.out',
+        clearProps: 'opacity,y,transform'
+      });
+
+      // Team cards com stagger
+      gsap.from('.team-card', {
+        scrollTrigger: {
+          trigger: '.team-grid',
+          start: 'top 80%',
+          toggleActions: 'play none none reverse'
+        },
+        opacity: 0,
+        y: 40,
+        stagger: 0.2,
+        duration: 0.7,
+        ease: 'power2.out',
+        clearProps: 'opacity,y,transform'
+      });
+
+      // Collaboration card
+      gsap.from('.collaboration-card', {
+        scrollTrigger: {
+          trigger: '.collaboration-card',
+          start: 'top 85%',
+          toggleActions: 'play none none reverse'
+        },
+        opacity: 0,
+        y: 40,
+        duration: 0.8,
+        ease: 'power2.out',
+        clearProps: 'opacity,y,transform'
+      });
+
+      // Tech cards com stagger
+      gsap.from('.tech-card', {
+        scrollTrigger: {
+          trigger: '.tech-grid',
+          start: 'top 80%',
+          toggleActions: 'play none none reverse'
+        },
+        opacity: 0,
+        y: 40,
+        stagger: 0.12,
+        duration: 0.7,
+        ease: 'power2.out',
+        clearProps: 'opacity,y,transform'
+      });
+
+      // CTA final
+      gsap.from('.cta-final', {
+        scrollTrigger: {
+          trigger: '.cta-final',
+          start: 'top 90%',
+          toggleActions: 'play none none reverse'
+        },
+        opacity: 0,
+        y: 30,
+        duration: 0.7,
+        ease: 'power2.out',
+        clearProps: 'opacity,y,transform'
+      });
+    },
+
+    // Mobile: animações simples sem scroll trigger
+    "(max-width: 768px)": function() {
+      // Animações sequenciais leves no mobile
+      const mobileTl = gsap.timeline({ delay: 0.8 });
+      
+      mobileTl
+        .from('.story-card', {
+          opacity: 0,
+          y: 20,
+          duration: 0.6,
+          ease: 'power2.out'
+        })
+        .from('.identity-card', {
+          opacity: 0,
+          y: 20,
+          stagger: 0.1,
+          duration: 0.5,
+          ease: 'power2.out'
+        }, '-=0.2')
+        .from('.team-card', {
+          opacity: 0,
+          y: 20,
+          stagger: 0.1,
+          duration: 0.5,
+          ease: 'power2.out'
+        }, '-=0.2');
+    }
+  });
 });
 
 const technologies = [
@@ -381,6 +522,12 @@ const technologies = [
   display: flex;
   justify-content: center;
   filter: drop-shadow(0 0 20px rgba(26, 188, 156, 0.3));
+  transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+.story-icon:hover {
+  transform: scale(1.05);
+  filter: drop-shadow(0 0 30px rgba(26, 188, 156, 0.5));
 }
 .story-content {
   font-size: 1.125rem;
@@ -436,10 +583,11 @@ const technologies = [
   justify-content: center;
   color: #1abc9c;
   margin-bottom: 1.5rem;
-  transition: transform 0.3s ease;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
 }
 .identity-card:hover .identity-icon-circle {
-  transform: scale(1.1) rotate(5deg);
+  transform: scale(1.15) rotate(8deg);
+  box-shadow: 0 8px 20px rgba(26, 188, 156, 0.25);
 }
 .identity-card h3 {
   font-size: 1.5rem;
