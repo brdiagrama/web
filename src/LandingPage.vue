@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { RefreshCw, ArrowLeft } from "lucide-vue-next";
+import AppHeader from "./components/AppHeader.vue";
 import AppFooter from "./components/AppFooter.vue";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -272,35 +273,7 @@ onMounted(() => {
 <template>
   <div id="landing-app">
     <!-- HEADER -->
-    <!-- 1. HEADER (Logo Maior) -->
-    <header
-      class="fixed top-0 left-0 w-full z-50 px-6 py-4 flex justify-between items-center transition-all duration-500"
-      :class="{ 'header-scrolled': hasScrolled }"
-      role="banner"
-    >
-      <a href="/" class="flex items-center gap-2" aria-label="BrDiagrama - Página Inicial">
-        <img
-          src="../src/assets/images/logo/logo-completa.svg"
-          alt="BrDiagrama - Transforme SQL em Diagramas ER"
-          class="h-10 md:h-12 transition-all"
-          width="auto"
-          height="48"
-        />
-      </a>
-      <nav class="flex gap-4 md:gap-6 items-center" role="navigation" aria-label="Menu principal">
-        <a
-          href="/sobre"
-          class="nav-link text-sm font-medium hover:text-[var(--clr-primary)] transition-colors"
-          >Sobre</a
-        >
-        <a
-          href="/faq"
-          class="nav-link text-sm font-medium hover:text-[var(--clr-primary)] transition-colors"
-          >FAQ</a
-        >
-        <a href="/gerador" class="cta-button-small" aria-label="Acessar gerador de diagramas">Acessar Gerador</a>
-      </nav>
-    </header>
+    <AppHeader />
 
     <!-- WRAPPER DO SCROLL ANIMADO -->
     <div class="pin-wrapper">
@@ -1023,30 +996,7 @@ onMounted(() => {
   filter: drop-shadow(0 0 20px rgba(26, 188, 156, 0.3));
 }
 
-.header-scrolled {
-  /* Fundo Escuro Sólido (95% opacidade) para substituir o blur */
-  background-color: rgba(15, 23, 42, 0.95); /* Slate-950 */
-
-  /* A animação acontece aqui */
-  animation: border-neutral-flash 0.8s ease-out forwards;
-}
-
-@keyframes border-neutral-flash {
-  /* 1. Começa sem borda */
-  0% {
-    border-bottom: 1px solid transparent;
-  }
-  /* 2. O "Flash" (Piscada) */
-  /* Uma cor neutra, levemente mais clara que o final, mas não branca pura */
-  40% {
-    border-bottom: 1px solid rgba(148, 163, 184, 0.4); /* Slate-400 com baixa opacidade */
-  }
-  /* 3. O Assentamento (Estado Final) */
-  /* A borda fixa que permanece */
-  100% {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08); /* Linha muito sutil */
-  }
-}
+/* Estilos do header movidos para AppHeader.vue */
 
 /* SVG de Conexão */
 .connection-svg {

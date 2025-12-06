@@ -1,18 +1,13 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { ChevronDown, HelpCircle, Zap, Shield, Code, Download } from "lucide-vue-next";
+import AppHeader from "../components/AppHeader.vue";
 import AppFooter from "../components/AppFooter.vue";
 
 const isMounted = ref(false);
-const hasScrolled = ref(false);
 const openIndex = ref(null);
 
 onMounted(() => {
-  const handleScroll = () => {
-    hasScrolled.value = window.scrollY > 50;
-  };
-  window.addEventListener("scroll", handleScroll);
-
   setTimeout(() => {
     isMounted.value = true;
   }, 10);
@@ -139,33 +134,7 @@ const faqs = [
 
 <template>
   <div id="faq-page">
-    <header
-      class="fixed top-0 left-0 w-full z-50 flex justify-between items-center transition-all duration-500"
-      :class="[
-        hasScrolled ? 'header-scrolled' : '',
-        isMounted ? 'px-6 py-4' : 'px-0 py-0',
-      ]"
-      role="banner"
-    >
-      <a href="/" class="flex items-center gap-2" aria-label="BrDiagrama - Página Inicial">
-        <img
-          src="../assets/images/logo/logo-completa.svg"
-          alt="BrDiagrama - Transforme SQL em Diagramas ER"
-          class="h-10 md:h-12 transition-all"
-          width="auto"
-          height="48"
-        />
-      </a>
-      <nav class="flex gap-4 md:gap-6 items-center" role="navigation" aria-label="Menu principal">
-        <a
-          href="/sobre"
-          class="nav-link text-sm font-medium hover:text-[var(--clr-primary)] transition-colors"
-          >Sobre</a
-        >
-        <a href="/faq" class="nav-link active text-sm font-medium" aria-current="page">FAQ</a>
-        <a href="/gerador" class="cta-button-small" aria-label="Acessar gerador de diagramas">Acessar Gerador</a>
-      </nav>
-    </header>
+    <AppHeader active-page="faq" />
 
     <section class="hero-faq pt-32 pb-20 px-6" role="main" aria-labelledby="page-title">
       <div class="max-w-4xl mx-auto text-center">
@@ -250,22 +219,7 @@ const faqs = [
   color: #e2e8f0;
 }
 
-.header-scrolled {
-  background-color: rgba(15, 23, 42, 0.95);
-  animation: border-neutral-flash 0.8s ease-out forwards;
-}
-
-@keyframes border-neutral-flash {
-  0% {
-    border-bottom: 1px solid transparent;
-  }
-  40% {
-    border-bottom: 1px solid rgba(148, 163, 184, 0.4);
-  }
-  100% {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  }
-}
+/* Estilos do header movidos para AppHeader.vue */
 
 .text-gradient {
   background: linear-gradient(to right, #1abc9c, #a5f3fc);
@@ -392,8 +346,8 @@ const faqs = [
   font-size: 1rem;
 }
 
+/* Estilos de navegação movidos para AppHeader.vue */
 .cta-button,
-.cta-button-small,
 .cta-button-outline {
   font-weight: 700;
   padding: 12px 32px;
@@ -407,16 +361,10 @@ const faqs = [
   overflow: hidden;
 }
 
-.cta-button,
-.cta-button-small {
+.cta-button {
   background-color: #1abc9c;
   color: #0f172a;
   box-shadow: 0 0 20px rgba(26, 188, 156, 0.4);
-}
-
-.cta-button-small {
-  padding: 8px 20px;
-  font-size: 0.875rem;
 }
 
 .cta-button-outline {
@@ -425,8 +373,7 @@ const faqs = [
   border: 2px solid #1abc9c;
 }
 
-.cta-button:hover,
-.cta-button-small:hover {
+.cta-button:hover {
   background-color: #31e0bd;
   transform: translateY(-2px);
   box-shadow: 0 0 30px rgba(26, 188, 156, 0.6);
@@ -438,8 +385,7 @@ const faqs = [
   transform: translateY(-2px);
 }
 
-.cta-button::after,
-.cta-button-small::after {
+.cta-button::after {
   content: "";
   position: absolute;
   top: 0;
@@ -451,50 +397,12 @@ const faqs = [
   transition: none;
 }
 
-.cta-button:hover::after,
-.cta-button-small:hover::after {
+.cta-button:hover::after {
   left: 200%;
   transition: left 0.6s ease-in-out;
 }
 
-/* Indicador de página ativa */
-.nav-link {
-  position: relative;
-  color: #94a3b8;
-}
-
-.nav-link:hover {
-  color: #e2e8f0;
-}
-
-.nav-link.active {
-  color: var(--clr-primary);
-}
-
-.nav-link.active::after {
-  content: "";
-  position: absolute;
-  bottom: -4px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--clr-primary);
-  border-radius: 2px;
-}
-
 @media (max-width: 768px) {
-  header nav {
-    gap: 0.5rem;
-  }
-
-  .nav-link {
-    font-size: 0.75rem;
-  }
-
-  .cta-button-small {
-    padding: 5px 10px;
-    font-size: 0.6875rem;
-  }
 
   .category-header {
     flex-direction: column;

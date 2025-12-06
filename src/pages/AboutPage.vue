@@ -17,17 +17,12 @@ import {
   Brain,
   Linkedin,
 } from "lucide-vue-next";
+import AppHeader from "../components/AppHeader.vue";
 import AppFooter from "../components/AppFooter.vue";
 
 const isMounted = ref(false);
-const hasScrolled = ref(false);
 
 onMounted(() => {
-  const handleScroll = () => {
-    hasScrolled.value = window.scrollY > 50;
-  };
-  window.addEventListener("scroll", handleScroll);
-
   setTimeout(() => {
     isMounted.value = true;
   }, 10);
@@ -86,35 +81,7 @@ const technologies = [
 
 <template>
   <div id="about-page">
-    <header
-      class="fixed top-0 left-0 w-full z-50 flex justify-between items-center transition-all duration-500"
-      :class="[
-        hasScrolled ? 'header-scrolled' : '',
-        isMounted ? 'px-6 py-4' : 'px-0 py-0',
-      ]"
-      role="banner"
-    >
-      <a href="/" class="flex items-center gap-2" aria-label="BrDiagrama - Página Inicial">
-        <img
-          src="../assets/images/logo/logo-completa.svg"
-          alt="BrDiagrama - Transforme SQL em Diagramas ER"
-          class="h-10 md:h-12 transition-all"
-          width="auto"
-          height="48"
-        />
-      </a>
-      <nav class="flex gap-4 md:gap-6 items-center" role="navigation" aria-label="Menu principal">
-        <a href="/sobre" class="nav-link active text-sm font-medium" aria-current="page"
-          >Sobre</a
-        >
-        <a
-          href="/faq"
-          class="nav-link text-sm font-medium hover:text-[var(--clr-primary)] transition-colors"
-          >FAQ</a
-        >
-        <a href="/gerador" class="cta-button-small" aria-label="Acessar gerador de diagramas">Acessar Gerador</a>
-      </nav>
-    </header>
+    <AppHeader active-page="sobre" />
 
     <section class="hero-about pt-32 pb-20 px-6" role="main" aria-labelledby="page-title">
       <div class="max-w-4xl mx-auto text-center">
@@ -210,8 +177,10 @@ const technologies = [
 
         <div class="team-grid" role="list">
           <div class="team-card">
-            <a href="https://linkedin.com/in/SEU_PERFIL_AQUI" target="_blank" class="linkedin-btn" title="LinkedIn">
-              <Linkedin :size="18" />
+            <a href="https://www.linkedin.com/in/daviamorimdelima/" target="_blank" class="linkedin-btn" title="LinkedIn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+              </svg>
             </a>
             <div class="team-avatar">
               <img
@@ -229,7 +198,9 @@ const technologies = [
           </div>
           <div class="team-card">
             <a href="https://linkedin.com/in/SEU_PERFIL_AQUI" target="_blank" class="linkedin-btn" title="LinkedIn">
-              <Linkedin :size="18" />
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+              </svg>
             </a>
             <div class="team-avatar">
               <img
@@ -246,8 +217,10 @@ const technologies = [
             </div>
           </div>
           <div class="team-card">
-            <a href="https://linkedin.com/in/SEU_PERFIL_AQUI" target="_blank" class="linkedin-btn" title="LinkedIn">
-              <Linkedin :size="18" />
+            <a href="https://www.linkedin.com/in/lucas-da-cruz-blank-9110b1189/" target="_blank" class="linkedin-btn" title="LinkedIn">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+              </svg>
             </a>
             <div class="team-avatar">
               <img
@@ -515,7 +488,6 @@ const technologies = [
   height: 36px;
   border-radius: 8px;
   background: rgba(26, 188, 156, 0.1);
-  border: 1px solid rgba(26, 188, 156, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -718,8 +690,8 @@ const technologies = [
   border-color: var(--tech-color);
   color: #e2e8f0;
 }
-.cta-button,
-.cta-button-small {
+/* Estilos do header e navegação movidos para AppHeader.vue */
+.cta-button {
   background-color: #1abc9c;
   color: #0f172a;
   font-weight: 700;
@@ -734,18 +706,14 @@ const technologies = [
   position: relative;
   overflow: hidden;
 }
-.cta-button-small {
-  padding: 8px 20px;
-  font-size: 0.875rem;
-}
-.cta-button:hover,
-.cta-button-small:hover {
+
+.cta-button:hover {
   background-color: #31e0bd;
   transform: translateY(-2px);
   box-shadow: 0 0 30px rgba(26, 188, 156, 0.6);
 }
-.cta-button::after,
-.cta-button-small::after {
+
+.cta-button::after {
   content: "";
   position: absolute;
   top: 0;
@@ -756,50 +724,13 @@ const technologies = [
   transform: skewX(-20deg);
   transition: none;
 }
-.cta-button:hover::after,
-.cta-button-small:hover::after {
+
+.cta-button:hover::after {
   left: 200%;
   transition: left 0.6s ease-in-out;
 }
-/* Indicador de página ativa */
-.nav-link {
-  position: relative;
-  color: #94a3b8;
-  transition: color 0.3s ease;
-}
-
-.nav-link:hover {
-  color: #e2e8f0;
-}
-
-.nav-link.active {
-  color: var(--clr-primary);
-}
-
-.nav-link.active::after {
-  content: "";
-  position: absolute;
-  bottom: -4px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--clr-primary);
-  border-radius: 2px;
-}
 
 @media (max-width: 768px) {
-  header nav {
-    gap: 0.5rem;
-  }
-
-  .nav-link {
-    font-size: 0.75rem;
-  }
-
-  .cta-button-small {
-    padding: 5px 10px;
-    font-size: 0.6875rem;
-  }
 
   .section-title {
     font-size: 1.75rem;
