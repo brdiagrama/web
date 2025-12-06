@@ -61,8 +61,16 @@
       "destination": "/api/parse.js"
     },
     {
+      "source": "/sobre",
+      "destination": "/sobre.html"
+    },
+    {
+      "source": "/faq",
+      "destination": "/faq.html"
+    },
+    {
       "source": "/gerador",
-      "destination": "/editor.html"
+      "destination": "/gerador.html"
     }
   ],
   "redirects": [

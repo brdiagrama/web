@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Primary Meta Tags -->
+    <title>Gerador BrDiagrama - Crie Diagramas ER a partir de SQL Online | Gratuito e Offline</title>
+    <meta name="title" content="Gerador BrDiagrama - Crie Diagramas ER a partir de SQL">
+    <meta name="description" content="Gerador online gratuito para converter SQL (CREATE TABLE) em diagramas ER automaticamente. Detecta relacionamentos 1:1, 1:N, N:N e herança. Funciona 100% offline no navegador.">
+    <meta name="keywords" content="gerador sql online, gerador diagrama er online, sql to diagram, criar diagrama mysql, modelagem banco dados online, ferramenta er gratuita, gerador ddl, canvas diagram">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://brdiagrama.com/gerador" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://brdiagrama.com/gerador">
+    <meta property="og:site_name" content="BrDiagrama">
+    <meta property="og:title" content="Gerador BrDiagrama - Transforme SQL em Diagramas ER Online">
+    <meta property="og:description" content="Gerador online gratuito e offline. Cole seu SQL, visualize o diagrama instantaneamente. Detecta relacionamentos automaticamente. Exporte em PNG.">
+    <meta property="og:image" content="https://brdiagrama.com/og-cover-social.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="BrDiagrama Gerador - Interface do gerador de diagramas">
+    <meta property="og:locale" content="pt_BR">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://brdiagrama.com/gerador">
+    <meta name="twitter:title" content="Gerador BrDiagrama - SQL para Diagrama ER Instantâneo">
+    <meta name="twitter:description" content="Gerador online gratuito. Cole SQL, visualize o diagrama. Detecta cardinalidade automaticamente. 100% offline e sem cadastro.">
+    <meta name="twitter:image" content="https://brdiagrama.com/og-cover-social.png">
+    <meta name="twitter:image:alt" content="BrDiagrama Gerador Online">
+    
+    <!-- Additional SEO Meta Tags -->
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="author" content="BrDiagrama Team">
+    <meta name="language" content="Portuguese">
+    <meta name="theme-color" content="#1abc9c">
+    <meta name="application-name" content="BrDiagrama Gerador">
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="BrDiagrama">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/site.webmanifest" />
+    
+    <!-- Preload Critical Resources -->
+    <link rel="preload" href="/src/main.js" as="script" crossorigin>
+    
+    <!-- JSON-LD Structured Data - WebApplication Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "BrDiagrama Gerador",
+      "alternateName": "Gerador de Diagramas ER Online",
+      "url": "https://brdiagrama.com/gerador",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Web Browser",
+      "browserRequirements": "Requires JavaScript. Requires HTML5.",
+      "description": "Gerador online gratuito que transforma código SQL (DDL) em diagramas ER visuais automaticamente. Funciona 100% offline no navegador.",
+      "screenshot": "https://brdiagrama.com/og-cover-social.png",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "BRL"
+      },
+      "featureList": [
+        "Editor SQL com syntax highlighting",
+        "Geração automática de diagramas ER",
+        "Detecção de cardinalidade (1:1, 1:N, N:N)",
+        "Suporte a herança e especialização",
+        "Exportação PNG de alta qualidade",
+        "Zoom e pan interativos",
+        "Validação SQL em tempo real",
+        "Funcionamento offline",
+        "Sem necessidade de cadastro"
+      ],
+      "creator": {
+        "@type": "Organization",
+        "name": "BrDiagrama Team",
+        "url": "https://brdiagrama.com/sobre.html"
+      },
+      "inLanguage": "pt-BR",
+      "isAccessibleForFree": true,
+      "softwareVersion": "1.0",
+      "potentialAction": {
+        "@type": "UseAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://brdiagrama.com/gerador",
+          "actionPlatform": [
+            "http://schema.org/DesktopWebPlatform",
+            "http://schema.org/MobileWebPlatform"
+          ]
+        }
+      }
+    }
+    </script>
+
+    <!-- BreadcrumbList Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Início",
+          "item": "https://brdiagrama.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Gerador",
+          "item": "https://brdiagrama.com/gerador"
+        }
+      ]
+    }
+    </script>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="/src/assets/styles/global.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #app {
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+        
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>

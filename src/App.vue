@@ -1,20 +1,22 @@
 <template>
-  <div class="app">
-    <div class="main-content">
-      <div
+  <div class="app" role="application" aria-label="Gerador BrDiagrama">
+    <main class="main-content">
+      <aside
         v-if="!isMobile || activeTab === 'editor'"
         class="editor-panel"
         :class="{ 'no-transition': isResizing, 'panel-hidden': !isEditorVisible }"
         :style="{ width: isEditorVisible ? (isMobile ? '100%' : editorWidth + 'px') : '0px' }"
+        role="complementary"
+        aria-label="Painel do gerador SQL"
       >
-        <div class="editor-header">
+        <header class="editor-header" role="banner">
           <div class="brand-area">
-         <a href="/" title="Voltar para a Página Inicial">
-        <img :src="logoBrDiagrama" alt="BrDiagrama" class="editor-logo" />
-    </a>
+            <a href="/" aria-label="Voltar para a página inicial do BrDiagrama">
+              <img :src="logoBrDiagrama" alt="BrDiagrama - Logo" class="editor-logo" width="auto" height="40" />
+            </a>
           </div>
 
-          <div class="header-actions">
+          <nav class="header-actions" aria-label="Ações do gerador">
             <button
               v-if="errorCount > 0 || warningCount > 0"
               class="problems-badge"
@@ -40,14 +42,16 @@
                 class="icon-btn"
                 :class="{ active: showExportDropdown }"
                 @mouseenter="showExportDropdown = true"
-                title="Exportar"
+                aria-label="Menu de exportação"
+                :aria-expanded="showExportDropdown"
               >
-                <Download :size="18" />
+                <Download :size="18" aria-hidden="true" />
               </button>
 
               <div
                 v-if="showExportDropdown"
                 class="dropdown-menu"
+                role="menu"
                 @mouseenter="showExportDropdown = true"
                 @mouseleave="showExportDropdown = false"
               >
@@ -84,8 +88,8 @@
               @change="handleFileImport"
               style="display: none"
             />
-          </div>
-        </div>
+          </nav>
+        </header>
 
       
       <button
@@ -103,19 +107,29 @@
           :db-tables="availableTableNames"
           @update:model-value="handleSqlChange"
           @editor-ready="handleEditorReady"
+          aria-label="Editor de código SQL"
         />
-      </div>
+      </aside>
 
-      <div v-if="!isEditorVisible && !isMobile" class="collapsed-sidebar" @click="toggleEditor">
-        <button class="icon-btn expand-btn" title="Abrir Editor">❯</button>
-      </div>
+      <button v-if="!isEditorVisible && !isMobile" class="collapsed-sidebar" @click="toggleEditor" aria-label="Expandir painel do editor SQL">
+        <div class="expand-btn" aria-hidden="true">
+          <ChevronRight :size="20" />
+        </div>
+      </button>
 
-      <div v-show="isEditorVisible && !isMobile" class="resizer-handle" @mousedown="startResize"></div>
+      <div
+        class="resizer-handle"
+        @pointerdown="startResize"
+        v-if="isEditorVisible && !isMobile"
+        role="separator"
+        aria-label="Arrastar para redimensionar o editor"
+        tabindex="0"
+      ></div>
 
-      <div v-if="!isMobile || activeTab === 'diagram'" class="canvas-panel">
+      <section v-if="!isMobile || activeTab === 'diagram'" class="canvas-panel" aria-label="Área do diagrama ER">
         
         <div class="install-button-wrapper">
-          <InstallButton />
+          <InstallButton aria-label="Instalar aplicativo" />
         </div>
         
         <DiagramCanvas
@@ -461,9 +475,9 @@
           </div>
         </div>
 
-          <DiagramToolbar v-if="diagramCanvasRef" :diagramRef="diagramCanvasRef" />
-      </div>
-    </div>
+          <DiagramToolbar v-if="diagramCanvasRef" :diagramRef="diagramCanvasRef" aria-label="Barra de ferramentas do diagrama" />
+      </section>
+    </main>
 
     <!-- Mobile: pequena setinha no canto esquerdo superior (mostra apenas quando o diagrama estiver visível) -->
     <button v-if="isMobile && activeTab === 'diagram'" class="mobile-top-toggle" @click="toggleEditor" :title="'Abrir Editor'">

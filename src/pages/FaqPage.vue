@@ -145,28 +145,31 @@ const faqs = [
         hasScrolled ? 'header-scrolled' : '',
         isMounted ? 'px-6 py-4' : 'px-0 py-0',
       ]"
+      role="banner"
     >
-      <a href="/" class="flex items-center gap-2">
+      <a href="/" class="flex items-center gap-2" aria-label="BrDiagrama - Página Inicial">
         <img
           src="../assets/images/logo/logo-completa.svg"
-          alt="BrDiagrama Logo"
+          alt="BrDiagrama - Transforme SQL em Diagramas ER"
           class="h-10 md:h-12 transition-all"
+          width="auto"
+          height="48"
         />
       </a>
-      <nav class="flex gap-4 md:gap-6 items-center">
+      <nav class="flex gap-4 md:gap-6 items-center" role="navigation" aria-label="Menu principal">
         <a
           href="/sobre.html"
           class="nav-link text-sm font-medium hover:text-[var(--clr-primary)] transition-colors"
           >Sobre</a
         >
-        <a href="/faq.html" class="nav-link active text-sm font-medium">FAQ</a>
-        <a href="/gerador" class="cta-button-small">Acessar Editor</a>
+        <a href="/faq.html" class="nav-link active text-sm font-medium" aria-current="page">FAQ</a>
+        <a href="/gerador" class="cta-button-small" aria-label="Acessar gerador de diagramas">Acessar Gerador</a>
       </nav>
     </header>
 
-    <section class="hero-faq pt-32 pb-20 px-6">
+    <section class="hero-faq pt-32 pb-20 px-6" role="main" aria-labelledby="page-title">
       <div class="max-w-4xl mx-auto text-center">
-        <h1 class="text-5xl md:text-6xl font-bold mb-6">
+        <h1 id="page-title" class="text-5xl md:text-6xl font-bold mb-6">
           <span class="text-gradient">Perguntas Frequentes</span>
         </h1>
         <p class="text-xl text-gray-400 leading-relaxed">
@@ -175,52 +178,62 @@ const faqs = [
       </div>
     </section>
 
-    <section class="faq-content py-20 px-6">
+    <section class="faq-content py-20 px-6" aria-label="Perguntas e respostas">
       <div class="max-w-5xl mx-auto">
-        <div v-for="(category, catIndex) in faqs" :key="catIndex" class="category-section">
+        <article v-for="(category, catIndex) in faqs" :key="catIndex" class="category-section" :aria-labelledby="`category-${catIndex}`">
           <div class="category-header">
-            <div class="category-icon" :style="{ color: category.color }">
+            <div class="category-icon" :style="{ color: category.color }" aria-hidden="true">
               <component :is="category.icon" :size="32" />
             </div>
-            <h2 class="category-title">{{ category.category }}</h2>
+            <h2 :id="`category-${catIndex}`" class="category-title">{{ category.category }}</h2>
           </div>
 
-          <div class="faq-list">
+          <div class="faq-list" role="list">
             <div
               v-for="(item, qIndex) in category.questions"
               :key="qIndex"
               class="faq-item"
               :class="{ active: openIndex === `${catIndex}-${qIndex}` }"
+              role="listitem"
             >
               <button
                 class="faq-question"
                 @click="toggleFaq(`${catIndex}-${qIndex}`)"
+                :aria-expanded="openIndex === `${catIndex}-${qIndex}`"
+                :aria-controls="`answer-${catIndex}-${qIndex}`"
+                :id="`question-${catIndex}-${qIndex}`"
               >
                 <span class="question-text">{{ item.q }}</span>
                 <ChevronDown
                   class="chevron"
                   :class="{ rotated: openIndex === `${catIndex}-${qIndex}` }"
                   :size="20"
+                  aria-hidden="true"
                 />
               </button>
-              <div class="faq-answer">
+              <div 
+                class="faq-answer"
+                :id="`answer-${catIndex}-${qIndex}`"
+                role="region"
+                :aria-labelledby="`question-${catIndex}-${qIndex}`"
+              >
                 <div>{{ item.a }}</div>
               </div>
             </div>
           </div>
-        </div>
+        </article>
       </div>
     </section>
 
-    <section class="cta-final py-20 px-6 bg-[#243447]/30">
+    <section class="cta-final py-20 px-6 bg-[#243447]/30" aria-labelledby="cta-title">
       <div class="max-w-4xl mx-auto text-center">
-        <h2 class="text-4xl font-bold mb-6">Ainda tem dúvidas?</h2>
+        <h2 id="cta-title" class="text-4xl font-bold mb-6">Ainda tem dúvidas?</h2>
         <p class="text-xl text-gray-400 mb-8">
           Entre em contato com a equipe ou experimente a ferramenta agora mesmo!
         </p>
         <div class="flex gap-4 justify-center flex-wrap">
-          <a href="/sobre.html" class="cta-button-outline text-lg">Conhecer a Equipe</a>
-          <a href="/gerador" class="cta-button text-lg">Começar a Usar</a>
+          <a href="/sobre.html" class="cta-button-outline text-lg" role="button" aria-label="Conhecer a equipe BrDiagrama">Conhecer a Equipe</a>
+          <a href="/gerador" class="cta-button text-lg" role="button" aria-label="Começar a usar o BrDiagrama agora">Começar a Usar</a>
         </div>
       </div>
     </section>

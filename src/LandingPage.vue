@@ -276,15 +276,18 @@ onMounted(() => {
     <header
       class="fixed top-0 left-0 w-full z-50 px-6 py-4 flex justify-between items-center transition-all duration-500"
       :class="{ 'header-scrolled': hasScrolled }"
+      role="banner"
     >
-      <a href="/" class="flex items-center gap-2">
+      <a href="/" class="flex items-center gap-2" aria-label="BrDiagrama - Página Inicial">
         <img
           src="../src/assets/images/logo/logo-completa.svg"
-          alt="BrDiagrama Logo"
+          alt="BrDiagrama - Transforme SQL em Diagramas ER"
           class="h-10 md:h-12 transition-all"
+          width="auto"
+          height="48"
         />
       </a>
-      <nav class="flex gap-4 md:gap-6 items-center">
+      <nav class="flex gap-4 md:gap-6 items-center" role="navigation" aria-label="Menu principal">
         <a
           href="/sobre.html"
           class="nav-link text-sm font-medium hover:text-[var(--clr-primary)] transition-colors"
@@ -295,7 +298,7 @@ onMounted(() => {
           class="nav-link text-sm font-medium hover:text-[var(--clr-primary)] transition-colors"
           >FAQ</a
         >
-        <a href="/gerador" class="cta-button-small">Acessar Editor</a>
+        <a href="/gerador" class="cta-button-small" aria-label="Acessar gerador de diagramas">Acessar Gerador</a>
       </nav>
     </header>
 
@@ -307,16 +310,17 @@ onMounted(() => {
       <!-- CAMADA 1: HERO (Fundo) -->
       <!-- Dentro do .pin-wrapper -->
 
-      <section class="hero-layer text-center px-4">
+      <section class="hero-layer text-center px-4" role="main" aria-labelledby="hero-title">
         <!-- BACKGROUND DECORATIVO (Diagrama Sutil) -->
         <!-- Mudei de text-white para text-slate-600 para ficar bem discreto no fundo escuro -->
-        <div class="absolute inset-0 pointer-events-none overflow-hidden hidden lg:block">
+        <div class="absolute inset-0 pointer-events-none overflow-hidden hidden lg:block" aria-hidden="true">
           <svg
             class="connection-svg w-full h-full"
             viewBox="0 0 1153 233"
             preserveAspectRatio="xMidYMid slice"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
+            role="presentation"
           >
             <!-- Database Icon (Esquerda) -->
             <g class="static-element" id="left-database" opacity="0">
@@ -426,6 +430,7 @@ onMounted(() => {
               >
                 <div
                   class="window-header bg-[#161b22] p-3 flex gap-2 border-b border-[#30363d] z-10 relative"
+                  aria-hidden="true"
                 >
                   <div class="dot red w-3 h-3 rounded-full bg-[#ff5f56]"></div>
                   <div class="dot yellow w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
@@ -448,7 +453,11 @@ onMounted(() => {
                         class="w-full h-full object-cover"
                         :src="currentTabContent.videoSrc"
                         @ended="onVideoEnded"
-                      ></video>
+                        :aria-label="`Demonstração: ${currentTabContent.title}`"
+                      >
+                        <track kind="captions" label="Português" srclang="pt-BR" />
+                        Seu navegador não suporta vídeos HTML5.
+                      </video>
                     </template>
                     <template v-else>
                       <div class="video-placeholder w-full h-full flex items-center justify-center bg-[#071018] text-gray-300">
@@ -482,12 +491,15 @@ onMounted(() => {
             <!-- Linha Neon Superior (Aumentada) -->
             <div
               class="h-[2px] w-full bg-gradient-to-r from-transparent via-[var(--clr-primary)] to-transparent opacity-80 shadow-[0_-5px_25px_var(--clr-primary)] relative z-30"
+              aria-hidden="true"
             ></div>
 
             <!-- Background da Faixa (Cor diferente do fundo principal) -->
             <!-- Mudei o bg-[#0F172A] para bg-slate-950 (um pouco mais escuro) -->
             <nav
               class="bg-slate-950 w-screen relative left-1/2 -translate-x-1/2 pt-6 pb-8 px-4 flex justify-center items-center border-t border-white/10"
+              role="tablist"
+              aria-label="Tipos de relacionamento"
             >
               <!-- Efeito de Brilho Inferior (Glow) -->
 
@@ -501,6 +513,10 @@ onMounted(() => {
                   @click="activeTab = tab.id"
                   class="tab-btn px-5 py-2 text-sm font-semibold rounded-full transition-all duration-300 hover:text-white"
                   :class="{ 'active-pill': activeTab === tab.id }"
+                  role="tab"
+                  :aria-selected="activeTab === tab.id"
+                  :aria-controls="`panel-${tab.id}`"
+                  :aria-label="`Exibir exemplo de ${tab.label}`"
                 >
                   {{ tab.label }}
                 </button>
@@ -514,11 +530,12 @@ onMounted(() => {
     <!-- SEÇÃO SEGUINTE (FOOTER) -->
     <section
       class="h-[50vh] bg-slate-900 flex items-center justify-center relative z-20 border-t border-slate-800"
+      aria-labelledby="cta-title"
     >
       <div class="text-center">
-        <h2 class="text-4xl font-bold text-white mb-4">Pronto para começar?</h2>
+        <h2 id="cta-title" class="text-4xl font-bold text-white mb-4">Pronto para começar?</h2>
         <p class="text-gray-400 mb-6">O seu banco de dados nunca foi tão visual.</p>
-        <a href="/editor.html" class="cta-button text-lg">Acessar Editor</a>
+        <a href="/gerador" class="cta-button text-lg" role="button" aria-label="Acessar gerador de diagramas agora">Acessar Gerador</a>
       </div>
     </section>
 

@@ -4,30 +4,139 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <title>BrDiagrama - Do SQL ao Diagrama Visual</title>
-    <meta name="description" content="BrDiagrama transforma seus comandos SQL DDL em diagramas ER visuais instantaneamente. A ferramenta ideal para desenvolvedores e DBAs.">
-    <meta name="keywords" content="SQL, Diagrama ER, DDL, Modelagem de Dados, Banco de Dados, Visualização, SQL to Diagram">
-
+    <!-- Primary Meta Tags -->
+    <title>BrDiagrama - Transforme SQL em Diagramas ER Visuais Instantaneamente</title>
+    <meta name="title" content="BrDiagrama - Transforme SQL em Diagramas ER Visuais Instantaneamente">
+    <meta name="description" content="Ferramenta online gratuita que converte código SQL (DDL) em diagramas ER automaticamente. Detecta cardinalidade, herança e relacionamentos. 100% offline, sem cadastro.">
+    <meta name="keywords" content="diagrama ER, SQL para diagrama, modelagem de dados, DDL, entidade relacionamento, ferramenta SQL, visualização banco de dados, DER online, gerador diagrama, brdiagrama">
+    
+    <!-- Canonical URL -->
     <link rel="canonical" href="https://brdiagrama.com/" />
     
-    <meta property="og:url" content="https://brdiagrama.com/">
-    <meta property="og:title" content="BrDiagrama - Do SQL ao Diagrama em Segundos">
-    <meta property="og:description" content="A solução definitiva para transformar código SQL em diagramas visuais e profissionais.">
-    
-    <meta property="og:image" content="https://brdiagrama.com/og-cover-social.png">
+    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
+    <meta property="og:url" content="https://brdiagrama.com/">
+    <meta property="og:site_name" content="BrDiagrama">
+    <meta property="og:title" content="BrDiagrama - Transforme SQL em Diagramas ER Automaticamente">
+    <meta property="og:description" content="Ferramenta brasileira gratuita que gera diagramas ER a partir de SQL em tempo real. Detecta relacionamentos, cardinalidade e herança automaticamente.">
+    <meta property="og:image" content="https://brdiagrama.com/og-cover-social.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="BrDiagrama - Interface do gerador de diagramas ER">
+    <meta property="og:locale" content="pt_BR">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://brdiagrama.com/">
+    <meta name="twitter:title" content="BrDiagrama - SQL para Diagrama ER Instantâneo">
+    <meta name="twitter:description" content="Ferramenta gratuita que converte SQL em diagramas ER visuais. Detecta cardinalidade automaticamente. 100% offline e sem cadastro.">
+    <meta name="twitter:image" content="https://brdiagrama.com/og-cover-social.png">
+    <meta name="twitter:image:alt" content="BrDiagrama - Gerador de diagramas ER">
+    
+    <!-- Additional SEO Meta Tags -->
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta name="author" content="BrDiagrama Team - FMP">
+    <meta name="language" content="Portuguese">
+    <meta name="revisit-after" content="7 days">
+    <meta name="theme-color" content="#1abc9c">
 
+    <!-- Favicons -->
     <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="shortcut icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-title" content="BrDiagrama" />
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="/site.webmanifest" />
 
+    <!-- Preconnect for Performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    
+    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "BrDiagrama",
+      "alternateName": "BrDiagrama - SQL to ER Diagram",
+      "url": "https://brdiagrama.com",
+      "logo": "https://brdiagrama.com/logo.svg",
+      "description": "Ferramenta online gratuita que transforma código SQL (DDL) em diagramas ER visuais automaticamente. Detecta cardinalidade, herança e relacionamentos em tempo real.",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "BRL"
+      },
+      "featureList": [
+        "Conversão SQL para Diagrama ER",
+        "Detecção automática de cardinalidade",
+        "Suporte a herança e especialização",
+        "Funcionamento 100% offline",
+        "Exportação em PNG",
+        "Sem necessidade de cadastro"
+      ],
+      "screenshot": "https://brdiagrama.com/og-cover-social.png",
+      "creator": {
+        "@type": "Organization",
+        "name": "BrDiagrama Team",
+        "url": "https://brdiagrama.com/sobre.html"
+      },
+      "inLanguage": "pt-BR",
+      "browserRequirements": "Requires JavaScript. Requires HTML5.",
+      "potentialAction": {
+        "@type": "UseAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://brdiagrama.com/gerador"
+        }
+      }
+    }
+    </script>
+    
+    <!-- FAQ Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "O que é o BrDiagrama?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "BrDiagrama é uma ferramenta online gratuita que transforma código SQL (DDL) em diagramas ER (Entidade-Relacionamento) de forma automática e instantânea. Basta colar seu código SQL e visualizar o diagrama imediatamente."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "BrDiagrama é gratuito?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sim! O BrDiagrama é 100% gratuito e não requer cadastro. Você pode usar todas as funcionalidades sem criar conta, fazer login ou fornecer dados pessoais."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "O BrDiagrama funciona offline?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sim! Todo o processamento acontece no seu navegador. Após carregar a página, você pode usar o BrDiagrama mesmo sem conexão com a internet. Seus dados SQL nunca saem do seu computador."
+          }
+        }
+      ]
+    }
+    </script>
 
     </head>
 <body class="bg-[#0F172A] text-white">

@@ -92,16 +92,19 @@ const technologies = [
         hasScrolled ? 'header-scrolled' : '',
         isMounted ? 'px-6 py-4' : 'px-0 py-0',
       ]"
+      role="banner"
     >
-      <a href="/" class="flex items-center gap-2">
+      <a href="/" class="flex items-center gap-2" aria-label="BrDiagrama - Página Inicial">
         <img
           src="../assets/images/logo/logo-completa.svg"
-          alt="BrDiagrama Logo"
+          alt="BrDiagrama - Transforme SQL em Diagramas ER"
           class="h-10 md:h-12 transition-all"
+          width="auto"
+          height="48"
         />
       </a>
-      <nav class="flex gap-4 md:gap-6 items-center">
-        <a href="/sobre.html" class="nav-link active text-sm font-medium"
+      <nav class="flex gap-4 md:gap-6 items-center" role="navigation" aria-label="Menu principal">
+        <a href="/sobre.html" class="nav-link active text-sm font-medium" aria-current="page"
           >Sobre</a
         >
         <a
@@ -109,13 +112,13 @@ const technologies = [
           class="nav-link text-sm font-medium hover:text-[var(--clr-primary)] transition-colors"
           >FAQ</a
         >
-        <a href="/gerador" class="cta-button-small">Acessar Editor</a>
+        <a href="/gerador" class="cta-button-small" aria-label="Acessar gerador de diagramas">Acessar Gerador</a>
       </nav>
     </header>
 
-    <section class="hero-about pt-32 pb-20 px-6">
+    <section class="hero-about pt-32 pb-20 px-6" role="main" aria-labelledby="page-title">
       <div class="max-w-4xl mx-auto text-center">
-        <h1 class="text-5xl md:text-6xl font-bold mb-6">
+        <h1 id="page-title" class="text-5xl md:text-6xl font-bold mb-6">
           <span class="text-gradient">Sobre o BrDiagrama</span>
         </h1>
         <p class="text-xl text-gray-400 leading-relaxed">
@@ -125,11 +128,11 @@ const technologies = [
       </div>
     </section>
 
-    <section class="story-section py-20 px-6">
+    <section class="story-section py-20 px-6" aria-labelledby="story-title">
       <div class="max-w-6xl mx-auto">
-        <div class="story-card">
-          <div class="story-icon"><Lightbulb :size="64" :stroke-width="1.5" /></div>
-          <h2 class="section-title">Como Tudo Começou</h2>
+        <article class="story-card">
+          <div class="story-icon" aria-hidden="true"><Lightbulb :size="64" :stroke-width="1.5" /></div>
+          <h2 id="story-title" class="section-title">Como Tudo Começou</h2>
           <div class="story-content">
             <p>
               Tudo começou na faculdade, quando estávamos aprendendo modelagem de dados.
@@ -153,16 +156,16 @@ const technologies = [
               instantaneamente!
             </p>
           </div>
-        </div>
+        </article>
       </div>
     </section>
 
-    <section class="identity-section py-20 px-6 bg-[#1e293b]/30">
+    <section class="identity-section py-20 px-6 bg-[#1e293b]/30" aria-labelledby="identity-title">
       <div class="max-w-6xl mx-auto">
-        <h2 class="section-title text-center mb-12">Por que BrDiagrama?</h2>
-        <div class="identity-grid">
-          <div class="identity-card">
-            <div class="identity-icon-circle"><Flag :size="32" /></div>
+        <h2 id="identity-title" class="section-title text-center mb-12">Por que BrDiagrama?</h2>
+        <div class="identity-grid" role="list">
+          <article class="identity-card" role="listitem">
+            <div class="identity-icon-circle" aria-hidden="true"><Flag :size="32" /></div>
             <h3>Orgulhosamente Brasileiro</h3>
             <p>
               Inspirados pelo <strong>brModelo</strong>, queríamos um nome que fosse fácil
@@ -170,9 +173,9 @@ const technologies = [
               <code>brdiagrama.com</code> e pronto! Além disso, conseguimos o domínio
               <strong>.com</strong> não precisamos nem de .br!
             </p>
-          </div>
-          <div class="identity-card">
-            <div class="identity-icon-circle"><Palette :size="32" /></div>
+          </article>
+          <article class="identity-card" role="listitem">
+            <div class="identity-icon-circle" aria-hidden="true"><Palette :size="32" /></div>
             <h3>Identidade Visual Única</h3>
             <p>
               Inicialmente pensamos em azul, mas seria clichê demais. Escolhemos o
@@ -180,32 +183,32 @@ const technologies = [
               carrega o verde do Brasil. O resultado? Uma identidade visual moderna e
               memorável!
             </p>
-          </div>
-          <div class="identity-card">
-            <div class="identity-icon-circle"><Zap :size="32" /></div>
+          </article>
+          <article class="identity-card" role="listitem">
+            <div class="identity-icon-circle" aria-hidden="true"><Zap :size="32" /></div>
             <h3>Foco em Agilidade</h3>
             <p>
               Nosso diferencial está na <strong>praticidade</strong>: sem cadastros, sem
               instalação, sem complicação. Cole seu SQL, visualize o diagrama, exporte e
               pronto. Simples assim!
             </p>
-          </div>
+          </article>
         </div>
       </div>
     </section>
 
-    <section class="team-section py-20 px-6">
+    <section class="team-section py-20 px-6" aria-labelledby="team-title">
       <div class="max-w-6xl mx-auto">
         <div class="flex items-center justify-center gap-3 mb-4">
-          <Users :size="32" class="text-[var(--clr-primary)]" />
-          <h2 class="section-title text-center mb-0">Equipe de Desenvolvimento</h2>
+          <Users :size="32" class="text-[var(--clr-primary)]" aria-hidden="true" />
+          <h2 id="team-title" class="section-title text-center mb-0">Equipe de Desenvolvimento</h2>
         </div>
         <p class="text-center text-gray-400 mb-12 max-w-2xl mx-auto">
           Três estudantes de ADS (Análise e Desenvolvimento de Sistemas) unidos pela
           paixão por criar soluções práticas e inovadoras.
         </p>
 
-        <div class="team-grid">
+        <div class="team-grid" role="list">
           <div class="team-card">
             <a href="https://linkedin.com/in/SEU_PERFIL_AQUI" target="_blank" class="linkedin-btn" title="LinkedIn">
               <Linkedin :size="18" />
@@ -263,7 +266,7 @@ const technologies = [
         </div>
 
         <!-- Card de Colaboração -->
-        <div class="collaboration-card">
+        <article class="collaboration-card">
           <h3 class="collaboration-title">Desenvolvimento Colaborativo</h3>
           <p class="collaboration-text">
             Trabalhamos juntos em todas as etapas do projeto, desde o planejamento da
@@ -279,38 +282,38 @@ const technologies = [
             <strong>funcionalidades completas</strong>, garantindo que todos tenham visão
             do sistema como um todo.
           </p>
-          <div class="collaboration-highlights">
-            <div class="highlight-item">
-              <Sparkles :size="24" class="highlight-icon" />
+          <div class="collaboration-highlights" role="list">
+            <div class="highlight-item" role="listitem">
+              <Sparkles :size="24" class="highlight-icon" aria-hidden="true" />
               <span>Design de Interfaces</span>
             </div>
-            <div class="highlight-item">
-              <Settings :size="24" class="highlight-icon" />
+            <div class="highlight-item" role="listitem">
+              <Settings :size="24" class="highlight-icon" aria-hidden="true" />
               <span>Arquitetura do Sistema</span>
             </div>
-            <div class="highlight-item">
-              <Brain :size="24" class="highlight-icon" />
+            <div class="highlight-item" role="listitem">
+              <Brain :size="24" class="highlight-icon" aria-hidden="true" />
               <span>Algoritmos e Parser SQL</span>
             </div>
-            <div class="highlight-item">
-              <Zap :size="24" class="highlight-icon" />
+            <div class="highlight-item" role="listitem">
+              <Zap :size="24" class="highlight-icon" aria-hidden="true" />
               <span>Performance e UX</span>
             </div>
           </div>
-        </div>
+        </article>
       </div>
     </section>
 
-    <section class="tech-section py-20 px-6 bg-[#1e293b]/30">
+    <section class="tech-section py-20 px-6 bg-[#1e293b]/30" aria-labelledby="tech-title">
       <div class="max-w-6xl mx-auto">
         <div class="flex items-center justify-center gap-3 mb-4">
-          <Rocket :size="32" class="text-[var(--clr-primary)]" />
-          <h2 class="section-title text-center mb-0">Tecnologias Utilizadas</h2>
+          <Rocket :size="32" class="text-[var(--clr-primary)]" aria-hidden="true" />
+          <h2 id="tech-title" class="section-title text-center mb-0">Tecnologias Utilizadas</h2>
         </div>
         <p class="text-center text-gray-400 mb-12 max-w-2xl mx-auto">
           Stack moderna e poderosa para criar a melhor experiência possível
         </p>
-        <div class="tech-grid">
+        <div class="tech-grid" role="list">
           <div
             v-for="tech in technologies"
             :key="tech.name"
@@ -332,13 +335,13 @@ const technologies = [
       </div>
     </section>
 
-    <section class="cta-final py-20 px-6">
+    <section class="cta-final py-20 px-6" aria-labelledby="cta-title">
       <div class="max-w-4xl mx-auto text-center">
-        <h2 class="text-4xl font-bold mb-6">Pronto para experimentar?</h2>
+        <h2 id="cta-title" class="text-4xl font-bold mb-6">Pronto para experimentar?</h2>
         <p class="text-xl text-gray-400 mb-8">
           Transforme seu SQL em diagramas visuais em segundos. Gratuito e sem cadastro!
         </p>
-        <a href="/gerador" class="cta-button text-lg">Começar Agora</a>
+        <a href="/gerador" class="cta-button text-lg" role="button" aria-label="Começar a usar o BrDiagrama agora">Começar Agora</a>
       </div>
     </section>
 

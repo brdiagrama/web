@@ -56,12 +56,23 @@ const currentYear = new Date().getFullYear();
 
 <style scoped>
 .app-footer {
-  background: linear-gradient(180deg, transparent 0%, rgba(15, 23, 42, 0.8) 100%);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0) 0%, rgba(7, 11, 21, 0.95) 50%, #070b15 100%);
   backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid rgba(26, 188, 156, 0.1);
   padding: 4rem 2rem 2rem;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.app-footer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(26, 188, 156, 0.3), transparent);
 }
 
 .footer-content {
