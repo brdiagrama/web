@@ -158,11 +158,11 @@ const faqs = [
       </a>
       <nav class="flex gap-4 md:gap-6 items-center" role="navigation" aria-label="Menu principal">
         <a
-          href="/sobre.html"
+          href="/sobre"
           class="nav-link text-sm font-medium hover:text-[var(--clr-primary)] transition-colors"
           >Sobre</a
         >
-        <a href="/faq.html" class="nav-link active text-sm font-medium" aria-current="page">FAQ</a>
+        <a href="/faq" class="nav-link active text-sm font-medium" aria-current="page">FAQ</a>
         <a href="/gerador" class="cta-button-small" aria-label="Acessar gerador de diagramas">Acessar Gerador</a>
       </nav>
     </header>
@@ -232,7 +232,7 @@ const faqs = [
           Entre em contato com a equipe ou experimente a ferramenta agora mesmo!
         </p>
         <div class="flex gap-4 justify-center flex-wrap">
-          <a href="/sobre.html" class="cta-button-outline text-lg" role="button" aria-label="Conhecer a equipe BrDiagrama">Conhecer a Equipe</a>
+          <a href="/sobre" class="cta-button-outline text-lg" role="button" aria-label="Conhecer a equipe BrDiagrama">Conhecer a Equipe</a>
           <a href="/gerador" class="cta-button text-lg" role="button" aria-label="Começar a usar o BrDiagrama agora">Começar a Usar</a>
         </div>
       </div>

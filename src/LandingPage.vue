@@ -289,12 +289,12 @@ onMounted(() => {
       </a>
       <nav class="flex gap-4 md:gap-6 items-center" role="navigation" aria-label="Menu principal">
         <a
-          href="/sobre.html"
+          href="/sobre"
           class="nav-link text-sm font-medium hover:text-[var(--clr-primary)] transition-colors"
           >Sobre</a
         >
         <a
-          href="/faq.html"
+          href="/faq"
           class="nav-link text-sm font-medium hover:text-[var(--clr-primary)] transition-colors"
           >FAQ</a
         >
