@@ -174,4 +174,4 @@ O sistema oferece três formatos de exportação:
 
 ## Licença
 
-ISC
+MIT
