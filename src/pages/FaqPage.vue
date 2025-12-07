@@ -18,10 +18,9 @@ onMounted(() => {
       isMounted.value = true;
     }, 10);
 
-    // Animações GSAP leves e modernas
+    // Animações GSAP tem que ser leves, mas ainda parecer moderna blz
     const tl = gsap.timeline({ delay: 0.2 });
 
-  // Hero: fade + slide suave
   tl.from('.hero-faq h1', {
     opacity: 0,
     y: 30,
@@ -289,8 +288,6 @@ const faqs = [
   color: #e2e8f0;
 }
 
-/* Estilos do header movidos para AppHeader.vue */
-
 .text-gradient {
   background: linear-gradient(to right, #1abc9c, #a5f3fc);
   -webkit-background-clip: text;
@@ -422,7 +419,6 @@ const faqs = [
   font-size: 1rem;
 }
 
-/* Estilos de navegação movidos para AppHeader.vue */
 .cta-button,
 .cta-button-outline {
   font-weight: 700;

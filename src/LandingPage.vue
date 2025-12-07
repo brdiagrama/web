@@ -8,12 +8,11 @@ import AppFooter from "./components/AppFooter.vue";
 
 gsap.registerPlugin(ScrollTrigger);
 
-// --- ESTADO REATIVO ---
 const hasScrolled = ref(false);
 const activeTab = ref("1:1");
 const typeWriterText = ref("");
 
-// Dados das Abas
+// Dados das abas
 const tabs = [
   { id: "1:1", label: "Um para Um" },
   { id: "1:N", label: "Um para Muitos" },
@@ -37,36 +36,39 @@ const contents = {
   },
   "apenas1:N": {
     title: "Um para Muitos (Estrito)",
-    description: "Ao definir a chave como NOT NULL, o sistema desenha a obrigatoriedade do vínculo, impedindo registros órfãos no seu modelo.",
+    description:
+      "Ao definir a chave como NOT NULL, o sistema desenha a obrigatoriedade do vínculo, impedindo registros órfãos no seu modelo.",
     youtubeId: "AbAfLUhv5Ys",
   },
   "N:N": {
     title: "Muitos para Muitos (N:N)",
-    description: "Detecção inteligente de tabelas de junção. O sistema reconhece Chaves Primárias Compostas para desenhar associações complexas sem poluição visual.",
+    description:
+      "Detecção inteligente de tabelas de junção. O sistema reconhece Chaves Primárias Compostas para desenhar associações complexas sem poluição visual.",
     youtubeId: "Dqx2GfKxH7M",
   },
-  "heranca": {
+  heranca: {
     title: "Herança e Especialização",
-    description: "Arquitetura hierárquica visualizada. Quando a PK também é uma FK, o diagrama entende a extensão da tabela e desenha a estrutura de \"Pai e Filho\".",
+    description:
+      'Arquitetura hierárquica visualizada. Quando a PK também é uma FK, o diagrama entende a extensão da tabela e desenha a estrutura de "Pai e Filho".',
     youtubeId: "_SvCiD54R4w",
   },
 };
 
 const currentTabContent = computed(() => contents[activeTab.value]);
 
-// Navegação para o gerador (força navegação completa)
+// Navega para o gerador (redirecionamento completo)
 const goToGerador = (e) => {
   e.preventDefault();
-  window.location.href = '/gerador';
+  window.location.href = "/gerador";
 };
 
-// Máquina de Escrever
+// Efeito de máquina de escrever
 const typewriterStarted = ref(false);
 const _typewriterTimeouts = [];
 const startTypewriter = () => {
   const fullText = "BrDiagrama é a solução para transformar SQL em visual.";
 
-  // Se já terminou ou já foi iniciado, não reinicia (evita multiplicação em resize)
+  // Se já terminou ou já foi iniciado, não reinicia (evita múltiplos timeouts)
   if (typewriterStarted.value) return;
   if (typeWriterText.value === fullText) return;
 
@@ -88,7 +90,6 @@ const startTypewriter = () => {
   _typewriterTimeouts.push(first);
 };
 
-// Video controls
 const previewVideo = ref(null);
 const videoEnded = ref(false);
 const videoLoading = ref(true);
@@ -111,191 +112,180 @@ const restartVideo = () => {
     if (!v) return;
     v.currentTime = 0;
     const playPromise = v.play();
-    if (playPromise && typeof playPromise.catch === 'function') playPromise.catch(()=>{});
+    if (playPromise && typeof playPromise.catch === "function")
+      playPromise.catch(() => {});
     videoEnded.value = false;
   } catch (e) {}
 };
 
+// Quando a aba muda, resetamos estados de vídeo
 watch(activeTab, () => {
   videoEnded.value = false;
   videoLoading.value = true;
-  
+
   // Se for YouTube, simula o carregamento (o iframe não dispara eventos)
   if (contents[activeTab.value].youtubeId) {
     setTimeout(() => {
       videoLoading.value = false;
-    }, 400); // Tempo suficiente para o YouTube começar a carregar
+    }, 400); // Tempo bacana para ter loading natural nosso + loading youtube
   }
 });
 
 onBeforeUnmount(() => {
-  // limpa timeouts da máquina de escrever
+  // Limpa timeouts do typewriter
   _typewriterTimeouts.forEach((id) => clearTimeout(id));
   _typewriterTimeouts.length = 0;
 });
 
 onMounted(() => {
-  // Aguarda o DOM estar completamente renderizado antes de iniciar animações
+  // Espera o DOM ficar pronto antes de rodar as animações
   requestAnimationFrame(() => {
-    // Inicia o carregamento do primeiro vídeo (YouTube)
+    // Marcar o primeiro vídeo como carregado (YouTube)
     if (contents[activeTab.value].youtubeId) {
       setTimeout(() => {
         videoLoading.value = false;
-      }, 800); // Tempo para o primeiro vídeo carregar
+      }, 800); // tempo curto para o embed começar
     }
 
-    // Use ScrollTrigger.matchMedia para ativar animações pesadas apenas em telas maiores
-    // e manter uma versão leve / sem pin no mobile. Isso evita travamentos e bugs
-    // relacionados a 'pin' e transforms em dispositivos touch.
+    // Ativa animações completas só em telas maiores; no mobile tem que usar uma versão mais leve
     ScrollTrigger.matchMedia({
-    // Desktops/tablets maiores: animações completas
-    "(min-width: 769px)": function () {
-      // 1. ANIMAÇÃO DE ENTRADA (HERO)
-      const heroTl = gsap.timeline({ delay: 0.1 });
+      // Desktop / tablet grandes: animações completas
+      "(min-width: 769px)": function () {
+        const heroTl = gsap.timeline({ delay: 0.1 });
 
-      // Esconde a bolinha ANTES de tudo
-      gsap.set(".travel-dot", { autoAlpha: 0 });
+        // Esconde a bolinha antes de começar
+        gsap.set(".travel-dot", { autoAlpha: 0 });
 
-      heroTl.to("#left-database", {
-        opacity: 0.3,
-        y: 0,
-        duration: 1,
-        ease: "power2.out",
-      });
-
-      heroTl
-        .from(
-          "#hero-title-top",
-          { y: 40, opacity: 0, duration: 0.8, ease: "power3.out" },
-          "-=0.5"
-        )
-        .from(
-          "#hero-title-keyword",
-          { y: 40, opacity: 0, duration: 0.8, ease: "power3.out" },
-          "-=0.6"
-        );
-
-      // Linha de conexão animada (desktop)
-      const connectionLine = document.querySelector(".connection-line");
-      if (connectionLine) {
-        const length = connectionLine.getTotalLength();
-
-        gsap.set(connectionLine, {
-          strokeDasharray: length,
-          strokeDashoffset: length - 0.4, // bagulho foi maluco pra conseguir um efeito suave
+        heroTl.to("#left-database", {
+          opacity: 0.3,
+          y: 0,
+          duration: 1,
+          ease: "power2.out",
         });
 
-        heroTl.to(connectionLine, { opacity: 0.15, duration: 0.01 }, "<");
+        heroTl
+          .from(
+            "#hero-title-top",
+            { y: 40, opacity: 0, duration: 0.8, ease: "power3.out" },
+            "-=0.5"
+          )
+          .from(
+            "#hero-title-keyword",
+            { y: 40, opacity: 0, duration: 0.8, ease: "power3.out" },
+            "-=0.6"
+          );
 
-        heroTl.to(
-          connectionLine,
-          { strokeDashoffset: 0, autoAlpha: 0.3, duration: 2.5, ease: "power2.inOut" },
-          "-=0.4"
-        );
+        // Linha de conexão animada (desktop)
+        const connectionLine = document.querySelector(".connection-line");
+        if (connectionLine) {
+          const length = connectionLine.getTotalLength();
 
-        heroTl.call(
-          () => {
-            const motion = document.querySelector(".travel-dot animateMotion");
-            if (motion) motion.beginElement();
+          gsap.set(connectionLine, {
+            strokeDasharray: length,
+            strokeDashoffset: length - 0.4, // bagulho foi maluco pra conseguir um efeito suave
+          });
+
+          heroTl.to(connectionLine, { opacity: 0.15, duration: 0.01 }, "<");
+
+          heroTl.to(
+            connectionLine,
+            { strokeDashoffset: 0, autoAlpha: 0.3, duration: 2.5, ease: "power2.inOut" },
+            "-=0.4"
+          );
+
+          heroTl.call(
+            () => {
+              const motion = document.querySelector(".travel-dot animateMotion");
+              if (motion) motion.beginElement();
+            },
+            null,
+            "<"
+          );
+
+          heroTl.to(".travel-dot", { autoAlpha: 1, duration: 0.3 }, "<");
+
+          heroTl.to(
+            "#right-icon-diagram",
+            { opacity: 0.3, duration: 0.8, ease: "power2.out" },
+            "-=0.8"
+          );
+        }
+
+        startTypewriter();
+
+        // ScrollTrigger com pin apenas em telas grandes
+        let scrollTl = gsap.timeline({
+          scrollTrigger: {
+            trigger: ".pin-wrapper",
+            start: "top top",
+            end: "+=80%",
+            scrub: true,
+            pin: true,
           },
-          null,
-          "<"
-        );
+        });
 
+        scrollTl.to(".showcase-layer", { y: "0%", ease: "none", duration: 3 }, 0);
+
+        scrollTl.to(".hero-layer", { scale: 0.95, opacity: 0, y: -100, duration: 3 }, 0);
+
+        scrollTl.to(".bg-overlay", { opacity: 0.8, duration: 2.5, ease: "none" }, 0.5);
+
+        // Atualiza hasScrolled (funciona em desktop também)
+        const _onScroll = () => {
+          hasScrolled.value = window.scrollY > 50;
+        };
+        window.addEventListener("scroll", _onScroll);
+
+        // cleanup — quando o media query deixar de combinar, mata timelines e listeners
+        return () => {
+          try {
+            heroTl && heroTl.kill();
+          } catch (e) {}
+          try {
+            if (scrollTl && scrollTl.scrollTrigger) scrollTl.scrollTrigger.kill();
+          } catch (e) {}
+          try {
+            scrollTl && scrollTl.kill();
+          } catch (e) {}
+          window.removeEventListener("scroll", _onScroll);
+        };
+      },
+
+      // Mobile: versão mais leve, sem pin
+      "(max-width: 768px)": function () {
+        // Fade-in simples dos títulos e inicia o typewriter
+        gsap.set(".travel-dot", { autoAlpha: 0 });
+
+        const heroTl = gsap.timeline();
+        heroTl.to("#left-database", { opacity: 0.25, duration: 0.3, ease: "power1.out" });
         heroTl.to(
-          ".travel-dot",
-          { autoAlpha: 1, duration: 0.3 },
-          "<"
+          "#hero-title-top",
+          { y: 0, opacity: 1, duration: 0.45, ease: "power1.out" },
+          "-=0.1"
         );
-
         heroTl.to(
-          "#right-icon-diagram",
-          { opacity: 0.3, duration: 0.8, ease: "power2.out" },
-          "-=0.8"
+          "#hero-title-keyword",
+          { y: 0, opacity: 1, duration: 0.45, ease: "power1.out" },
+          "-=0.35"
         );
-      }
 
-      startTypewriter();
+        // Sem pin no mobile para evitar glitches
+        startTypewriter();
 
-      // ScrollTrigger com pin apenas em telas grandes
-      let scrollTl = gsap.timeline({
-        scrollTrigger: {
-          trigger: ".pin-wrapper",
-          start: "top top",
-          end: "+=80%",
-          scrub: true,
-          pin: true,
-        },
-      });
+        const _onScrollMobile = () => {
+          hasScrolled.value = window.scrollY > 50;
+        };
+        window.addEventListener("scroll", _onScrollMobile);
 
-      scrollTl.to(
-        ".showcase-layer",
-        { y: "0%", ease: "none", duration: 3 },
-        0
-      );
-
-      scrollTl.to(
-        ".hero-layer",
-        { scale: 0.95, opacity: 0, y: -100, duration: 3 },
-        0
-      );
-
-      scrollTl.to(
-        ".bg-overlay",
-        { opacity: 0.8, duration: 2.5, ease: "none" },
-        0.5
-      );
-
-      // Atualiza hasScrolled (funciona em desktop também)
-      const _onScroll = () => {
-        hasScrolled.value = window.scrollY > 50;
-      };
-      window.addEventListener("scroll", _onScroll);
-
-      // cleanup — quando o media query deixar de combinar, mata timelines e listeners
-      return () => {
-        try {
-          heroTl && heroTl.kill();
-        } catch (e) {}
-        try {
-          if (scrollTl && scrollTl.scrollTrigger) scrollTl.scrollTrigger.kill();
-        } catch (e) {}
-        try {
-          scrollTl && scrollTl.kill();
-        } catch (e) {}
-        window.removeEventListener("scroll", _onScroll);
-      };
-    },
-
-    // Mobile: versão leve — sem pin, sem animações pesadas
-    "(max-width: 768px)": function () {
-      // Versão simplificada: apenas faz um fade-in leve dos títulos e inicia o typewriter
-      gsap.set(".travel-dot", { autoAlpha: 0 });
-
-      const heroTl = gsap.timeline();
-      heroTl.to("#left-database", { opacity: 0.25, duration: 0.3, ease: "power1.out" });
-      heroTl.to("#hero-title-top", { y: 0, opacity: 1, duration: 0.45, ease: "power1.out" }, "-=0.1");
-      heroTl.to("#hero-title-keyword", { y: 0, opacity: 1, duration: 0.45, ease: "power1.out" }, "-=0.35");
-
-      // Não criamos ScrollTrigger com pin no mobile — isso costuma causar travamentos
-      // e problemas de layout em navegadores móveis.
-
-      startTypewriter();
-
-      const _onScrollMobile = () => {
-        hasScrolled.value = window.scrollY > 50;
-      };
-      window.addEventListener("scroll", _onScrollMobile);
-
-      return () => {
-        try {
-          heroTl && heroTl.kill();
-        } catch (e) {}
-        window.removeEventListener("scroll", _onScrollMobile);
-      };
-    },
-  });
-  }); // Fecha requestAnimationFrame
+        return () => {
+          try {
+            heroTl && heroTl.kill();
+          } catch (e) {}
+          window.removeEventListener("scroll", _onScrollMobile);
+        };
+      },
+    });
+  }); // requestAnimationFrame
 });
 </script>
 
@@ -312,10 +302,16 @@ onMounted(() => {
       <!-- CAMADA 1: HERO (Fundo) -->
       <!-- Dentro do .pin-wrapper -->
 
-      <section class="hero-layer text-center px-4" role="main" aria-labelledby="hero-title">
+      <section
+        class="hero-layer text-center px-4"
+        role="main"
+        aria-labelledby="hero-title"
+      >
         <!-- BACKGROUND DECORATIVO (Diagrama Sutil) -->
-        <!-- Mudei de text-white para text-slate-600 para ficar bem discreto no fundo escuro -->
-        <div class="absolute inset-0 pointer-events-none overflow-hidden hidden lg:block" aria-hidden="true">
+        <div
+          class="absolute inset-0 pointer-events-none overflow-hidden hidden lg:block"
+          aria-hidden="true"
+        >
           <svg
             class="connection-svg w-full h-full"
             viewBox="0 0 1153 233"
@@ -384,14 +380,11 @@ onMounted(() => {
         <div
           class="hero-content relative z-10 max-w-4xl mx-auto flex flex-col items-center"
         >
-          <!-- TÍTULO UNIFICADO -->
-          <!-- Adicionei a classe 'hero-title' aqui para animar o bloco todo -->
+          <!-- TÍTULO  -->
           <h1 class="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
-            <!-- Parte 1: Adicionei ID e inline-block para animar -->
             <span class="text-white inline-block" id="hero-title-top">Do SQL ao</span>
             <br />
 
-            <!-- Parte 2: Aumentei para text-6xl md:text-8xl (Maior que o resto) -->
             <span
               class="text-gradient inline-block transform origin-bottom text-6xl md:text-8xl mt-2"
               id="hero-title-keyword"
@@ -418,10 +411,9 @@ onMounted(() => {
         </div>
       </section>
 
-      <!-- CAMADA 2: CARD + DOCK (Frente) -->
       <section class="showcase-layer">
         <div class="flex flex-col w-full h-full max-w-[1200px] items-center justify-end">
-          <!-- 1. A JANELA DO VÍDEO -->
+          <!-- JANELA DO VÍDEO -->
           <div
             class="glass-card w-full flex-1 rounded-t-[2rem] flex flex-col overflow-hidden relative z-10"
           >
@@ -440,14 +432,13 @@ onMounted(() => {
                   <span class="text-xs text-gray-500 ml-2 font-mono"
                     >{{ activeTab }}.sql</span
                   >
-                  <!-- header controls (removed back button) -->
                 </div>
 
                 <div class="flex-1 relative w-full h-full bg-[#0F172A]">
                   <!-- Spinner de Loading durante troca de vídeo -->
                   <transition name="spinner-fade">
-                    <div 
-                      v-if="videoLoading" 
+                    <div
+                      v-if="videoLoading"
                       class="absolute inset-0 flex items-center justify-center bg-[#0F172A] z-30"
                     >
                       <div class="spinner"></div>
@@ -489,29 +480,42 @@ onMounted(() => {
                     </template>
                     <!-- Placeholder -->
                     <template v-else>
-                      <div class="video-placeholder w-full h-full flex items-center justify-center bg-[#0F172A] text-gray-300">
+                      <div
+                        class="video-placeholder w-full h-full flex items-center justify-center bg-[#0F172A] text-gray-300"
+                      >
                         <div class="px-6 text-center">
-                          <h4 class="text-lg font-semibold mb-2">{{ currentTabContent.title }}</h4>
-                          <p class="text-sm max-w-xs mx-auto">{{ currentTabContent.description || 'Visualização indisponível para esta aba.' }}</p>
+                          <h4 class="text-lg font-semibold mb-2">
+                            {{ currentTabContent.title }}
+                          </h4>
+                          <p class="text-sm max-w-xs mx-auto">
+                            {{
+                              currentTabContent.description ||
+                              "Visualização indisponível para esta aba."
+                            }}
+                          </p>
                         </div>
                       </div>
                     </template>
                   </transition>
 
                   <div class="video-overlay">
-    <h3 class="text-xl md:text-2xl text-white font-bold mb-2 shadow-black drop-shadow-md">
-      {{ currentTabContent.title }}
-    </h3>
-    <p class="text-gray-200 text-sm md:text-base max-w-lg shadow-black drop-shadow-md leading-relaxed">
-      {{ currentTabContent.description }}
-    </p>
-  </div>
-                  <!-- Botão de restart apenas para vídeos locais -->
-                  <button 
+                    <h3
+                      class="text-xl md:text-2xl text-white font-bold mb-2 shadow-black drop-shadow-md"
+                    >
+                      {{ currentTabContent.title }}
+                    </h3>
+                    <p
+                      class="text-gray-200 text-sm md:text-base max-w-lg shadow-black drop-shadow-md leading-relaxed"
+                    >
+                      {{ currentTabContent.description }}
+                    </p>
+                  </div>
+                  <!-- Botão de restart por enquanto apenas para vídeos locais -->
+                  <button
                     v-if="currentTabContent.videoSrc && !currentTabContent.youtubeId"
-                    class="video-restart-btn" 
-                    @click="restartVideo" 
-                    :aria-pressed="videoEnded" 
+                    class="video-restart-btn"
+                    @click="restartVideo"
+                    :aria-pressed="videoEnded"
                     title="Reiniciar vídeo"
                   >
                     <RefreshCw :size="16" />
@@ -521,25 +525,19 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- 2. A FAIXA DOS BOTÕES (DOCK) -->
-          <!-- Adicionada classe 'dock-strip' para puxar para cima -->
+          <!-- A faixa de botões -->
           <div class="w-full relative z-20 dock-strip">
-            <!-- Linha Neon Superior (Aumentada) -->
+            <!-- Linha Neon Superior -->
             <div
               class="h-[2px] w-full bg-gradient-to-r from-transparent via-[var(--clr-primary)] to-transparent opacity-80 shadow-[0_-5px_25px_var(--clr-primary)] relative z-30"
               aria-hidden="true"
             ></div>
-
-            <!-- Background da Faixa (Cor diferente do fundo principal) -->
-            <!-- Mudei o bg-[#0F172A] para bg-slate-950 (um pouco mais escuro) -->
+            
             <nav
               class="bg-slate-950 w-screen relative left-1/2 -translate-x-1/2 pt-6 pb-8 px-4 flex justify-center items-center border-t border-white/10"
               role="tablist"
               aria-label="Tipos de relacionamento"
             >
-              <!-- Efeito de Brilho Inferior (Glow) -->
-
-              <!-- Pílula dos Botões (Mantida igual, só aumentei o z-index) -->
               <div
                 class="flex flex-wrap justify-center gap-3 md:gap-6 px-6 py-3 rounded-full border border-slate-800 bg-slate-900/80 shadow-lg relative z-40"
               >
@@ -563,24 +561,31 @@ onMounted(() => {
       </section>
     </div>
 
-    <!-- SEÇÃO SEGUINTE (FOOTER) -->
+    <!-- seção de rodapé -->
     <section
       class="h-[50vh] bg-slate-900 flex items-center justify-center relative z-20 border-t border-slate-800"
       aria-labelledby="cta-title"
     >
       <div class="text-center">
-        <h2 id="cta-title" class="text-4xl font-bold text-white mb-4">Pronto para começar?</h2>
+        <h2 id="cta-title" class="text-4xl font-bold text-white mb-4">
+          Pronto para começar?
+        </h2>
         <p class="text-gray-400 mb-6">O seu banco de dados nunca foi tão visual.</p>
-        <a href="/gerador" class="cta-button text-lg" role="button" aria-label="Acessar gerador de diagramas agora">Acessar Gerador</a>
+        <a
+          href="/gerador"
+          class="cta-button text-lg"
+          role="button"
+          aria-label="Acessar gerador de diagramas agora"
+          >Acessar Gerador</a
+        >
       </div>
     </section>
 
-    <!-- Rodapé Animado -->
+    <!-- Rodapé -->
     <AppFooter animated />
   </div>
 </template>
 
-<!-- ESTILOS GLOBAIS -->
 <style>
 :root {
   --clr-primary: #1abc9c;
@@ -590,11 +595,9 @@ onMounted(() => {
 }
 </style>
 
-<!-- ESTILOS DO COMPONENTE -->
 <style scoped>
 .dock-strip {
-  margin-top: -2.4rem; /* Seu valor ajustado */
-  /* Garante que a dock fique acima do card para a sobreposição funcionar */
+  margin-top: -2.4rem;
   position: relative;
   z-index: 20;
 }
@@ -608,7 +611,6 @@ onMounted(() => {
   font-family: "JetBrains Mono", monospace;
 }
 
-/* Card de Vidro */
 .glass-card {
   background: var(--clr-card-bg);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -617,21 +619,10 @@ onMounted(() => {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
   pointer-events: auto;
-
-  /* --- A REGRA DE OURO DO VÍDEO --- */
-  width: auto; 
+  width: auto;
   max-width: 65vh;
-  
-  /* 1. Trava a proporção em 16:9 (Cinema). 
-     O card vai aumentar/diminuir a altura automaticamente baseado na largura. */
   aspect-ratio: 16 / 9;
-
-  /* 2. Impede que fique muito pequeno em Notebooks.
-     Se a tela for menor que 900px, vai aparecer barra de rolagem horizontal 
-     (comportamento que você pediu) em vez de esmagar o vídeo. */
   min-width: 1100px;
-
-  /* Flexibilidade */
   flex-shrink: 0;
   position: relative;
   margin-left: auto;
@@ -644,63 +635,59 @@ onMounted(() => {
   bottom: 0;
   left: 0;
   width: 100%;
-  
-  /* Gradiente preto embaixo para o texto branco ler bem em qualquer vídeo */
-  background: linear-gradient(to top, rgba(2, 6, 23, 0.95) 0%, rgba(2, 6, 23, 0.6) 50%, transparent 100%);
-  
-  /* Espaçamento generoso para não colar na borda */
+
+  background: linear-gradient(
+    to top,
+    rgba(2, 6, 23, 0.95) 0%,
+    rgba(2, 6, 23, 0.6) 50%,
+    transparent 100%
+  );
+
   padding: 4rem 2rem 2rem 2rem;
-  
-  /* Garante que o mouse atravesse o texto (se quiser clicar no vídeo) */
   pointer-events: none;
   z-index: 20;
 }
 
 @media (max-width: 768px) {
   .glass-card {
-    width: 100%;       /* Ocupa largura total */
-    min-width: 0;      /* Remove a trava de 900px */
-    aspect-ratio: 4/3; /* Fica um pouco mais quadrado/alto no celular para ver melhor */
+    width: 100%;
+    min-width: 0;
+    aspect-ratio: 4/3;
   }
-  
+
   .video-overlay {
-    padding: 3rem 1.5rem 1.5rem 1.5rem; /* Ajusta padding */
+    padding: 3rem 1.5rem 1.5rem 1.5rem;
   }
-  /* Texto do overlay menor no mobile para não ocupar tanto espaço */
   .video-overlay h3 {
-    font-size: 1rem; /* ~8px */
+    font-size: 1rem;
     line-height: 1.15;
     margin-bottom: 0.5rem;
   }
 
   .video-overlay p {
-    font-size: 0.5rem; /* ~13.6px */
+    font-size: 0.5rem;
     max-width: 90%;
     margin: 0;
     line-height: 1.3;
   }
-  
-  /* Mostrar a dock no celular (botões de troca de vídeo) */
+
   .dock-strip {
     display: block;
     margin-top: 0.75rem;
     padding: 0 1rem;
   }
 
-  /* Ajustes para os botões no mobile: ficam menores e empilháveis */
   .dock-strip .tab-btn {
     padding: 8px 12px;
     font-size: 13px;
   }
-  
-  /* Se esconder a dock, ajusta o título para aparecer */
+
   .showcase-layer {
-     transform: translateY(0%) !important; /* Mostra o card inteiro */
-     height: auto;
-     position: relative; /* Muda para fluxo normal no mobile */
+    transform: translateY(0%) !important;
+    height: auto;
+    position: relative;
   }
-  
-  /* Ajuste no container pai */
+
   .pin-wrapper {
     height: auto;
     display: block;
@@ -708,7 +695,6 @@ onMounted(() => {
   }
 }
 
-/* Espaçamento extra para o HERO e título */
 .hero-layer {
   padding-top: 3.5rem;
   padding-bottom: 1.5rem;
@@ -719,13 +705,11 @@ onMounted(() => {
   margin-bottom: 1.25rem;
 }
 
-/* Melhor alinhamento do card de vídeo (centralizar e impedir deslocamento para a esquerda) */
 .glass-card {
   margin-left: auto;
   margin-right: auto;
 }
 
-/* Garante que o conteúdo interno do card (janela de código) fique centrado e não provoque overflow */
 .code-window {
   margin-left: auto;
   margin-right: auto;
@@ -733,47 +717,30 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
-  /* Espaço extra no topo do HERO para não encostar no header fixo */
   .hero-layer {
-    margin-top: calc(3.5rem + 1rem); /* empurra abaixo do cabeçalho fixo */
+    margin-top: calc(3.5rem + 1rem);
   }
-
-  /* Ajusta largura do card no mobile para evitar lacunas laterais
-     e garantir um pequeno gutter à esquerda/direita */
   .glass-card {
     width: calc(100% - 2rem);
     max-width: 720px;
   }
 }
 
-/* --- AJUSTE PARA NOTEBOOKS (Telas Baixas) --- */
 @media (min-width: 769px) and (max-height: 800px) {
   .pin-wrapper .showcase-layer {
-    
-    /* 1. Mantenha no chão */
     justify-content: flex-end;
-    
-    /* 2. O PULO DO GATO: */
-    /* Coloque um valor alto (como você testou no original e gostou). */
-    /* Isso faz ele começar BEM escondido lá embaixo. */
-    /* SEM !important aqui, senão o GSAP não consegue puxar ele de volta! */
-    transform: translateY(120%); 
-    
-    /* Zera o padding para o card descer o máximo possível */
+    transform: translateY(120%);
     padding-bottom: 0;
   }
-  
+
   .glass-card {
-    min-width: 900px; 
-    height: 55vh; /* Ocupa pouco mais da metade da tela */
-    width: auto;  /* A largura será calculada automaticamente (55vh * 1.77) */
-    
-    /* Garante que não fique minúsculo também */
+    min-width: 900px;
+    height: 55vh;
+    width: auto;
     min-height: 600px;
   }
 }
 
-/* Cursor piscante */
 .cursor-blink {
   display: inline-block;
   width: 10px;
@@ -790,7 +757,6 @@ onMounted(() => {
   }
 }
 
-/* WRAPPER PRINCIPAL */
 .pin-wrapper {
   height: 100vh;
   width: 100%;
@@ -802,7 +768,6 @@ onMounted(() => {
   background-color: var(--clr-bg);
 }
 
-/* HERO LAYER (Fundo) */
 .hero-layer {
   position: absolute;
   width: 100%;
@@ -814,15 +779,13 @@ onMounted(() => {
   z-index: 1;
 }
 
-/* SHOWCASE LAYER (Card) */
 .showcase-layer {
   position: absolute;
-  width: 95%; /* Um pouco mais largo no mobile */
+  width: 95%;
   max-width: 1200px;
-  height: 85vh; /* Altura total do conjunto */
+  height: 85vh;
   bottom: 0;
   z-index: 10;
-
 
   display: flex;
   justify-content: flex-end;
@@ -833,7 +796,6 @@ onMounted(() => {
   transform: translateY(75%);
 }
 
-/* Janela interna do código */
 .code-window {
   background: #0d1117;
   border-radius: 8px;
@@ -860,7 +822,7 @@ onMounted(() => {
   height: 12px;
   border-radius: 50%;
 }
-/* Bolinhas em tons de turquesa harmoniosos */
+
 .dot1 {
   background: #0d9488;
   box-shadow: 0 0 8px rgba(13, 148, 136, 0.4);
@@ -874,7 +836,6 @@ onMounted(() => {
   box-shadow: 0 0 8px rgba(94, 234, 212, 0.4);
 }
 
-/* Botão Principal */
 .cta-button {
   background-color: var(--clr-primary);
   color: #0f172a;
@@ -883,54 +844,38 @@ onMounted(() => {
   border-radius: 9999px;
   transition: all 0.3s ease;
   text-decoration: none;
-
-  /* Layout e Visibilidade */
-  display: inline-flex; 
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   opacity: 1;
-
-  /* Sombra Neon Inicial */
   box-shadow: 0 0 20px rgba(26, 188, 156, 0.4);
-
-  /* CRUCIAL PARA O SHINE: */
   position: relative;
-  overflow: hidden; /* Garante que o brilho não vaze para fora das bordas redondas */
+  overflow: hidden; 
 }
 
-/* Estado de Hover (Levanta e muda cor) */
 .cta-button:hover {
-  background-color: #31e0bd; /* Um turquesa levemente mais claro */
+  background-color: #31e0bd;
   transform: translateY(-2px);
   box-shadow: 0 0 30px rgba(26, 188, 156, 0.6);
 }
 
-/* O FACHO DE LUZ (SHINE) */
 .cta-button::after {
   content: "";
   position: absolute;
   top: 0;
-  left: -100%; /* Começa escondido à esquerda */
+  left: -100%;
   width: 100%;
   height: 100%;
-
-  /* O Brilho em si: Transparente -> Branco -> Transparente */
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
-
-  /* Inclina o facho de luz */
   transform: skewX(-20deg);
-
-  /* Sem transição na volta (reset instantâneo) */
   transition: none;
 }
 
-/* A ANIMAÇÃO AO PASSAR O MOUSE */
 .cta-button:hover::after {
-  left: 200%; /* Atravessa para a direita */
-  transition: left 0.6s ease-in-out; /* Duração da passagem do brilho */
+  left: 200%;
+  transition: left 0.6s ease-in-out;
 }
 
-/* Botão Pequeno (Header) */
 .cta-button-small {
   background-color: #1abc9c;
   color: #0f172a;
@@ -971,7 +916,6 @@ onMounted(() => {
   transition: left 0.6s ease-in-out;
 }
 
-/* Botões da Dock (Estilo Pill) */
 .tab-btn {
   color: #94a3b8;
   border: 1px solid transparent;
@@ -983,7 +927,6 @@ onMounted(() => {
   background-color: rgba(255, 255, 255, 0.05);
 }
 
-/* Estado Ativo do Pill */
 .active-pill {
   background-color: rgba(26, 188, 156, 0.15);
   color: var(--clr-primary);
@@ -995,13 +938,11 @@ onMounted(() => {
   background-color: rgba(26, 188, 156, 0.2);
 }
 
-/* Botão de reiniciar vídeo (canto inferior direito do card) */
 .video-restart-btn {
   position: absolute;
   right: 12px;
   bottom: 20px;
   z-index: 40;
-  /* Fundo escuro similar ao card, com borda e ícone na cor primária (ativo) */
   background: rgba(3, 7, 15, 0.6);
   color: var(--clr-primary);
   border-radius: 10px;
@@ -1009,24 +950,22 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 18px rgba(16,185,129,0.06), inset 0 1px 0 rgba(255,255,255,0.02);
-  border: 1px solid rgba(26,188,156,0.25); /* borda ciano suave */
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(26, 188, 156, 0.25); /* borda ciano suave */
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
-.video-restart-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(16,185,129,0.14); }
+.video-restart-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(16, 185, 129, 0.14);
+}
 
-/* Força a cor do SVG/ícone para usar a cor primária */
 .video-restart-btn svg {
   color: var(--clr-primary) !important;
   stroke: currentColor !important;
   fill: none !important;
 }
 
-/* Botão de voltar no header (pequeno) */
-/* header-back-btn removed */
-
-/* Transições Vue */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s ease, transform 0.3s ease;
@@ -1046,26 +985,17 @@ onMounted(() => {
 
 .text-gradient {
   background: linear-gradient(to right, #1abc9c, #a5f3fc);
-
-  /* --- Configurações Obrigatórias para Gradiente em Texto --- */
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
-
-  /* Aumenta um pouco a altura da linha para caber o 'g' */
-  padding-bottom: 0.2em; /* Cria um espaço extra embaixo para o brilho e a perna do 'g' */
-  /* Mantém legibilidade e peso */
+  padding-bottom: 0.2em; 
   display: inline-block;
   font-weight: 800;
 
-  /* Um leve drop-shadow ajuda a separar o gradiente do fundo escuro */
   filter: drop-shadow(0 0 20px rgba(26, 188, 156, 0.3));
 }
 
-/* Estilos do header movidos para AppHeader.vue */
-
-/* SVG de Conexão */
 .connection-svg {
   position: absolute;
   top: 50%;
@@ -1073,7 +1003,6 @@ onMounted(() => {
   transform: translate(-50%, -50%);
   width: 95%;
   height: auto;
-  /* Garante que o SVG se adapte ao container */
 }
 
 @media (max-width: 768px) {
@@ -1082,20 +1011,17 @@ onMounted(() => {
     max-width: none;
   }
 
-  /* Esconde tudo exceto a linha no mobile */
   .static-element,
   .travel-dot {
     display: none !important;
   }
 
-  /* A linha fica bem discreta */
   .connection-line {
     opacity: 0.25 !important;
     stroke-width: 2 !important;
   }
 }
 
-/* Mobile: evitar crop agressivo do vídeo, mostrar todo o frame */
 @media (max-width: 768px) {
   .code-window video {
     object-fit: contain !important;
@@ -1106,10 +1032,9 @@ onMounted(() => {
   }
 }
 
-/* Remove o display: none do container no mobile */
 @media (max-width: 768px) {
   .absolute.inset-0.pointer-events-none.overflow-hidden {
-    display: block !important; /* Força aparecer */
+    display: block !important;
   }
 }
 
@@ -1128,7 +1053,6 @@ onMounted(() => {
   transition: opacity 0.8s ease;
 }
 
-/* Indicador de página ativa */
 .nav-link {
   position: relative;
   color: #94a3b8;
@@ -1154,10 +1078,6 @@ onMounted(() => {
   border-radius: 2px;
 }
 
-/* FIX MOBILE: reduzir 'borda preta' do vídeo e garantir que o HERO apareça
-   - Remove aspect-ratio for mobile and define a reasonable height
-   - Use object-fit: cover para preencher o frame (menos letterbox)
-   - Garante que .hero-layer seja posicionado normalmente no fluxo para aparecer */
 @media (max-width: 768px) {
   header nav {
     gap: 0.5rem;
@@ -1173,15 +1093,14 @@ onMounted(() => {
   }
 
   .glass-card {
-    aspect-ratio: auto; /* não forçar 4/3 aqui */
-    height: 55vh; /* ocupa boa parte da viewport sem criar bordas gigantes */
+    aspect-ratio: auto;
+    height: 55vh; 
     max-height: 70vh;
     min-height: 300px;
     width: 100%;
     min-width: 0;
   }
 
-  /* Preenche o container do card com o vídeo, evitando barras pretas grandes */
   .code-window video {
     object-fit: cover !important;
     width: 100%;
@@ -1189,12 +1108,10 @@ onMounted(() => {
     background: hsl(0, 0%, 0%);
   }
 
-  /* Caso o vídeo não exista, o placeholder fica mais compacto */
   .video-placeholder {
     padding: 1.25rem;
   }
 
-  /* Faz o HERO renderizar em fluxo normal (antes estava absoluto com height:100%) */
   .hero-layer {
     position: relative !important;
     height: auto !important;
@@ -1236,7 +1153,6 @@ onMounted(() => {
   }
 }
 
-/* Transição do Spinner/Placeholder */
 .spinner-fade-enter-active {
   transition: opacity 0.3s ease-out;
 }

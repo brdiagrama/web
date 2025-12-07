@@ -32,7 +32,7 @@ onMounted(() => {
       isMounted.value = true;
     }, 10);
 
-    // Animações GSAP leves e modernas
+    // Animações GSAP tem que ser leves, mas ainda parecer moderna blz
     const tl = gsap.timeline({ delay: 0.2 });
 
   // Hero: fade + slide suave
@@ -841,7 +841,7 @@ const technologies = [
   border-color: var(--tech-color);
   color: #e2e8f0;
 }
-/* Estilos do header e navegação movidos para AppHeader.vue */
+
 .cta-button {
   background-color: #1abc9c;
   color: #0f172a;

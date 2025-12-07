@@ -82,9 +82,9 @@ const sortedProblems = computed(() => {
 
 <style scoped>
 .problems-panel {
-  background-color: #020617; /* Fundo bem escuro */
+  background-color: #020617;
   border-top: 1px solid #1E293B;
-  height: 200px; /* Altura fixa quando aberto */
+  height: 200px;
   display: flex;
   flex-direction: column;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
@@ -96,7 +96,7 @@ const sortedProblems = computed(() => {
   justify-content: space-between;
   align-items: center;
   padding: 0 12px;
-  height: 40px; /* Um pouco mais alto */
+  height: 40px;
   background-color: #0F172A;
   border-bottom: 1px solid #1E293B;
   cursor: pointer;
@@ -104,12 +104,12 @@ const sortedProblems = computed(() => {
 }
 
 .problems-header:hover {
-  background-color: #1E293B; /* Um pouco mais claro que o fundo */
-  border-bottom-color: #334155; /* Destaca a borda */
+  background-color: #1E293B;
+  border-bottom-color: #334155;
 }
 
 .problems-header:hover .panel-title {
-  color: #E2E8F0; /* Texto fica mais branco */
+  color: #E2E8F0;
 }
 
 .header-left {
@@ -213,7 +213,7 @@ const sortedProblems = computed(() => {
 .problem-item.warning .problem-status-strip { background-color: #F59E0B; }
 
 .problem-icon {
-  margin-top: 2px; /* Alinhar com o texto */
+  margin-top: 2px;
 }
 .icon-error { color: #EF4444; }
 .icon-warning { color: #F59E0B; }
@@ -263,9 +263,9 @@ const sortedProblems = computed(() => {
 }
 
 .problems-list {
-  flex: 1;           /* Faz a lista ocupar todo o espaço abaixo do header */
-  overflow-y: auto;  /* Habilita a rolagem vertical quando necessário */
-  min-height: 0;     /* Garante que o scroll funcione corretamente dentro do flexbox */
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .problems-list::-webkit-scrollbar { width: 8px; }

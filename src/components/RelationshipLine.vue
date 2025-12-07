@@ -55,11 +55,11 @@ const props = defineProps({
   },
   fromTableWidth: {
     type: Number,
-    required: true, // Agora é obrigatório
+    required: true,
   },
   toTableWidth: {
     type: Number,
-    required: true, // Agora é obrigatório
+    required: true,
   },
   headerHeight: {
     type: Number,
@@ -85,10 +85,8 @@ const relationshipGroup = ref(null);
 let hoverTimeout = null;
 
 const isActive = computed(() => {
-  // 1. Hover direto na linha
   if (isHovered.value) return true;
 
-  // 2. Tabelas selecionadas
   if (
     props.selectedTables.has(props.relationship.fromTable) ||
     props.selectedTables.has(props.relationship.toTable)
@@ -96,7 +94,6 @@ const isActive = computed(() => {
     return true;
   }
 
-  // 3. Hover em coluna relacionada
     if (props.hoveredColumn) {
     const { tableName, columnName, isFk, isPk } = props.hoveredColumn;
     const rel = props.relationship;
@@ -105,7 +102,6 @@ const isActive = computed(() => {
       (isFk && tableName === rel.fromTable && columnName === rel.fromCol) ||
       (isPk && tableName === rel.toTable && columnName === rel.toCol);
 
-    // Trazer para frente quando hover em coluna relacionada
     if (isRelated && relationshipGroup.value?.parentNode) {
       relationshipGroup.value.parentNode.appendChild(relationshipGroup.value);
     }
@@ -215,19 +211,19 @@ const y2 = t2.y + getColumnOffset(t2, props.relationship.toCol) + targetOffset;
   let startX, endX;
   const yOffset = -15; // 15px acima da linha
 
-  // --- CENÁRIO 1: T1 à esquerda de T2 (Rotas em Z) ---
+  // CENÁRIO 1: T1 à esquerda de T2 (Rotas em Z)
   if (t1Right + 40 < t2Left) {
     const isWideMarker = props.relationship.cardinality === "optional-many";
 
     const offset = isWideMarker ? 30 : 20;
-    // Lado 'start' (FK) fica à direita da tabela, perto do ícone
+    // Lado "start" (FK) fica à direita da tabela, perto do ícone
     startX = t1Right + 4;
 
-    // Lado 'end' (PK) fica à esquerda da tabela, perto do ícone
+    // Lado "end" (PK) fica à esquerda da tabela, perto do ícone
     endX = t2Left - offset - 15;
   }
 
-  // --- CENÁRIO 2: T1 à direita de T2 (Rotas em Z invertido) ---
+  // CENÁRIO 2: T1 à direita de T2 (Rotas em Z invertido)
   else if (t1Left > t2Right + 40) {
     const isWideMarker = props.relationship.cardinality === "zero-to-one" ||
       props.relationship.cardinality === "inheritance"; 
@@ -235,14 +231,14 @@ const y2 = t2.y + getColumnOffset(t2, props.relationship.toCol) + targetOffset;
     // Se for wide usa 45, senão usa o padrão 20
     const offset = isWideMarker ? 45 : 20;
 
-    // Lado 'start' (FK) fica à esquerda da tabela com o recuo calculado
+    // Lado "start" (FK) fica à esquerda da tabela com o recuo calculado
     startX = t1Left - offset;
 
-    // Lado 'end' (PK) fica à direita da tabela
+    // Lado "end" (PK) fica à direita da tabela
     endX = t2Right + 4;
   }
 
-  // --- CENÁRIO 3: Sobreposição Vertical / Safe Zone (Rotas em C) ---
+  // CENÁRIO 3: Sobreposição Vertical / Safe Zone (Rotas em C)
   else {
     // Usa a Zona Segura (safeX) calculada no pathData para posicionar o label
     const maxX = Math.max(t1Right, t2Right);
@@ -251,10 +247,10 @@ const y2 = t2.y + getColumnOffset(t2, props.relationship.toCol) + targetOffset;
 
     // Labels ficam ao longo da linha vertical no ponto SafeX
 
-    // Lado 'start' (FK) fica logo na saída da tabela (o stub inicial)
+    // Lado "start" (FK) fica logo na saída da tabela (o stub inicial)
     startX = t1Right + 4;
 
-    // Lado 'end' (PK) fica logo na entrada da tabela
+    // Lado "end" (PK) fica logo na entrada da tabela
     endX = t2Right + 4;
   }
 
@@ -303,7 +299,7 @@ const y2 = t2.y + getColumnOffset(t2, props.relationship.toCol) + targetOffset;
   // Margem de segurança para a linha não colar na tabela
   const gap = 40;
 
-  // --- LÓGICA DE ROTEAMENTO ---
+  // LÓGICA DE ROTEAMENTO
 
   // CENÁRIO 1: T1 totalmente à esquerda de T2 (Normal)
   // Verifica se há espaço suficiente no meio para não colidir
@@ -364,25 +360,23 @@ const y2 = t2.y + getColumnOffset(t2, props.relationship.toCol) + targetOffset;
 
 .connector-hitbox {
   fill: none;
-  stroke: transparent; /* Torna a linha invisível */
-  stroke-width: 25px; /* Aumenta a área de hover para 15px */
+  stroke: transparent;
+  stroke-width: 25px;
   cursor: pointer;
 }
 
-/* 2. ESTILIZAÇÃO DA LINHA VISUAL */
 .connector-visual {
   fill: none;
-  stroke: #7f8c8d; /* Cor padrão */
-  stroke-width: 2px; /* Largura fina e nítida */
-  pointer-events: none; /* ESSENCIAL: Permite que o mouse pegue o elemento de baixo */
+  stroke: #7f8c8d;
+  stroke-width: 2px;
+  pointer-events: none;
   transition: stroke 0.3s ease, stroke-width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
     filter 0.3s ease;
 }
 
-/* 3. EFEITO DE HOVER (Quando o estado isHovered é TRUE) */
 .connector-visual.connector-hover-active {
-  stroke: #192747; /* Cor de destaque (Azul) */
-  stroke-width: 3px; /* Fica um pouco mais grossa no hover */
+  stroke: #192747;
+  stroke-width: 3px;
 }
 
 .cardinality-label {
@@ -403,16 +397,13 @@ const y2 = t2.y + getColumnOffset(t2, props.relationship.toCol) + targetOffset;
 }
 
 .relationship-line {
-  /*  ESSENCIAL: Transição no estado base */
   transition: transform 0.15s ease-out;
-  /* Define o centro da transformação para a linha não "deslocar" */
   transform-origin: center center;
 }
 
-/* Animação Keyframe: Cria o movimento infinito */
 @keyframes flowDash {
   to {
-    stroke-dashoffset: 40px; /* O valor negativo puxa para frente (do start pro end) */
+    stroke-dashoffset: 40px;
   }
 }
 
@@ -421,15 +412,11 @@ const y2 = t2.y + getColumnOffset(t2, props.relationship.toCol) + targetOffset;
   stroke: #4facfe;
   stroke-width: 2px;
   pointer-events: none;
-  
   stroke-dasharray: 3 10; 
-  
   animation: flowDash 2.5s linear infinite;
-
   opacity: 0.8;
 }
 
-/* Ajuste fino para quando estiver ativo */
 .relationship-line.is-active .connector-visual {
   stroke: #192747; 
   filter: drop-shadow(0 0 2px rgba(25, 39, 71, 0.5));

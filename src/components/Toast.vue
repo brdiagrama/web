@@ -65,7 +65,6 @@ defineExpose({ show, close });
 </script>
 
 <style scoped>
-/* Transição DINÂMICA - Entrada com BOUNCE e Saída com SLIDE */
 .toast-slide-enter-active {
   animation: toastSlideIn 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -244,7 +243,6 @@ defineExpose({ show, close });
   color: #e2e8f0;
 }
 
-/* Barra de progresso */
 .toast-progress {
   height: 3px;
   background: currentColor;
@@ -261,7 +259,6 @@ defineExpose({ show, close });
   }
 }
 
-/* Mobile responsivo */
 @media (max-width: 640px) {
   .toast-container {
     bottom: 16px;

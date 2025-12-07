@@ -24,8 +24,7 @@
         />
       </pattern>
 
-      <!-- Markers para relacionamentos (Crow's Foot Notation) -->
-      <!-- Markers para relacionamentos (Crow's Foot Notation) -->
+      <!-- Markers para relacionamentos-->
       <marker
         id="crowsFoot"
         markerWidth="10"
@@ -136,7 +135,7 @@
         />
       </marker>
 
-      <!-- Zero ou Um (0..1) - Círculo duplo -->
+      <!-- Zero ou Um (0..1)-->
       <marker
         id="zeroOrOne"
         markerWidth="14"
@@ -910,8 +909,6 @@ watch(
     }
   }
 );
-
-// --- Lógica de Inicialização ---
 
 onMounted(() => {
   if (svgRoot.value) {

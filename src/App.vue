@@ -335,6 +335,7 @@
                 @pointerdown="(event) => startDrag(event, table.name)"
                 @mousedown="(event) => startDrag(event, table.name)"
               >
+              <!-- Tabela quando ta selecionada, a gente ta só clonando -->
                 <rect
                   :width="getTableWidth(table)"
                   :height="getTableHeight(table)"
@@ -549,7 +550,7 @@ onMounted(() => {
   
   const savedSql = DiagramController.loadLastSql();
   // Se savedSql é null (não existe no storage), usa defaultSql
-  // Se é string vazia (""), mantém vazio (usuário limpou deliberadamente)
+  // Se é string vazia (""), mantém vazio (usuário limpou todo o input)
   sqlCode.value = savedSql !== null ? savedSql : defaultSql;
   updateDiagram();
 });
@@ -561,16 +562,16 @@ const showExportDropdown = ref(false);
 const exportDropdownRef = ref(null);
 
 const availableTableNames = computed(() => {
-  return Object.keys(tables.value); // Retorna array: ['users', 'posts', 'davi']
+  return Object.keys(tables.value);
 });
 
 const toggleProblemsPanel = () => {
   isProblemsVisible.value = !isProblemsVisible.value;
 };
 
-const monacoEditor = shallowRef(null); // Guarda a instância do editor (texto, scroll)
-const monacoInstance = shallowRef(null); // Guarda a biblioteca monaco (enums, markers)
-const isMonacoReady = ref(false); // Flag de segurança
+const monacoEditor = shallowRef(null); 
+const monacoInstance = shallowRef(null);
+const isMonacoReady = ref(false);
 
 // Função que o componente SqlEditor chama quando termina de carregar
 const handleEditorReady = ({ editor, monaco }) => {
@@ -583,7 +584,7 @@ const editorWidth = ref(550); // Largura inicial do editor
 const isResizing = ref(false);
 const isEditorVisible = ref(true);
 // Mobile tabs state
-const activeTab = ref('diagram'); // 'diagram' | 'editor'
+const activeTab = ref('diagram');
 const isMobile = ref(window.innerWidth < 768);
 
 const onResizeWindow = () => {
@@ -623,23 +624,20 @@ const handleResize = (e) => {
   // Ponto de gatilho (se passar daqui para a esquerda, fecha)
   const SNAP_THRESHOLD = 150;
 
-  // 1. LÓGICA ELÁSTICA: FECHAR/ABRIR DINAMICAMENTE
   if (currentX < SNAP_THRESHOLD) {
     // Se o mouse cruzou a linha da esquerda, "esconde" o editor visualmente
-    // MAS continua ouvindo o movimento (não chamamos stopResize)
+    // MAS continua ouvindo o movimento (não chamar stopResize)
     if (isEditorVisible.value) {
       isEditorVisible.value = false;
-    }
+    }1
   } else {
-    // Se o mouse voltou para a direita, "mostra" o editor de novo
+    // Se o mouse voltou para a direita, mostra o editor de novo
     if (!isEditorVisible.value) {
       isEditorVisible.value = true;
     }
 
-    // 2. CÁLCULO DA LARGURA (Só atualiza se estiver visível)
     let newWidth = currentX;
 
-    // Clamp (Trava nos limites Min e Max)
     if (newWidth < MIN_WIDTH) newWidth = MIN_WIDTH;
     if (newWidth > MAX_WIDTH) newWidth = MAX_WIDTH;
 
@@ -697,7 +695,6 @@ const inactiveRelationships = computed(() => {
   );
 });
 
-// Refs dos componentes
 const diagramCanvasRef = ref(null);
 const sqlCode = ref("");
 
@@ -786,7 +783,6 @@ const isInheritanceColumn = (table, col) => {
   return !!(table && table.isInheritance && col && col.isPk && col.isFk);
 };
 
-// Constantes para renderização (conforme index.html anexado)
 const headerHeight = 35;
 const rowHeight = 32;
 
@@ -863,12 +859,9 @@ const debounce = (func, delay) => {
   };
 };
 
-// Calcula a altura total de uma tabela (conforme index.html)
 const getTableHeight = (table) => {
   return headerHeight + table.columns.length * rowHeight + 0;
 };
-
-// Funções de formatação removidas - agora usa renderização direta no template
 
 const validationResult = ref({ isValid: true, errors: [], warnings: [] });
 const lastValidState = ref(null);
@@ -1068,7 +1061,7 @@ const handleFileImport = async (event) => {
     await updateDiagram();
     toastSuccess("Arquivo importado", `${event.target.files[0].name} carregado com sucesso!`);
   } catch (err) {
-  // import error (suppressed)
+  // import error
     toastError("Erro na importação", "Ocorreu um erro ao importar o arquivo");
   } finally {
     // limpa o input para permitir reimportar o mesmo arquivo depois
@@ -1078,7 +1071,7 @@ const handleFileImport = async (event) => {
 
 // apaga estado atual
 const newProject = async () => {
-  // Usa o AlertModal customizado em vez de confirm()
+
   const confirmed = await showAlert({
     title: "Novo Projeto",
     message: "Deseja apagar o projeto atual?",
@@ -1168,7 +1161,6 @@ const exportDiagramPNG = async () => {
   showExportDropdown.value = false;
 
   try {
-    // Verifica se há tabelas
     if (!tables.value || Object.keys(tables.value).length === 0) {
       alert("Não há tabelas para exportar");
       return;
@@ -1182,8 +1174,6 @@ const exportDiagramPNG = async () => {
     }
 
     const bounds = calculateDiagramBounds();
-
-  
 
     // Clona o SVG para não afetar a visualização atual
     const svgClone = svgElement.cloneNode(true);
@@ -1595,7 +1585,7 @@ const exportDiagramSVG = () => {
 // Handler com debounce para mudanças no SQL
 const handleSqlChange = debounce(updateDiagram, 300);
 
-// --- Funções de Seleção Múltipla ---
+// Funções relacionadas a Seleção Múltipla ---
 
 const handleSelectionArea = (area) => {
   // Limpar hover e seleção anterior (clique no canvas deve desselcionar)
@@ -1641,7 +1631,7 @@ const clearSelectionOnCanvas = () => {
   dragState.value.pendingPointerId = null;
 };
 
-// --- Funções de Drag and Drop ---
+// Drag and Drop das Tabelas
 
 const startDrag = (event, tableName) => {
   // Bloqueia drag de tabelas quando pan mode está ativo
@@ -1816,8 +1806,6 @@ const endDrag = (e) => {
   } catch (e) {}
 };
 
-// --- Funções para Relacionamentos Avançados ---
-
 const updateRelationship = (relationshipId, updates) => {
   const rel = relationships.value.find((r) => r.id === relationshipId);
   if (rel) {
@@ -1843,14 +1831,13 @@ const screenToSVG = (screenX, screenY) => {
 </script>
 
 <style scoped>
-/* Botão pequeno no topo para abrir/fechar o editor no mobile (estilo dbdiagram) */
 .mobile-top-toggle {
   position: fixed;
   top: calc(env(safe-area-inset-top, 12px) + 45px);
   left: calc(env(safe-area-inset-left, 12px) + 8px);
   transform: none;
   z-index: 1200;
-  background: #2dd4bf; /* Turquesa do site */
+  background: #2dd4bf;
   color: #fff;
   border-radius: 12px;
   border: none;
@@ -1870,7 +1857,6 @@ const screenToSVG = (screenX, screenY) => {
 .mobile-top-toggle:active { transform: translateY(1px) scale(0.995); }
 .mobile-top-toggle span { display: inline-block; font-size: 20px; line-height: 1; }
 
-/* Botão de fechar dentro do editor (mobile) */
 .mobile-editor-close {
   position: absolute;
   top: calc(env(safe-area-inset-top, 12px) + 55px);
@@ -1891,8 +1877,6 @@ const screenToSVG = (screenX, screenY) => {
 }
 .mobile-editor-close:hover { background: rgba(255,255,255,0.09); }
 
-
-/* Pequeno ajuste visual quando editor estiver aberto */
  
 </style>
 
@@ -1988,10 +1972,9 @@ const screenToSVG = (screenX, screenY) => {
   flex: 1; 
   overflow: hidden; 
   min-height: 0; 
-  flex-direction: row; /* Garante que editor e canvas fiquem lado a lado */
+  flex-direction: row;
 }
 
-/* Mobile tabbar */
 .mobile-tabbar {
   position: fixed;
   bottom: 16px;
@@ -2020,7 +2003,7 @@ const screenToSVG = (screenX, screenY) => {
 
 .app {
   display: flex;
-  flex-direction: column; /* Painel de Problemas fica embaixo do main-content */
+  flex-direction: column; 
   height: 100vh;
   width: 100vw;
   overflow: hidden;
@@ -2029,23 +2012,19 @@ const screenToSVG = (screenX, screenY) => {
 
 .editor-panel {
   display: flex;
-  flex-direction: column; /* Garante empilhamento vertical */
+  flex-direction: column;
   background-color: #0f172a;
   flex-shrink: 0;
   transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-  overflow: hidden; /* Mantém o resize limpo */
-  /* Removemos qualquer position relative/absolute daqui se tiver */
+  overflow: hidden;
 }
 
 .editor-panel.panel-hidden {
   border-right: none;
 }
 .editor-panel.no-transition {
-  /* 0.1s = Muito rápido (sensação de peso)
-     ease-out = Começa rápido e desacelera no final (para "encaixar" no mouse)
-  */
   transition: width 0.1s ease-out !important;
-  will-change: width; /* Avisa o navegador para usar aceleração de GPU */
+  will-change: width; 
 }
 
 .editor-panel.no-transition:not(.panel-hidden) {
@@ -2057,7 +2036,7 @@ const screenToSVG = (screenX, screenY) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #020617; /* Fundo bem escuro */
+  background-color: #020617;
   padding: 0 16px;
   height: 56px; 
   border-bottom: 1px solid #1e293b;
@@ -2081,7 +2060,6 @@ const screenToSVG = (screenX, screenY) => {
   gap: 4px; 
 }
 
-/* Wrapper do botão de instalar - fixo no canto superior direito */
 .install-button-wrapper {
   position: fixed;
   top: 20px;
@@ -2106,11 +2084,11 @@ const screenToSVG = (screenX, screenY) => {
 }
 
 .editor-panel :deep(.editor-container) {
-  flex: 1; /* Ocupa o espaço restante (height - 40px) */
-  height: auto; /* Deixa o flex controlar a altura */
+  flex: 1;
+  height: auto;
   overflow: hidden;
   position: relative;
-  z-index: 1; /* Fica abaixo do header se houver sombra */
+  z-index: 1;
 }
 
 .resizer-handle {
@@ -2124,7 +2102,6 @@ const screenToSVG = (screenX, screenY) => {
 
 .resizer-handle:hover,
 .resizer-handle:active {
-  /* Destaque visual na resizer-handle */
   background-color: #2dd4bf;
   width: 7px;
 }
@@ -2176,7 +2153,7 @@ const screenToSVG = (screenX, screenY) => {
   background-color: rgba(45, 212, 191, 0.1); 
   color: #2dd4bf; 
   border-color: rgba(45, 212, 191, 0.2); 
-  transform: translateX(2px); /* Pequeno movimento para a direita (convite ao clique) */
+  transform: translateX(2px);
   box-shadow: 0 0 10px rgba(45, 212, 191, 0.15); 
 }
 
@@ -2195,7 +2172,7 @@ const screenToSVG = (screenX, screenY) => {
   background-color: rgba(45, 212, 191, 0.1); 
   color: #2dd4bf;
   border-color: rgba(45, 212, 191, 0.2); 
-  transform: translateX(2px); /* Pequeno movimento para a direita (convite ao clique) */
+  transform: translateX(2px);
   box-shadow: 0 0 10px rgba(45, 212, 191, 0.15); 
 }
 
@@ -2206,13 +2183,11 @@ const screenToSVG = (screenX, screenY) => {
 
 
 .dropdown-header {
-  padding: 10px 14px; /* Mais espaço */
+  padding: 10px 14px;
   font-size: 11px;
   text-transform: uppercase;
-  
-  /* CORREÇÃO AQUI: */
-  color: #94a3b8; /* Cinza claro (Slate 400) para ler no escuro */
-  font-family: "Segoe UI", sans-serif; /* Garante que não fique Times New Roman */
+  color: #94a3b8;
+  font-family: "Segoe UI", sans-serif;
   font-weight: 700;
   letter-spacing: 0.5px;
   
@@ -2222,10 +2197,10 @@ const screenToSVG = (screenX, screenY) => {
 
 .dropdown-menu {
   position: absolute;
-  top: calc(100% + 4px); /* Um pouco mais perto */
-  right: 0; /* Alinha pela direita do pai */
-  left: auto; /* Remove alinhamento central */
-  transform: none; /* Remove transform antigo */
+  top: calc(100% + 4px);
+  right: 0;
+  left: auto;
+  transform: none;
   
   background-color: #1e293b;
   border: 1px solid #334155;
@@ -2240,11 +2215,11 @@ const screenToSVG = (screenX, screenY) => {
 
 .dropdown-menu {
   position: absolute;
-  top: calc(100% + 4px); /* Um pouco mais perto */
-  right: 0; /* Alinha pela direita do pai */
-  left: auto; /* Remove alinhamento central */
-  transform: none; /* Remove transform antigo */
-  
+  top: calc(100% + 4px);
+  right: 0;
+  left: auto;
+  transform: none;
+
   background-color: #1e293b;
   border: 1px solid #334155;
   border-radius: 8px;
@@ -2259,7 +2234,7 @@ const screenToSVG = (screenX, screenY) => {
   width: 100%;
   padding: 8px 12px;
   border: none;
-  border-radius: 4px; /* Item arredondado */
+  border-radius: 4px;
   background: transparent;
   color: #cbd5e1;
   text-align: left;
@@ -2269,7 +2244,7 @@ const screenToSVG = (screenX, screenY) => {
   gap: 12px;
   font-size: 13px;
   font-weight: 500;
-  border-bottom: none; /* Remove borda antiga */
+  border-bottom: none;
   font-family: "Segoe UI", sans-serif;
 }
 
@@ -2327,19 +2302,19 @@ const screenToSVG = (screenX, screenY) => {
 
 @media (max-width: 768px) {
   .app {
-    flex-direction: column; /* Vira coluna no celular */
+    flex-direction: column;
   }
 
   .editor-panel {
-    width: 100% !important; /* Força largura total */
-    height: 100% !important; /* Ocupa toda a altura do viewport quando aberto */
+    width: 100% !important;
+    height: 100% !important;
     border-bottom: none;
     position: relative;
-    z-index: 1200; /* Fica acima do canvas */
+    z-index: 1200;
   }
 
   .resizer-handle {
-    display: none !important; /* Esconde a barra de arraste */
+    display: none !important;
   }
 
   .collapsed-sidebar {
@@ -2368,7 +2343,6 @@ const screenToSVG = (screenX, screenY) => {
   height: 100%;
 }
 
-/* Estilos para seleção múltipla */
 :deep(.table-group.selected .table-rect) {
   stroke: #192747ff;
   stroke-width: 2.5;
@@ -2399,7 +2373,6 @@ const screenToSVG = (screenX, screenY) => {
   filter: drop-shadow(0 0 2px currentColor);
 }
 
-/* Bloqueio de seleção de texto no diagrama para evitar seleção acidental durante drag */
 :deep(.table-group text),
 :deep(.table-title),
 :deep(.col-text),
@@ -2412,40 +2385,35 @@ const screenToSVG = (screenX, screenY) => {
 }
 
 .global-resize-overlay {
-  position: fixed; /* Fixo na tela inteira */
+  position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  z-index: 9999; /* Fica acima de TUDO (Header, Editor, Canvas) */
-  cursor: col-resize; /* Mantém o cursor de arrastar */
-  background: transparent; /* Invisível */
-
-  /* Garante que o navegador priorize essa div */
+  z-index: 9999;
+  cursor: col-resize;
+  background: transparent;
   user-select: none;
   touch-action: none;
 }
 
 :deep(.find-widget) {
   right: auto !important;
-  left: 0 !important; /* Sua preferência de deixar na esquerda */
+  left: 0 !important;
   z-index: 100 !important;
 }
 
-/* 2. Autocomplete (Sugestões) - Nível Médio */
 :deep(.suggest-widget),
 :deep(.context-view) {
-  z-index: 5000 !important; /* Acima do Find, abaixo do Hover */
+  z-index: 5000 !important;
 }
 
-/* 3. Hover de Erro/Aviso - Nível DEUS (Sempre visível) */
 :deep(.monaco-hover) {
-  z-index: 9999 !important; /* Ninguém cobre o erro */
+  z-index: 9999 !important;
 }
 </style>
 
 <style>
-/* Overlay quando o canvas está vazio */
 .canvas-empty-overlay {
   position: absolute;
   inset: 0;
@@ -2453,7 +2421,7 @@ const screenToSVG = (screenX, screenY) => {
   align-items: center;
   justify-content: center;
   background: rgba(255,255,255,0.90);
-  pointer-events: auto; /* bloqueia interações no canvas */
+  pointer-events: auto;
 }
 .canvas-empty-content {
   text-align: center;
@@ -2478,19 +2446,16 @@ const screenToSVG = (screenX, screenY) => {
 
 .monaco-editor-hover,
 .monaco-hover {
-  z-index: 999999 !important; /* Prioridade Máxima */
+  z-index: 999999 !important;
 }
 
-/* 2. O Autocomplete (Sugestões) fica abaixo do Hover */
 .editor-widget.suggest-widget,
 .monaco-editor .suggest-widget {
-  z-index: 50000 !important; /* Alto, mas menor que o Hover */
+  z-index: 50000 !important; 
 }
 
-/* 3. O Widget de Busca */
 .monaco-editor .find-widget {
-  z-index: 60000 !important; /* Acima do suggest, abaixo do Hover */
-  right: auto !important;
+  z-index: 60000 !important; 
   left: 0 !important;
 }
 </style>
