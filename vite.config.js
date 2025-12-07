@@ -16,7 +16,8 @@ export default defineConfig({
         theme_color: '#1abc9c',
         background_color: '#0F172A',
         display: 'standalone',
-        start_url: '/gerador',
+        start_url: '/',
+        scope: '/',
         icons: [
           {
             src: '/web-app-manifest-192x192.png',
@@ -34,7 +35,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'],
-        globIgnores: ['**/index.html', '**/sobre.html', '**/faq.html', '**/gerador.html'],
+        globIgnores: ['**/index.html', '**/sobre.html', '**/faq.html'],
         navigateFallback: null,
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         runtimeCaching: [
