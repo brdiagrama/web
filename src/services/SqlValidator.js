@@ -21,6 +21,25 @@ export class SqlValidator {
         'SERIAL', 'JSON', 'JSONB', 'UUID', 'MONEY', 'BLOB'
     ]);
 
+    static removeComments(sql) {
+        let result = sql;
+        
+        // Remove comentários de linha (--) primeiro
+        result = result.replace(/--.*$/gm, '');
+        
+        // Remove comentários de bloco (/* ... */) completos
+        result = result.replace(/\/\*[\s\S]*?\*\//g, '');
+        
+        // Detecta comentário de bloco não fechado (/* sem */)
+        const unclosedCommentIndex = result.indexOf('/*');
+        if (unclosedCommentIndex !== -1) {
+            // Se encontrar /* sem fechar, remove tudo a partir dali
+            result = result.substring(0, unclosedCommentIndex);
+        }
+        
+        return result;
+    }
+
     static validate(sql) {
         const uniqueErrors = new Map();
         const errors = [];
@@ -43,6 +62,14 @@ export class SqlValidator {
 
         const lines = sql.split('\n');
 
+        // Remove comentários de forma robusta
+        const sqlWithoutComments = this.removeComments(sql).trim();
+
+        // Se após remover comentários não sobrou nada, retorna vazio (não é erro)
+        if (!sqlWithoutComments) {
+            return { isValid: true, tables: {}, errors: [], warnings: [] };
+        }
+
         const cleanSqlForCheck = sql.replace(/--.*$/gm, '');
         const missingSemicolonRegex = /\)\s*[\r\n]+\s*CREATE/gi;
         let match;
@@ -55,6 +82,12 @@ export class SqlValidator {
         }
 
         const statements = this.extractCreateStatements(sql);
+        
+        // Se não encontrou nenhum CREATE TABLE, retorna vazio (tudo está comentado)
+        if (statements.length === 0) {
+            return { isValid: true, tables: {}, errors: [], warnings: [] };
+        }
+
         let hasInternalErrors = false;
 
         statements.forEach(stmt => {
@@ -349,15 +382,18 @@ export class SqlValidator {
     }
 
     static extractCreateStatements(sql) {
+        // Remove comentários usando o método robusto
+        const cleanSql = this.removeComments(sql);
+        
         const statements = [];
         let depth = 0;
         let current = '';
         let inString = false;
         let stringChar = '';
 
-        for (let i = 0; i < sql.length; i++) {
-            const char = sql[i];
-            const prev = sql[i - 1];
+        for (let i = 0; i < cleanSql.length; i++) {
+            const char = cleanSql[i];
+            const prev = cleanSql[i - 1];
             if ((char === "'" || char === '"') && prev !== '\\') {
                 if (!inString) { inString = true; stringChar = char; }
                 else if (char === stringChar) { inString = false; }

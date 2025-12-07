@@ -2445,7 +2445,6 @@ const screenToSVG = (screenX, screenY) => {
   align-items: center;
   justify-content: center;
   background: rgba(255,255,255,0.90);
-  z-index: 1100;
   pointer-events: auto; /* bloqueia interações no canvas */
 }
 .canvas-empty-content {

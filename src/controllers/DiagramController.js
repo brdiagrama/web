@@ -52,11 +52,18 @@ export class DiagramController {
     } catch (error) {
       console.error('[DiagramController] Erro ao processar SQL:', error);
       
+      // Traduz mensagens de erro comuns
+      let errorMessage = error.message || 'Erro ao processar SQL';
+      
+      if (errorMessage.includes('Expected "*/" or any character but end of input found')) {
+        errorMessage = 'Comentário de bloco não foi fechado. Esperado "*/" mas encontrou fim do arquivo.';
+      }
+      
       return {
         success: false,
         errors: [{
           line: error.location?.start?.line || 1,
-          message: error.message || 'Erro ao processar SQL'
+          message: errorMessage
         }],
         warnings: [],
         data: null
