@@ -1279,7 +1279,7 @@ const exportDiagramPNG = async () => {
       const logoImg = new Image();
       logoImg.onload = () => {
         ctx.save();
-        const logoHeight = 20; 
+        const logoHeight = 50; 
         const logoWidth = (logoImg.width / logoImg.height) * logoHeight;
         const logoPadding = 20;
 
@@ -1434,6 +1434,19 @@ const exportDiagramSVG = () => {
     const connectorFlows = svgClone.querySelectorAll(".connector-flow");
     connectorFlows.forEach((el) => el.remove());
 
+    // IMPORTANTE: Preservar transforms dos ícones FK em herança ANTES de limpar estilos
+    const fkIconsTransforms = new Map();
+    svgClone.querySelectorAll(".fk-icon").forEach((icon) => {
+      const transform = icon.style.transform;
+      if (transform && transform.includes("translateX")) {
+        // Converte translateX(22px) para translate(22, 0)
+        const match = transform.match(/translateX\(([\d.]+)px\)/);
+        if (match) {
+          fkIconsTransforms.set(icon, `translate(${match[1]}, 0)`);
+        }
+      }
+    });
+
     const relationshipGroups = svgClone.querySelectorAll(".relationship-line");
     relationshipGroups.forEach((group) => {
       group.classList.remove("is-active", "hover", "active");
@@ -1547,6 +1560,11 @@ const exportDiagramSVG = () => {
       icon.setAttribute("fill", "#3b82f6");
       icon.setAttribute("font-size", "9");
       icon.setAttribute("font-weight", "bold");
+      
+      // Aplica o transform salvo anteriormente (caso de herança)
+      if (fkIconsTransforms.has(icon)) {
+        icon.setAttribute("transform", fkIconsTransforms.get(icon));
+      }
     });
 
     // Linhas de relacionamento

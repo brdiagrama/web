@@ -20,13 +20,13 @@ let deferredPrompt = null;
 onMounted(() => {
   // Verifica se já está instalado
   if (window.matchMedia('(display-mode: standalone)').matches) {
-    console.log('App já instalado');
+    //console.log('App já instalado');
     return;
   }
 
   // Escuta o evento
   window.addEventListener('beforeinstallprompt', (e) => {
-    console.log('✅ beforeinstallprompt disparou!');
+    //console.log('✅ beforeinstallprompt disparou!');
     e.preventDefault();
     deferredPrompt = e;
     showInstallPrompt.value = true;
@@ -38,22 +38,6 @@ onMounted(() => {
     deferredPrompt = null;
   });
 
-  // Debug: avisa se não disparar
-  setTimeout(() => {
-    if (!showInstallPrompt.value && !window.matchMedia('(display-mode: standalone)').matches) {
-      console.warn('⚠️ beforeinstallprompt não disparou. Possíveis motivos:');
-      console.warn('1. App já foi instalado antes');
-      console.warn('2. Usuário rejeitou 3 vezes');
-      console.warn('3. Chrome decidiu não mostrar');
-      console.warn('4. Critérios PWA não atendidos');
-      console.warn('');
-      console.warn('Para testar novamente:');
-      console.warn('1. Desinstale o app');
-      console.warn('2. chrome://flags/#bypass-app-banner-engagement-checks → Enabled');
-      console.warn('3. Limpe cookies e cache');
-      console.warn('4. Recarregue a página');
-    }
-  }, 3000);
 });
 
 const installApp = async () => {
