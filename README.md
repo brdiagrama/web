@@ -172,10 +172,6 @@ O sistema oferece três formatos de exportação:
 - **PNG**: Gera imagem do diagrama atual
 - **SVG**: Exporta vetor escalável do canvas
 
-## Contribuição
-
-Contribuições são bem-vindas. Para mudanças significativas, abra uma issue primeiro para discutir o que você gostaria de modificar.
-
 ## Licença
 
 ISC
