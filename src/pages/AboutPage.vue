@@ -27,7 +27,6 @@ const isMounted = ref(false);
 
 onMounted(() => {
   // Aguarda renderização completa antes de iniciar animações
-  requestAnimationFrame(() => {
     setTimeout(() => {
       isMounted.value = true;
     }, 10);
@@ -169,7 +168,6 @@ onMounted(() => {
         }, '-=0.2');
     }
   });
-  }); // Fecha requestAnimationFrame
 });
 
 const technologies = [

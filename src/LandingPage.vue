@@ -138,8 +138,6 @@ onBeforeUnmount(() => {
 });
 
 onMounted(() => {
-  // Espera o DOM ficar pronto antes de rodar as animações
-  requestAnimationFrame(() => {
     // Marcar o primeiro vídeo como carregado (YouTube)
     if (contents[activeTab.value].youtubeId) {
       setTimeout(() => {
@@ -285,7 +283,6 @@ onMounted(() => {
         };
       },
     });
-  }); // requestAnimationFrame
 });
 </script>
 

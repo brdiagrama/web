@@ -12,8 +12,6 @@ const isMounted = ref(false);
 const openIndex = ref(null);
 
 onMounted(() => {
-  // Aguarda renderização completa antes de iniciar animações
-  requestAnimationFrame(() => {
     setTimeout(() => {
       isMounted.value = true;
     }, 10);
@@ -79,7 +77,6 @@ onMounted(() => {
     duration: 0.7,
     ease: 'power2.out'
   });
-  }); // Fecha requestAnimationFrame
 });
 
 const toggleFaq = (index) => {
