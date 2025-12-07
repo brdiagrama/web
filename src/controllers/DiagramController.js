@@ -52,20 +52,31 @@ export class DiagramController {
     } catch (error) {
       console.error('[DiagramController] Erro ao processar SQL:', error);
       
-      // Traduz mensagens de erro comuns
       let errorMessage = error.message || 'Erro ao processar SQL';
+      let isWarning = false;
       
+      // Traduz e classifica erros comuns do parser
       if (errorMessage.includes('Expected "*/" or any character but end of input found')) {
         errorMessage = 'Comentário de bloco não foi fechado. Esperado "*/" mas encontrou fim do arquivo.';
+        isWarning = true;
+      } 
+      // Erros de sintaxe do parser (Expected...) são warnings, não críticos
+      else if (errorMessage.startsWith('Expected ')) {
+        // Mantém a mensagem original do parser para erros de sintaxe
+        isWarning = true;
       }
       
       return {
         success: false,
-        errors: [{
+        errors: isWarning ? [] : [{
           line: error.location?.start?.line || 1,
           message: errorMessage
         }],
-        warnings: [],
+        warnings: isWarning ? [{
+          line: error.location?.start?.line || 1,
+          message: errorMessage,
+          type: 'warning'
+        }] : [],
         data: null
       };
     }

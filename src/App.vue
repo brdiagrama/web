@@ -17,16 +17,26 @@
           </div>
 
           <nav class="header-actions" aria-label="Ações do gerador">
+            <!-- Badge de Erros (Vermelho) -->
             <button
-              v-if="errorCount > 0 || warningCount > 0"
-              class="problems-badge"
-              :class="{ 'has-errors': errorCount > 0, 'has-warnings': errorCount === 0 }"
+              v-if="errorCount > 0"
+              class="problems-badge has-errors"
               @click="toggleProblemsPanel"
-              :title="`${errorCount} erro(s), ${warningCount} aviso(s)`"
+              :title="`${errorCount} erro(s)`"
             >
-              <XCircle v-if="errorCount > 0" :size="14" class="badge-icon error-icon" />
-              <AlertTriangle v-else :size="14" class="badge-icon warning-icon" />
-              <span class="badge-count">{{ errorCount + warningCount }}</span>
+              <XCircle :size="14" class="badge-icon error-icon" />
+              <span class="badge-count">{{ errorCount }}</span>
+            </button>
+
+            <!-- Badge de Warnings (Amarelo) -->
+            <button
+              v-if="warningCount > 0"
+              class="problems-badge has-warnings"
+              @click="toggleProblemsPanel"
+              :title="`${warningCount} aviso(s)`"
+            >
+              <AlertTriangle :size="14" class="badge-icon warning-icon" />
+              <span class="badge-count">{{ warningCount }}</span>
             </button>
 
             <button class="icon-btn" @click="newProject" title="Novo Projeto / Limpar">
@@ -485,7 +495,6 @@
     </button>
 
     <AlertModal ref="alertModalRef" />
-    <ExportConfirmModal ref="exportModalRef" />
     <Toast ref="toastRef" />
 
     <ProblemsPanel
@@ -498,7 +507,6 @@
 
     <div v-if="isResizing" class="global-resize-overlay"></div>
   </div>
-    <popUp ref="popUpRef" />
 </template>
 
 <script setup>
@@ -519,14 +527,14 @@ import { setToastRef, toastSuccess, toastError } from "@/services/toastService.j
 import {
   Key,
   Link,
-  Eraser, // Para Limpar
-  Upload, // Para Importar
-  Download, // Para Exportar
-  ChevronLeft, // Para Fechar Editor
-  ChevronRight, // Para Abrir Editor
-  FileCode, // Icone SQL
-  Image as ImageIcon, // Icone PNG
-  Code2, // Icone SVG
+  Eraser,
+  Upload,
+  Download,
+  ChevronLeft,
+  ChevronRight,
+  FileCode,
+  Image as ImageIcon,
+  Code2,
 } from "lucide-vue-next";
 import logoBrDiagrama from "@/assets/images/logo/logo-completa.svg";
 
