@@ -26,12 +26,14 @@ gsap.registerPlugin(ScrollTrigger);
 const isMounted = ref(false);
 
 onMounted(() => {
-  setTimeout(() => {
-    isMounted.value = true;
-  }, 10);
+  // Aguarda renderização completa antes de iniciar animações
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      isMounted.value = true;
+    }, 10);
 
-  // Animações GSAP leves e modernas
-  const tl = gsap.timeline({ delay: 0.2 });
+    // Animações GSAP leves e modernas
+    const tl = gsap.timeline({ delay: 0.2 });
 
   // Hero: fade + slide suave
   tl.from('.hero-about h1', {
@@ -167,6 +169,7 @@ onMounted(() => {
         }, '-=0.2');
     }
   });
+  }); // Fecha requestAnimationFrame
 });
 
 const technologies = [

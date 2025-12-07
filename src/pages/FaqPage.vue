@@ -12,12 +12,14 @@ const isMounted = ref(false);
 const openIndex = ref(null);
 
 onMounted(() => {
-  setTimeout(() => {
-    isMounted.value = true;
-  }, 10);
+  // Aguarda renderização completa antes de iniciar animações
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      isMounted.value = true;
+    }, 10);
 
-  // Animações GSAP leves e modernas
-  const tl = gsap.timeline({ delay: 0.2 });
+    // Animações GSAP leves e modernas
+    const tl = gsap.timeline({ delay: 0.2 });
 
   // Hero: fade + slide suave
   tl.from('.hero-faq h1', {
@@ -78,6 +80,7 @@ onMounted(() => {
     duration: 0.7,
     ease: 'power2.out'
   });
+  }); // Fecha requestAnimationFrame
 });
 
 const toggleFaq = (index) => {

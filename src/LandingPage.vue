@@ -135,17 +135,19 @@ onBeforeUnmount(() => {
 });
 
 onMounted(() => {
-  // Inicia o carregamento do primeiro vídeo (YouTube)
-  if (contents[activeTab.value].youtubeId) {
-    setTimeout(() => {
-      videoLoading.value = false;
-    }, 800); // Tempo para o primeiro vídeo carregar
-  }
+  // Aguarda o DOM estar completamente renderizado antes de iniciar animações
+  requestAnimationFrame(() => {
+    // Inicia o carregamento do primeiro vídeo (YouTube)
+    if (contents[activeTab.value].youtubeId) {
+      setTimeout(() => {
+        videoLoading.value = false;
+      }, 800); // Tempo para o primeiro vídeo carregar
+    }
 
-  // Use ScrollTrigger.matchMedia para ativar animações pesadas apenas em telas maiores
-  // e manter uma versão leve / sem pin no mobile. Isso evita travamentos e bugs
-  // relacionados a 'pin' e transforms em dispositivos touch.
-  ScrollTrigger.matchMedia({
+    // Use ScrollTrigger.matchMedia para ativar animações pesadas apenas em telas maiores
+    // e manter uma versão leve / sem pin no mobile. Isso evita travamentos e bugs
+    // relacionados a 'pin' e transforms em dispositivos touch.
+    ScrollTrigger.matchMedia({
     // Desktops/tablets maiores: animações completas
     "(min-width: 769px)": function () {
       // 1. ANIMAÇÃO DE ENTRADA (HERO)
@@ -293,6 +295,7 @@ onMounted(() => {
       };
     },
   });
+  }); // Fecha requestAnimationFrame
 });
 </script>
 
