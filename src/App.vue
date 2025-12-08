@@ -1109,7 +1109,7 @@ const newProject = async () => {
 };
 
 
-const exportSql =  async () => {
+const exportSql =  () => {
   showExportDropdown.value = false;
   const content = sqlCode.value || "";
   const blob = new Blob([content], { type: "text/sql;charset=utf-8" });
@@ -1121,12 +1121,6 @@ const exportSql =  async () => {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
-  await downloadModalRef.value.showDownloadModal({
-    title: "Diagrama Exportado!",
-    subtitle: "O arquivo PNG foi salvo com sucesso!",
-    message: "Seu diagrama em formato SQL está disponível na pasta de downloads do seu navegador.",
-    openFolderText: "Abrir Pasta Downloads"
-  });
   toastSuccess("SQL exportado", "Arquivo SQL foi baixado com sucesso!");
 };
 
@@ -1345,16 +1339,11 @@ const exportDiagramPNG = async () => {
         "@/assets/images/logo/logo-completa.svg",
         import.meta.url
       ).href;
-      await downloadModalRef.value.showDownloadModal({
-          title: "Diagrama Exportado!",
-          subtitle: "O arquivo PNG foi salvo com sucesso!",
-          message: "Seu diagrama em formato PNG está disponível na pasta de downloads do seu navegador.",
-          openFolderText: "Abrir Pasta Downloads"
-          });
+    
     };
 
     img.onerror = (error) => {
-        alert("Erro ao gerar PNG. Verifique o console para mais detalhes.");
+        showError("Erro ao gerar PNG. Verifique o console para mais detalhes.");
       URL.revokeObjectURL(svgUrl);
     };
 
