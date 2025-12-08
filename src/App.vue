@@ -496,6 +496,7 @@
     </button>
 
     <AlertModal ref="alertModalRef" />
+    <DownloadModal ref="downloadModalRef" />
     <Toast ref="toastRef" />
 
     <ProblemsPanel
@@ -512,6 +513,7 @@
 
 <script setup>
 import AlertModal from "./components/AlertModal.vue";
+import DownloadModal from "./components/DownloadModal.vue";
 import { setAlertModalRef, showAlert, showError } from "@/services/alertService.js";
 import { ref, computed, onMounted, watch, nextTick, shallowRef } from "vue";
 import DiagramCanvas from "./components/DiagramCanvas.vue";
@@ -540,6 +542,9 @@ import {
 import logoBrDiagrama from "@/assets/images/logo/logo-completa.svg";
 
 const alertModalRef = ref(null);
+
+const downloadModalRef = ref(null);
+
 
 const toastRef = ref(null);
 
@@ -1104,7 +1109,7 @@ const newProject = async () => {
 };
 
 
-const exportSql = () => {
+const exportSql =  async () => {
   showExportDropdown.value = false;
   const content = sqlCode.value || "";
   const blob = new Blob([content], { type: "text/sql;charset=utf-8" });
@@ -1116,6 +1121,12 @@ const exportSql = () => {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+  await downloadModalRef.value.showDownloadModal({
+    title: "Diagrama Exportado!",
+    subtitle: "O arquivo PNG foi salvo com sucesso!",
+    message: "Seu diagrama em formato SQL está disponível na pasta de downloads do seu navegador.",
+    openFolderText: "Abrir Pasta Downloads"
+  });
   toastSuccess("SQL exportado", "Arquivo SQL foi baixado com sucesso!");
 };
 
@@ -1169,7 +1180,7 @@ const exportDiagramPNG = async () => {
     
     const svgElement = diagramCanvasRef.value?.svgRoot;
     if (!svgElement) {
-      alert("Erro: SVG não encontrado");
+      showError("Erro: SVG não encontrado");
       return;
     }
 
@@ -1253,7 +1264,7 @@ const exportDiagramPNG = async () => {
 
     // Cria imagem a partir do SVG
     const img = new Image();
-    img.onload = () => {
+    img.onload =  async () => {
       // Cria canvas para conversão
       const canvas = document.createElement("canvas");
 
@@ -1334,6 +1345,12 @@ const exportDiagramPNG = async () => {
         "@/assets/images/logo/logo-completa.svg",
         import.meta.url
       ).href;
+      await downloadModalRef.value.showDownloadModal({
+          title: "Diagrama Exportado!",
+          subtitle: "O arquivo PNG foi salvo com sucesso!",
+          message: "Seu diagrama em formato PNG está disponível na pasta de downloads do seu navegador.",
+          openFolderText: "Abrir Pasta Downloads"
+          });
     };
 
     img.onerror = (error) => {
@@ -1343,24 +1360,24 @@ const exportDiagramPNG = async () => {
 
     img.src = svgUrl;
   } catch (error) {
-      alert("Erro ao exportar PNG: " + (error?.message || "Erro desconhecido"));
+      showError("Erro ao exportar PNG: " + (error?.message || "Erro desconhecido"));
   }
 };
 
-const exportDiagramSVG = () => {
+const exportDiagramSVG =  async () => {
   showExportDropdown.value = false;
 
   try {
     // Verifica se há tabelas
     if (!tables.value || Object.keys(tables.value).length === 0) {
-      alert("Não há tabelas para exportar");
+      showError("Não há tabelas para exportar");
       return;
     }
 
     // Acessa o SVG através da ref do componente
     const svgElement = diagramCanvasRef.value?.svgRoot;
     if (!svgElement) {
-      alert("Erro: SVG não encontrado");
+      showError("Erro: SVG não encontrado");
       return;
     }
 
@@ -1595,8 +1612,14 @@ const exportDiagramSVG = () => {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+    await downloadModalRef.value.showDownloadModal({
+    title: "Diagrama Exportado!",
+    subtitle: "O arquivo SVG foi salvo com sucesso!",
+    message: "Seu diagrama em formato SVG está disponível na pasta de downloads do seu navegador.",
+    openFolderText: "Abrir Pasta Downloads"
+  });
   } catch (error) {
-  alert("Erro ao exportar SVG: " + error.message);
+  showError("Erro ao exportar SVG: " + error.message);
   }
 };
 
