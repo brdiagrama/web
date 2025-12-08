@@ -1162,7 +1162,7 @@ const exportDiagramPNG = async () => {
 
   try {
     if (!tables.value || Object.keys(tables.value).length === 0) {
-      alert("Não há tabelas para exportar");
+      showError("Não há tabelas para exportar");
       return;
     }
 
