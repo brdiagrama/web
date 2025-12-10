@@ -4,13 +4,19 @@
       <div v-if="isVisible" class="alert-overlay" @click="handleBackdropClick">
         <Transition name="modal-scale">
           <div v-if="isVisible" class="alert-card" :class="`alert-${type}`">
-            <!-- Body com ícone integrado -->
-            <div class="alert-body">
-              <div class="alert-icon-wrapper">
-                <component :is="getIcon()" :size="32" class="alert-icon" />
+            <div class="alert-content">
+              <!-- Ícone à esquerda -->
+              <div class="alert-icon-side">
+                <div class="alert-icon-wrapper">
+                  <component :is="getIcon()" :size="28" class="alert-icon" />
+                </div>
               </div>
-              <h2 class="alert-title">{{ title }}</h2>
-              <p class="alert-message">{{ message }}</p>
+
+              <!-- Texto à direita -->
+              <div class="alert-text-side">
+                <h2 class="alert-title">{{ title }}</h2>
+                <p class="alert-message">{{ message }}</p>
+              </div>
             </div>
 
             <!-- Footer -->
@@ -18,7 +24,11 @@
               <button class="btn btn-secondary" @click="cancel" v-if="hasCancel">
                 Cancelar
               </button>
-              <button class="btn btn-primary" @click="confirm">
+              <button 
+                class="btn" 
+                :class="type === 'error' ? 'btn-danger' : 'btn-primary'" 
+                @click="confirm"
+              >
                 {{ buttonText }}
               </button>
             </div>
@@ -111,12 +121,12 @@ defineExpose({ showAlert });
 
 /* Transições do Card (Scale + Bounce) */
 .modal-scale-enter-active {
-  transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), 
+  transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1),
               opacity 400ms ease;
 }
 
 .modal-scale-leave-active {
-  transition: transform 200ms ease-out, 
+  transition: transform 200ms ease-out,
               opacity 200ms ease-out;
 }
 
@@ -150,28 +160,35 @@ defineExpose({ showAlert });
 
 .alert-card {
   background: #1e293b;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
               0 0 0 1px rgba(255, 255, 255, 0.05);
-  max-width: 420px;
+  max-width: 480px;
   width: 100%;
   overflow: hidden;
   position: relative;
 }
 
-.alert-body {
-  padding: 2rem 1.5rem 1.5rem 1.5rem;
-  text-align: center;
+.alert-content {
+  display: flex;
+  padding: 1.5rem;
+  gap: 1.25rem;
+  align-items: flex-start;
 }
 
 .alert-icon-wrapper {
-  width: 64px;
-  height: 64px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 1rem auto;
+  flex-shrink: 0;
+}
+
+.alert-text-side {
+  flex: 1;
+  padding-top: 0.125rem;
 }
 
 .alert-success .alert-icon-wrapper {
@@ -207,11 +224,12 @@ defineExpose({ showAlert });
 }
 
 .alert-title {
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 1.125rem;
+  font-weight: 600;
   color: #e2e8f0;
   margin: 0 0 0.5rem 0;
-  line-height: 1.3;
+  line-height: 1.4;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .alert-message {
@@ -219,6 +237,7 @@ defineExpose({ showAlert });
   line-height: 1.6;
   font-size: 0.9375rem;
   margin: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .alert-footer {
@@ -231,64 +250,74 @@ defineExpose({ showAlert });
 }
 
 .btn {
-  padding: 0.625rem 1.25rem;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.9375rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.9rem;
   border: none;
   cursor: pointer;
   transition: all 0.2s;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .btn-primary {
   background: #1abc9c;
   color: #0f172a;
-  box-shadow: 0 0 20px rgba(26, 188, 156, 0.3);
 }
 
 .btn-primary:hover {
   background: #31e0bd;
-  transform: translateY(-2px);
-  box-shadow: 0 0 30px rgba(26, 188, 156, 0.5);
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.05);
-  color: #e2e8f0;
+  background: transparent;
+  color: #94a3b8;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
 }
 
 .btn-danger {
   background: #ef4444;
   color: white;
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
 }
 
 .btn-danger:hover {
   background: #dc2626;
-  transform: translateY(-2px);
 }
 
 /* Mobile responsivo */
 @media (max-width: 768px) {
   .alert-card {
     max-width: 100%;
+    margin: 1rem;
+  }
+
+  .alert-content {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1rem;
+  }
+  
+  .alert-text-side {
+    padding-top: 0;
   }
 
   .alert-footer {
-    flex-direction: column;
+    flex-direction: column-reverse; /* Botão principal em cima no mobile */
   }
 
   .btn {
     width: 100%;
     justify-content: center;
+    padding: 0.75rem;
   }
 }
 </style>
