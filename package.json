@@ -4,10 +4,11 @@
   "description": "Gerador de Diagramas de Banco de Dados",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "start": "echo 'Projeto pronto para deploy na Vercel'"
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "start": "node .output/server/index.mjs"
   },
   "keywords": [
     "sql",
@@ -24,14 +25,14 @@
     "html2canvas": "^1.4.1",
     "lucide-vue-next": "^0.554.0",
     "node-sql-parser": "^5.3.13",
-    "pinia": "^2.1.7",
     "svg-pan-zoom": "^3.6.2",
     "vue": "^3.3.8"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^4.5.0",
-    "vite": "^5.0.0",
-    "vite-plugin-pwa": "^1.2.0",
+    "@pinia/nuxt": "^1.0.1",
+    "@vite-pwa/nuxt": "^1.1.1",
+    "nuxt": "^4.5.2",
+    "pinia": "^4.0.2",
     "workbox-window": "^7.4.0"
   }
 }

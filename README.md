@@ -80,7 +80,9 @@ src/
 │   ├── ProblemsPanel.vue        # Painel de erros e avisos
 │   ├── AlertModal.vue           # Modais de confirmação
 │   ├── Toast.vue                # Sistema de notificações
-│   ├── AppFooter.vue            # Rodapé da aplicação
+│   ├── layout/
+│   │   ├── Header.vue           # Cabeçalho da aplicação
+│   │   └── Footer.vue           # Rodapé da aplicação
 │   └── InstallButton.vue        # Botão de instalação PWA
 │
 ├── controllers/         # Lógica de controle

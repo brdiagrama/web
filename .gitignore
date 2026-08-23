@@ -24,3 +24,8 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Nuxt build output
+.nuxt/
+.output/
+dist/
