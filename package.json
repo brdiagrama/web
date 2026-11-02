@@ -22,15 +22,17 @@
     "@guolao/vue-monaco-editor": "^1.6.0",
     "gsap": "^3.13.0",
     "html2canvas": "^1.4.1",
-    "lucide-vue-next": "^0.554.0",
+    "lucide-vue-next": "^1.0.0",
     "node-sql-parser": "^5.3.13",
-    "svg-pan-zoom": "^3.6.2"
+    "svg-pan-zoom": "^3.6.2",
+    "vuetify": "^4.3.1",
+    "vuetify-nuxt-module": "^1.0.0-rc.6"
   },
   "devDependencies": {
-    "@pinia/nuxt": "^1.0.1",
+    "@pinia/nuxt": "^1.0.3",
     "@vite-pwa/nuxt": "^1.1.1",
     "nuxt": "^4.5.2",
-    "pinia": "^4.0.2",
+    "pinia": "^4.1.0",
     "workbox-window": "^7.4.0"
   }
 }

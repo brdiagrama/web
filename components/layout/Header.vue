@@ -1,162 +1,159 @@
-<script setup>
-import { ref, onMounted } from "vue";
+<script setup lang="ts">
+import { ref, onMounted, onBeforeUnmount } from "vue";
+import { Sun, Moon, ArrowRight } from "lucide-vue-next";
+import { useTheme } from "~/composables/useTheme";
 
-const props = defineProps({
+defineProps({
   activePage: {
     type: String,
-    default: "", // 'sobre', 'faq', ou vazio para home
+    default: "",
   },
 });
 
-const hasScrolled = ref(false);
+const { isDark, toggleTheme } = useTheme();
+const isHidden = ref(false);
+let lastScrollY = 0;
+
+const handleScroll = () => {
+  const currentScrollY = window.scrollY;
+
+  if (currentScrollY <= 15) {
+    isHidden.value = false;
+  } else if (currentScrollY > lastScrollY + 6 && currentScrollY > 50) {
+    isHidden.value = true;
+  } else if (currentScrollY < lastScrollY - 6) {
+    isHidden.value = false;
+  }
+
+  lastScrollY = currentScrollY;
+};
 
 onMounted(() => {
-  const handleScroll = () => {
-    hasScrolled.value = window.scrollY > 50;
-  };
-  window.addEventListener("scroll", handleScroll);
+  lastScrollY = window.scrollY;
+  window.addEventListener("scroll", handleScroll, { passive: true });
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("scroll", handleScroll);
 });
 </script>
 
 <template>
   <header
-    class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 py-4 transition-all duration-500"
-    :class="{ 'header-scrolled': hasScrolled }"
+    class="site-header fixed top-0 left-0 w-full z-50"
+    :class="{ 'header-hidden': isHidden }"
     role="banner"
   >
-    <a href="/" class="flex items-center gap-2" aria-label="BrDiagrama - Página Inicial">
-      <img
-        src="~/assets/images/logo/logo-completa.svg"
-        alt="BrDiagrama - Transforme SQL em Diagramas ER"
-        class="logo-img transition-all"
-        width="auto"
-        height="48"
-      />
-    </a>
-    <nav class="flex gap-4 md:gap-6 items-center" role="navigation" aria-label="Menu principal">
-      <a
-        href="/sobre"
-        class="nav-link text-sm font-medium hover:text-[var(--clr-primary)] transition-colors"
-        :class="{ active: activePage === 'sobre' }"
-        :aria-current="activePage === 'sobre' ? 'page' : undefined"
-        >Sobre</a
-      >
-      <a
-        href="/faq"
-        class="nav-link text-sm font-medium hover:text-[var(--clr-primary)] transition-colors"
-        :class="{ active: activePage === 'faq' }"
-        :aria-current="activePage === 'faq' ? 'page' : undefined"
-        >FAQ</a
-      >
-      <a href="/gerador" class="cta-button-small" aria-label="Acessar gerador de diagramas"
-        >Acessar Gerador</a
-      >
-    </nav>
+    <div class="max-w-[1380px] mx-auto px-3 sm:px-6 md:px-10 h-14 md:h-[72px] flex items-center justify-between">
+      <div class="flex items-center gap-2 sm:gap-4 md:gap-10">
+        <NuxtLink to="/" class="flex items-center shrink-0" aria-label="BrDiagrama - Página Inicial">
+          <img
+            src="~/assets/images/logo/logo-completa.svg"
+            alt="BrDiagrama - Transforme SQL em Diagramas ER"
+            class="logo-img"
+            width="auto"
+            height="36"
+          />
+        </NuxtLink>
+
+        <nav class="flex items-center gap-0.5 sm:gap-1 md:gap-2" role="navigation" aria-label="Menu principal">
+          <NuxtLink
+            to="/sobre"
+            class="nav-link px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm md:text-[15px] font-medium"
+            :class="{ active: activePage === 'sobre' }"
+            :aria-current="activePage === 'sobre' ? 'page' : undefined"
+          >
+            Sobre
+          </NuxtLink>
+          <NuxtLink
+            to="/faq"
+            class="nav-link px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm md:text-[15px] font-medium"
+            :class="{ active: activePage === 'faq' }"
+            :aria-current="activePage === 'faq' ? 'page' : undefined"
+          >
+            FAQ
+          </NuxtLink>
+        </nav>
+      </div>
+
+      <div class="flex items-center gap-1 sm:gap-2 md:gap-3">
+        <v-tooltip :text="isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'" location="bottom">
+          <template #activator="{ props: tooltipProps }">
+            <v-btn
+              v-bind="tooltipProps"
+              icon
+              variant="text"
+              size="small"
+              :aria-label="isDark ? 'Ativar modo claro' : 'Ativar modo escuro'"
+              @click="(e: MouseEvent) => toggleTheme(e)"
+            >
+              <Sun v-if="isDark" :size="18" class="text-[var(--clr-text-muted)] hover:text-[var(--clr-text)] transition-colors" />
+              <Moon v-else :size="18" class="text-[var(--clr-text-muted)] hover:text-[var(--clr-text)] transition-colors" />
+            </v-btn>
+          </template>
+        </v-tooltip>
+
+        <v-btn
+          to="/gerador"
+          color="primary"
+          rounded="pill"
+          height="34"
+          elevation="0"
+          class="rounded-full header-cta-btn font-semibold font-weight-semibold text-none px-3 sm:px-5 text-xs sm:text-sm tracking-normal md:h-[38px]"
+          aria-label="Acessar gerador de diagramas"
+        >
+          <span><span class="hidden sm:inline">Acessar </span>Gerador</span>
+          <template #append>
+            <ArrowRight :size="15" class="ml-0.5 sm:ml-1" />
+          </template>
+        </v-btn>
+      </div>
+    </div>
   </header>
 </template>
 
 <style scoped>
-.header-scrolled {
-  background-color: rgba(15, 23, 42, 0.95);
-  animation: border-neutral-flash 0.8s ease-out forwards;
+.site-header {
+  background-color: var(--clr-hero-stage);
+  transform: translateY(0);
+  transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes border-neutral-flash {
-  0% {
-    border-bottom: 1px solid transparent;
-  }
-  40% {
-    border-bottom: 1px solid rgba(148, 163, 184, 0.4);
-  }
-  100% {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  }
+.header-hidden {
+  transform: translateY(-100%);
+}
+
+.header-cta-btn,
+.header-cta-btn :deep(.v-btn__content),
+.header-cta-btn span {
+  border-radius: 9999px !important;
+  font-weight: 600 !important;
 }
 
 .logo-img {
-  height: 40px;
+  height: 28px;
+  width: auto;
 }
 
 @media (min-width: 768px) {
   .logo-img {
-    height: 48px;
+    height: 38px;
   }
 }
 
 .nav-link {
-  color: #94a3b8;
+  color: var(--clr-text-muted);
   text-decoration: none;
-  transition: color 0.2s ease;
+  transition: color 0.2s ease, background-color 0.2s ease;
 }
 
 .nav-link:hover {
-  color: #ffffff;
+  color: var(--clr-text);
+  background-color: var(--clr-border);
 }
 
 .nav-link.active {
-  color: #ffffff;
-}
-
-.cta-button-small {
-  background-color: #1abc9c;
-  color: #0f172a;
-  font-weight: 700;
-  padding: 8px 20px;
-  border-radius: 9999px;
-  transition: all 0.3s ease;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 0 20px rgba(26, 188, 156, 0.4);
-  position: relative;
-  overflow: hidden;
-  font-size: 0.875rem;
-}
-
-.cta-button-small:hover {
-  background-color: #31e0bd;
-  transform: translateY(-2px);
-  box-shadow: 0 0 30px rgba(26, 188, 156, 0.6);
-}
-
-.cta-button-small::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
-  transform: skewX(-20deg);
-  transition: none;
-}
-
-.cta-button-small:hover::after {
-  left: 200%;
-  transition: left 0.6s ease-in-out;
-}
-
-@media (max-width: 768px) {
-  header {
-    padding: 12px 16px;
-  }
-
-  .logo-img {
-    height: 32px;
-  }
-
-  nav {
-    gap: 0.5rem;
-  }
-
-  .nav-link {
-    font-size: 0.75rem;
-  }
-
-  .cta-button-small {
-    padding: 6px 12px;
-    font-size: 0.6875rem;
-  }
+  color: var(--clr-text);
+  font-weight: 600;
 }
 </style>

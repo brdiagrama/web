@@ -5,17 +5,58 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-04-03',
   devtools: { enabled: true },
   modules: [
+    'vuetify-nuxt-module',
     '@pinia/nuxt',
     '@vite-pwa/nuxt'
+  ],
+  vuetify: {
+    moduleOptions: {
+      prefixComposables: ['useLayout']
+    },
+    vuetifyOptions: {
+      theme: {
+        defaultTheme: 'dark',
+        themes: {
+          dark: {
+            dark: true,
+            colors: {
+              primary: '#1ABA9C',
+              background: '#0F0F0F',
+              surface: '#1F1F1F',
+              'surface-variant': '#2A2A2A',
+              'on-background': '#F0F0F0',
+              'on-surface': '#F0F0F0',
+              'on-primary': '#0F0F0F',
+            }
+          },
+          light: {
+            dark: false,
+            colors: {
+              primary: '#1ABA9C',
+              background: '#ffffff',
+              surface: '#f0f4f9',
+              'surface-variant': '#e9eef6',
+              'on-background': '#1f1f1f',
+              'on-surface': '#1f1f1f',
+              'on-primary': '#0F0F0F',
+            }
+          }
+        }
+      }
+    }
+  },
+  css: [
+    '~/assets/styles/global.css'
   ],
   app: {
     head: {
       link: [
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap' }
+        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@8..144,100..1000&family=Fira+Code:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap' }
       ],
       script: [
+        { innerHTML: "(function(){try{var t=localStorage.getItem('brdiagrama-theme');var prefersDark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||(!t&&prefersDark)){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}}catch(e){}})();", type: 'text/javascript' },
         { src: 'https://cdn.tailwindcss.com' }
       ]
     }

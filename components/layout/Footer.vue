@@ -14,7 +14,6 @@ const currentYear = new Date().getFullYear();
 <template>
   <footer class="app-footer" :class="{ animated: animated }">
     <div class="footer-content">
-      <!-- Logo grande -->
       <div class="footer-logo">
         <img 
           src="~/assets/images/logo/logo-completa.svg" 
@@ -23,7 +22,6 @@ const currentYear = new Date().getFullYear();
         />
       </div>
 
-      <!-- Texto e informações -->
       <div class="footer-info">
         <p class="copyright">
           © {{ currentYear }} BrDiagrama. Todos os direitos reservados.
@@ -32,37 +30,42 @@ const currentYear = new Date().getFullYear();
           Feito com <Heart :size="16" class="heart-icon" fill="currentColor" /> no Brasil
         </p>
         
-        <!-- Botão GitHub Star -->
-        <a 
+        <v-btn 
           href="https://github.com/brdiagrama/web" 
           target="_blank" 
           rel="noopener noreferrer"
-          class="github-button"
-          title="Star us on GitHub"
+          variant="outlined"
+          rounded="lg"
+          size="small"
+          class="font-weight-bold text-none mt-2"
+          aria-label="Dar estrela no repositório do GitHub da BrDiagrama"
         >
-          <Github :size="20" />
-          <span>Star on GitHub</span>
-          <svg class="star-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8 .25a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L8 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L.818 6.374a.75.75 0 01.416-1.28l4.21-.611L7.327.668A.75.75 0 018 .25z"/>
-          </svg>
-        </a>
+          <template #prepend>
+            <Github :size="18" />
+          </template>
+          Star on GitHub
+          <template #append>
+            <svg class="star-icon transition-transform duration-300 hover:rotate-72 hover:scale-125" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 .25a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L8 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L.818 6.374a.75.75 0 01.416-1.28l4.21-.611L7.327.668A.75.75 0 018 .25z"/>
+            </svg>
+          </template>
+        </v-btn>
       </div>
     </div>
 
-    <!-- Linha decorativa -->
     <div class="footer-line"></div>
   </footer>
 </template>
 
 <style scoped>
 .app-footer {
-  background: linear-gradient(180deg, rgba(15, 23, 42, 1) 0%, rgba(7, 11, 21, 0.95) 50%, #070b15 100%);
+  background: var(--clr-bg-card);
   backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(26, 188, 156, 0.1);
+  border-top: 1px solid var(--clr-border);
   padding: 4rem 2rem 2rem;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2);
 }
 
 .app-footer::before {
@@ -140,14 +143,14 @@ const currentYear = new Date().getFullYear();
 }
 
 .copyright {
-  color: #94a3b8;
+  color: var(--clr-text-muted);
   font-size: 0.9375rem;
   font-weight: 500;
   margin: 0;
 }
 
 .made-with-love {
-  color: #cbd5e1;
+  color: var(--clr-text);
   font-size: 1rem;
   font-weight: 600;
   margin: 0;
@@ -173,38 +176,6 @@ const currentYear = new Date().getFullYear();
   }
 }
 
-.github-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  color: #e2e8f0;
-  font-size: 0.875rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  margin-top: 0.5rem;
-}
-
-.github-button:hover {
-  background: rgba(26, 188, 156, 0.1);
-  border-color: #1abc9c;
-  color: #1abc9c;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(26, 188, 156, 0.2);
-}
-
-.github-button .star-icon {
-  transition: transform 0.3s ease;
-}
-
-.github-button:hover .star-icon {
-  transform: rotate(72deg) scale(1.2);
-}
-
 .footer-line {
   position: absolute;
   bottom: 0;
@@ -227,11 +198,6 @@ const currentYear = new Date().getFullYear();
   .copyright,
   .made-with-love {
     font-size: 0.875rem;
-  }
-
-  .github-button {
-    font-size: 0.8125rem;
-    padding: 0.5rem 1rem;
   }
 }
 </style>

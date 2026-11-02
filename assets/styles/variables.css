@@ -1,16 +1,45 @@
 :root {
-  /* Tema Claro (padrão) */
+  /* Tema Claro (Google Gemini M3 / Tailwind Zinc-Slate) */
+  --clr-bg: #ffffff;
+  --clr-bg-surface: #f0f4f9;
+  --clr-bg-card: #ffffff;
+  --clr-card-bg: rgba(240, 244, 249, 0.85);
+  --clr-border: rgba(0, 0, 0, 0.08);
+  --clr-text: #1f1f1f;
+  --clr-text-muted: #5e6368;
+  --clr-primary: #1ABA9C;
+  --clr-primary-hover: #169E85;
+  --clr-hero-stage: #ffffff;
+  --clr-depth-overlay: #dce3ec;
+  --clr-monitor-bezel: #f0f0f0;
+  --clr-monitor-camera: #8c97a8;
+
+  /* Diagram Canvas */
   --ref-color: #d3d3d3;
   --ref-highlight-color: #619bcc;
   --control-point-color: #000000;
   --control-point-stroke: #619bcc;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ref-color: #9b9ca4;
-    --ref-highlight-color: #3ea8de;
-    --control-point-color: #d7d7d9;
-    --control-point-stroke: #3ea8de;
-  }
+.dark {
+  /* Tema Escuro (Google Gemini - Exato) */
+  --clr-bg: #0F0F0F;             /* Fundo escuro principal */
+  --clr-bg-surface: #1F1F1F;     /* Sidebar / menus secundários / seções */
+  --clr-bg-card: #2A2A2A;        /* Cards elevados / inputs */
+  --clr-card-bg: rgba(31, 31, 31, 0.85);
+  --clr-border: rgba(255, 255, 255, 0.08);
+  --clr-text: #F0F0F0;
+  --clr-text-muted: #9AA0A6;
+  --clr-primary: #1ABA9C;
+  --clr-primary-hover: #169E85;
+  --clr-hero-stage: #1A1A1A;
+  --clr-depth-overlay: #080808;
+  --clr-monitor-bezel: #141414;
+  --clr-monitor-camera: #484a54;
+
+  /* Diagram Canvas Dark */
+  --ref-color: #9b9ca4;
+  --ref-highlight-color: #3ea8de;
+  --control-point-color: #d7d7d9;
+  --control-point-stroke: #3ea8de;
 }

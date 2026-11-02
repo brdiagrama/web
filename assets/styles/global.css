@@ -1,27 +1,167 @@
-/* --- TRAVA GLOBAL DE REDIMENSIONAMENTO --- */
-/* Essa classe é adicionada via JS no <body> quando começa a arrastar */
+@import "./variables.css";
+
+html,
+body,
+.v-application {
+  font-family: "Google Sans Flex", system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
+  background-color: var(--clr-bg);
+  color: var(--clr-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(140, 145, 155, 0.45) transparent;
+}
+
+::selection {
+  background-color: var(--clr-primary);
+  color: #0F0F0F;
+}
+
+:focus-visible {
+  outline: 2px solid var(--clr-primary);
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(140, 145, 155, 0.45);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--clr-primary);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+body, header, footer, section, nav, .glass-card, .monitor-top-bezel {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
 
 body.is-resizing-global {
-  /* Força o cursor de redimensionamento no SITE INTEIRO */
   cursor: col-resize !important;
-  
-  /* Impede seleção de texto em QUALQUER elemento */
   user-select: none !important;
   -webkit-user-select: none !important;
 }
 
-/* Garante que nada roube o evento do mouse (como iframes ou inputs) */
 body.is-resizing-global * {
   pointer-events: none !important;
 }
 
-/* A exceção: O nosso escudo invisível (se ele existir no DOM) precisa receber eventos */
-/* Mas como estamos ouvindo o window no JS, nem isso é estritamente necessário, 
-   mas o pointer-events: none no * resolve 99% dos bugs de arraste */
-
-/* Garante que o InstallButton seja visível */
-.install-btn {
-  z-index: 100 !important;
-  opacity: 1 !important;
-  visibility: visible !important;
+button,
+[role="button"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+  cursor: pointer;
 }
+
+button:disabled,
+[role="button"][aria-disabled="true"],
+input[type="button"]:disabled,
+input[type="submit"]:disabled,
+input[type="reset"]:disabled {
+  cursor: not-allowed;
+}
+
+.v-btn.bg-primary {
+  background-color: var(--clr-primary) !important;
+  color: #0F0F0F !important;
+}
+
+.v-btn.bg-primary .v-btn__overlay {
+  display: none !important;
+}
+
+.v-btn.bg-primary:hover .v-btn__overlay {
+  display: block !important;
+  opacity: 0.1 !important;
+  background-color: #000000 !important;
+}
+
+.v-btn.rounded-full,
+.v-btn[class*="rounded-pill"],
+.v-btn--rounded,
+#hero-cta {
+  border-radius: 9999px !important;
+}
+
+#hero-cta,
+#hero-cta .v-btn__content,
+#hero-cta span,
+.cta-button-final,
+.cta-button-final .v-btn__content,
+.cta-button-final span {
+  font-weight: 700 !important;
+}
+
+.header-cta-btn,
+.header-cta-btn .v-btn__content,
+.header-cta-btn span {
+  font-weight: 600 !important;
+}
+
+.v-tooltip .v-overlay__content {
+  font-family: "Google Sans Flex", system-ui, sans-serif !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  line-height: 1.25 !important;
+  padding: 6px 10px !important;
+  border-radius: 6px !important;
+  letter-spacing: 0.01em !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4) !important;
+  pointer-events: none;
+}
+
+html.dark .v-tooltip .v-overlay__content,
+.dark .v-tooltip .v-overlay__content {
+  background-color: #4e4e4e !important;
+  color: #FFFFFF !important;
+  border: none !important;
+}
+
+html:not(.dark) .v-tooltip .v-overlay__content {
+  background-color: #1F1F1F !important;
+  color: #FFFFFF !important;
+  border: none !important;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 9999;
+}
+
+html.is-theme-transitioning *,
+html.is-theme-transitioning *::before,
+html.is-theme-transitioning *::after {
+  transition: none !important;
+}
+
+
+
+
+
+
