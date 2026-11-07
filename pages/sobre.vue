@@ -5,15 +5,10 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Header from "~/components/layout/Header.vue";
 import Footer from "~/components/layout/Footer.vue";
 import {
-  Code2,
   Lightbulb,
   Users,
   Palette,
   Zap,
-  Cpu,
-  Database,
-  Rocket,
-  Cloud,
   Flag,
   Sparkles,
   Settings,
@@ -21,9 +16,9 @@ import {
 } from "lucide-vue-next";
 
 useHead({
-  title: 'Sobre o BrDiagrama - História, Equipe e Tecnologias | Ferramenta Brasileira de Diagramas ER',
+  title: 'Sobre o BrDiagrama - História e Equipe | Ferramenta Brasileira de Diagramas ER',
   meta: [
-    { name: 'description', content: 'Conheça a história do BrDiagrama: 3 estudantes de ADS da FMP criaram a ferramenta brasileira que transforma SQL em diagramas ER. Stack: Vue 3, Canvas API, Vite e Vercel.' }
+    { name: 'description', content: 'Conheça a história do BrDiagrama: 3 estudantes de ADS da FMP criaram a ferramenta brasileira que transforma SQL em diagramas ER de forma prática, rápida e gratuita.' }
   ]
 })
 
@@ -116,21 +111,6 @@ onMounted(() => {
         clearProps: 'opacity,y,transform'
       });
 
-      // Tech cards com stagger
-      gsap.from('.tech-card', {
-        scrollTrigger: {
-          trigger: '.tech-grid',
-          start: 'top 80%',
-          toggleActions: 'play none none reverse'
-        },
-        opacity: 0,
-        y: 40,
-        stagger: 0.12,
-        duration: 0.7,
-        ease: 'power2.out',
-        clearProps: 'opacity,y,transform'
-      });
-
       // CTA final
       gsap.from('.cta-final', {
         scrollTrigger: {
@@ -175,56 +155,6 @@ onMounted(() => {
     }
   });
 });
-
-const technologies = [
-  {
-    icon: Code2,
-    name: "Vue 3",
-    description:
-      "Framework progressivo para interfaces reativas e dinâmicas com Composition API.",
-    color: "#42b883",
-    features: ["Composition API", "Reatividade", "Virtual DOM"],
-  },
-  {
-    icon: Palette,
-    name: "Tailwind CSS",
-    description:
-      "Utility-first CSS framework para criação rápida de interfaces modernas.",
-    color: "#06b6d4",
-    features: ["Utility Classes", "Responsivo", "Customizável"],
-  },
-  {
-    icon: Cpu,
-    name: "Canvas API",
-    description:
-      "Renderização nativa de diagramas com performance otimizada no navegador.",
-    color: "#f59e0b",
-    features: ["Alta Performance", "Zoom", "Exportação"],
-  },
-  {
-    icon: Database,
-    name: "Custom SQL Parser",
-    description:
-      "Engine proprietário que analisa e interpreta comandos DDL SQL em tempo real.",
-    color: "#8b5cf6",
-    features: ["DDL Support", "Validação", "AST Generation"],
-  },
-  {
-    icon: Zap,
-    name: "Vite",
-    description:
-      "Build tool de próxima geração com HMR instantâneo e otimização automática.",
-    color: "#a855f7",
-    features: ["Hot Reload", "Tree Shaking", "Fast Build"],
-  },
-  {
-    icon: Cloud,
-    name: "Vercel",
-    description: "Plataforma de deploy serverless com CDN global e SSL automático.",
-    color: "#0ea5e9",
-    features: ["Edge Network", "Auto Deploy", "Analytics"],
-  },
-];
 </script>
 
 <template>
@@ -234,9 +164,9 @@ const technologies = [
     <section class="hero-about pt-32 pb-20 px-6" role="main" aria-labelledby="page-title">
       <div class="max-w-4xl mx-auto text-center">
         <h1 id="page-title" class="text-5xl md:text-6xl font-bold mb-6">
-          <span class="text-gradient">Sobre o BrDiagrama</span>
+          <span class="text-primary-title">Sobre o BrDiagrama</span>
         </h1>
-        <p class="text-xl text-gray-400 leading-relaxed">
+        <p class="hero-desc text-xl leading-relaxed">
           A ferramenta brasileira que transforma SQL em diagramas visuais de forma
           prática, rápida e gratuita.
         </p>
@@ -277,7 +207,7 @@ const technologies = [
       </div>
     </section>
 
-    <section class="identity-section py-20 px-6 bg-[#1e293b]/30" aria-labelledby="identity-title">
+    <section class="identity-section py-20 px-6" aria-labelledby="identity-title">
       <div class="max-w-6xl mx-auto">
         <h2 id="identity-title" class="section-title text-center mb-12">Por que BrDiagrama?</h2>
         <div class="identity-grid" role="list">
@@ -326,7 +256,7 @@ const technologies = [
           <Users :size="32" class="text-[var(--clr-primary)]" aria-hidden="true" />
           <h2 id="team-title" class="section-title text-center mb-0">Equipe de Desenvolvimento</h2>
         </div>
-        <p class="text-center text-gray-400 mb-12 max-w-2xl mx-auto">
+        <p class="section-desc text-center mb-12 max-w-2xl mx-auto">
           Três estudantes de ADS (Análise e Desenvolvimento de Sistemas) unidos pela
           paixão por criar soluções práticas e inovadoras.
         </p>
@@ -427,42 +357,23 @@ const technologies = [
       </div>
     </section>
 
-    <section class="tech-section py-20 px-6 bg-[#1e293b]/30" aria-labelledby="tech-title">
-      <div class="max-w-6xl mx-auto">
-        <div class="flex items-center justify-center gap-3 mb-4">
-          <Rocket :size="32" class="text-[var(--clr-primary)]" aria-hidden="true" />
-          <h2 id="tech-title" class="section-title text-center mb-0">Tecnologias Utilizadas</h2>
-        </div>
-        <p class="text-center text-gray-400 mb-12 max-w-2xl mx-auto">
-          Stack moderna e poderosa para criar a melhor experiência possível
-        </p>
-        <div class="tech-grid" role="list">
-          <div v-for="tech in technologies" :key="tech.name" class="tech-card" :style="{ '--tech-color': tech.color }">
-            <div class="tech-header">
-              <div class="tech-icon-circle">
-                <component :is="tech.icon" :size="28" />
-              </div>
-              <h3>{{ tech.name }}</h3>
-            </div>
-            <p class="tech-description">{{ tech.description }}</p>
-            <div class="tech-features">
-              <span v-for="feature in tech.features" :key="feature" class="feature-tag">{{
-                feature
-              }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <section class="cta-final py-20 px-6" aria-labelledby="cta-title">
       <div class="max-w-4xl mx-auto text-center">
         <h2 id="cta-title" class="text-4xl font-bold mb-6">Pronto para experimentar?</h2>
-        <p class="text-xl text-gray-400 mb-8">
+        <p class="text-xl mb-8">
           Transforme seu SQL em diagramas visuais em segundos. Gratuito e sem cadastro!
         </p>
-        <a href="/gerador" class="cta-button text-lg" role="button"
-          aria-label="Começar a usar o BrDiagrama agora">Começar Agora</a>
+        <v-btn
+          to="/gerador"
+          color="primary"
+          rounded="pill"
+          size="large"
+          elevation="0"
+          class="font-semibold text-none px-8 text-base"
+          aria-label="Começar a usar o BrDiagrama agora"
+        >
+          Começar Agora
+        </v-btn>
       </div>
     </section>
 
@@ -474,82 +385,47 @@ const technologies = [
 <style scoped>
 #about-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-  color: #e2e8f0;
+  background-color: var(--clr-bg);
+  color: var(--clr-text);
 }
 
-.header-scrolled {
-  background-color: rgba(15, 23, 42, 0.95);
-  animation: border-neutral-flash 0.8s ease-out forwards;
+.hero-desc,
+.section-desc {
+  color: var(--clr-text-muted);
 }
 
-@keyframes border-neutral-flash {
-  0% {
-    border-bottom: 1px solid transparent;
-  }
-
-  40% {
-    border-bottom: 1px solid rgba(148, 163, 184, 0.4);
-  }
-
-  100% {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  }
-}
-
-.text-gradient {
-  background: linear-gradient(to right, #1abc9c, #a5f3fc);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+.text-primary-title {
+  color: var(--clr-primary);
   font-weight: 800;
 }
 
 .section-title {
   font-size: 2rem;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--clr-text);
 }
 
 .story-card {
-  background: #1e293b;
+  background: var(--clr-bg-surface);
   border-radius: 24px;
   padding: 3rem;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: none;
   position: relative;
   overflow: hidden;
-}
-
-.story-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #1abc9c, #a5f3fc);
 }
 
 .story-icon {
   text-align: center;
   margin-bottom: 1.5rem;
-  color: #1abc9c;
+  color: var(--clr-primary);
   display: flex;
   justify-content: center;
-  filter: drop-shadow(0 0 20px rgba(26, 188, 156, 0.3));
-  transition: transform 0.3s ease, filter 0.3s ease;
-}
-
-.story-icon:hover {
-  transform: scale(1.05);
-  filter: drop-shadow(0 0 30px rgba(26, 188, 156, 0.5));
 }
 
 .story-content {
   font-size: 1.125rem;
   line-height: 1.8;
-  color: #94a3b8;
+  color: var(--clr-text-muted);
 }
 
 .story-content p {
@@ -561,22 +437,26 @@ const technologies = [
 }
 
 .story-content strong {
-  color: #e2e8f0;
+  color: var(--clr-text);
   font-weight: 600;
 }
 
 .story-content .highlight {
-  color: #1abc9c;
+  color: var(--clr-primary);
   font-weight: 600;
 }
 
 .story-content code {
   background: rgba(26, 188, 156, 0.1);
-  color: #1abc9c;
+  color: var(--clr-primary);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-family: "JetBrains Mono", monospace;
   font-size: 0.95em;
+}
+
+.identity-section {
+  background-color: transparent;
 }
 
 .identity-grid {
@@ -586,17 +466,15 @@ const technologies = [
 }
 
 .identity-card {
-  background: #1e293b;
+  background: var(--clr-bg-surface);
   border-radius: 16px;
   padding: 2rem;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  border: none;
+  transition: background-color 0.2s ease;
 }
 
 .identity-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 20px 40px rgba(26, 188, 156, 0.15);
-  border-color: rgba(26, 188, 156, 0.3);
+  background-color: var(--clr-hover);
 }
 
 .identity-icon-circle {
@@ -607,35 +485,29 @@ const technologies = [
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #1abc9c;
+  color: var(--clr-primary);
   margin-bottom: 1.5rem;
-  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
-}
-
-.identity-card:hover .identity-icon-circle {
-  transform: scale(1.15) rotate(8deg);
-  box-shadow: 0 8px 20px rgba(26, 188, 156, 0.25);
 }
 
 .identity-card h3 {
   font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 1rem;
-  color: #e2e8f0;
+  color: var(--clr-text);
 }
 
 .identity-card p {
-  color: #94a3b8;
+  color: var(--clr-text-muted);
   line-height: 1.7;
 }
 
 .identity-card strong {
-  color: #1abc9c;
+  color: var(--clr-text);
 }
 
 .identity-card code {
   background: rgba(26, 188, 156, 0.1);
-  color: #1abc9c;
+  color: var(--clr-primary);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-family: "JetBrains Mono", monospace;
@@ -649,18 +521,17 @@ const technologies = [
 }
 
 .team-card {
-  background: #1e293b;
+  background: var(--clr-bg-surface);
   border-radius: 20px;
   padding: 2rem;
   text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: none;
+  transition: background-color 0.2s ease;
   position: relative;
 }
 
 .team-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 20px 40px rgba(26, 188, 156, 0.1);
+  background-color: var(--clr-hover);
 }
 
 .linkedin-btn {
@@ -674,15 +545,13 @@ const technologies = [
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #1abc9c;
-  transition: all 0.3s ease;
+  color: var(--clr-primary);
+  transition: background-color 0.2s ease;
   z-index: 10;
 }
 
 .linkedin-btn:hover {
   background: rgba(26, 188, 156, 0.2);
-  border-color: #1abc9c;
-  transform: scale(1.1);
 }
 
 .team-avatar {
@@ -699,7 +568,7 @@ const technologies = [
   height: 140px;
   border-radius: 50%;
   object-fit: cover;
-  border: 4px solid rgba(26, 188, 156, 0.3);
+  border: 3px solid var(--clr-primary);
   position: absolute;
   top: 0;
   left: 0;
@@ -710,50 +579,49 @@ const technologies = [
   width: 140px;
   height: 140px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(26, 188, 156, 0.2), rgba(59, 130, 246, 0.2));
+  background: var(--clr-bg-surface);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 4.5rem;
-  border: 4px solid rgba(26, 188, 156, 0.3);
+  border: none;
   z-index: 1;
 }
 
 .team-name {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--clr-text);
   margin-bottom: 0.5rem;
 }
 
 .team-role {
-  color: #1abc9c;
+  color: var(--clr-primary);
   font-weight: 600;
   margin-bottom: 0;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .collaboration-card {
   margin-top: 4rem;
-  background: #1e293b;
+  background: var(--clr-bg-surface);
   border-radius: 20px;
   padding: 3rem;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  border: none;
 }
 
 .collaboration-title {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--clr-text);
   margin-bottom: 1.5rem;
   text-align: center;
 }
 
 .collaboration-text {
-  color: #94a3b8;
+  color: var(--clr-text-muted);
   line-height: 1.8;
   font-size: 1.0625rem;
   margin-bottom: 1.5rem;
@@ -764,7 +632,7 @@ const technologies = [
 }
 
 .collaboration-text strong {
-  color: #1abc9c;
+  color: var(--clr-text);
   font-weight: 600;
 }
 
@@ -777,172 +645,36 @@ const technologies = [
 }
 
 .highlight-item {
-  background: rgba(26, 188, 156, 0.1);
+  background: var(--clr-hover);
   padding: 0.75rem 1.25rem;
   border-radius: 12px;
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  border: 1px solid rgba(26, 188, 156, 0.2);
-  transition: all 0.3s ease;
-}
-
-.highlight-item:hover {
-  background: rgba(26, 188, 156, 0.15);
-  border-color: rgba(26, 188, 156, 0.4);
-  transform: translateY(-2px);
+  border: none;
+  transition: opacity 0.2s ease;
 }
 
 .highlight-icon {
-  color: #1abc9c;
+  color: var(--clr-primary);
   flex-shrink: 0;
 }
 
 .highlight-item span:last-child {
-  color: #e2e8f0;
+  color: var(--clr-text);
   font-weight: 600;
   font-size: 0.9375rem;
 }
 
-.tech-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 2rem;
+.cta-final h2 {
+  color: var(--clr-text);
 }
 
-.tech-card {
-  background: #1e293b;
-  border-radius: 16px;
-  padding: 2rem;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.tech-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background: var(--tech-color);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.tech-card:hover::before {
-  opacity: 1;
-}
-
-.tech-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 30px rgba(26, 188, 156, 0.1);
-  border-color: var(--tech-color);
-}
-
-.tech-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.tech-icon-circle {
-  width: 56px;
-  height: 56px;
-  border-radius: 12px;
-  background: rgba(26, 188, 156, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: transform 0.3s ease;
-  color: var(--tech-color);
-}
-
-.tech-card:hover .tech-icon-circle {
-  transform: scale(1.1);
-}
-
-.tech-header h3 {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #e2e8f0;
-  margin: 0;
-}
-
-.tech-description {
-  color: #94a3b8;
-  font-size: 0.9375rem;
-  line-height: 1.6;
-  margin-bottom: 1rem;
-}
-
-.tech-features {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.feature-tag {
-  background: rgba(255, 255, 255, 0.05);
-  color: #94a3b8;
-  padding: 0.25rem 0.625rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.2s ease;
-}
-
-.tech-card:hover .feature-tag {
-  border-color: var(--tech-color);
-  color: #e2e8f0;
-}
-
-.cta-button {
-  background-color: #1abc9c;
-  color: #0f172a;
-  font-weight: 700;
-  padding: 12px 32px;
-  border-radius: 9999px;
-  transition: all 0.3s ease;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 0 20px rgba(26, 188, 156, 0.4);
-  position: relative;
-  overflow: hidden;
-}
-
-.cta-button:hover {
-  background-color: #31e0bd;
-  transform: translateY(-2px);
-  box-shadow: 0 0 30px rgba(26, 188, 156, 0.6);
-}
-
-.cta-button::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
-  transform: skewX(-20deg);
-  transition: none;
-}
-
-.cta-button:hover::after {
-  left: 200%;
-  transition: left 0.6s ease-in-out;
+.cta-final p {
+  color: var(--clr-text-muted);
 }
 
 @media (max-width: 768px) {
-
   .section-title {
     font-size: 1.75rem;
   }
@@ -956,14 +688,8 @@ const technologies = [
   }
 
   .identity-grid,
-  .team-grid,
-  .tech-grid {
+  .team-grid {
     grid-template-columns: 1fr;
-  }
-
-  .tech-header {
-    flex-direction: column;
-    text-align: center;
   }
 }
 </style>

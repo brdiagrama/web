@@ -212,9 +212,9 @@ const faqs = [
     <section class="hero-faq pt-32 pb-20 px-6" role="main" aria-labelledby="page-title">
       <div class="max-w-4xl mx-auto text-center">
         <h1 id="page-title" class="text-5xl md:text-6xl font-bold mb-6">
-          <span class="text-gradient">Perguntas Frequentes</span>
+          <span class="text-primary-title">Perguntas Frequentes</span>
         </h1>
-        <p class="text-xl text-gray-400 leading-relaxed">
+        <p class="hero-desc text-xl leading-relaxed">
           Tire todas as suas dúvidas sobre o BrDiagrama. Respostas rápidas e diretas.
         </p>
       </div>
@@ -225,8 +225,8 @@ const faqs = [
         <article v-for="(category, catIndex) in faqs" :key="catIndex" class="category-section"
           :aria-labelledby="`category-${catIndex}`">
           <div class="category-header">
-            <div class="category-icon" :style="{ color: category.color }" aria-hidden="true">
-              <component :is="category.icon" :size="32" />
+            <div class="category-icon" aria-hidden="true">
+              <component :is="category.icon" :size="24" />
             </div>
             <h2 :id="`category-${catIndex}`" class="category-title">{{ category.category }}</h2>
           </div>
@@ -251,17 +251,35 @@ const faqs = [
       </div>
     </section>
 
-    <section class="cta-final py-20 px-6 bg-[#243447]/30" aria-labelledby="cta-title">
+    <section class="cta-final py-20 px-6" aria-labelledby="cta-title">
       <div class="max-w-4xl mx-auto text-center">
         <h2 id="cta-title" class="text-4xl font-bold mb-6">Ainda tem dúvidas?</h2>
-        <p class="text-xl text-gray-400 mb-8">
+        <p class="text-xl mb-8">
           Entre em contato com a equipe ou experimente a ferramenta agora mesmo!
         </p>
         <div class="flex gap-4 justify-center flex-wrap">
-          <a href="/sobre" class="cta-button-outline text-lg" role="button"
-            aria-label="Conhecer a equipe BrDiagrama">Conhecer a Equipe</a>
-          <a href="/gerador" class="cta-button text-lg" role="button"
-            aria-label="Começar a usar o BrDiagrama agora">Começar a Usar</a>
+          <v-btn
+            to="/sobre"
+            variant="outlined"
+            size="large"
+            rounded="pill"
+            elevation="0"
+            class="rounded-full px-8 text-base font-semibold"
+            aria-label="Conhecer a equipe BrDiagrama"
+          >
+            Conhecer a Equipe
+          </v-btn>
+          <v-btn
+            to="/gerador"
+            color="primary"
+            size="large"
+            rounded="pill"
+            elevation="0"
+            class="rounded-full px-8 text-base font-semibold"
+            aria-label="Começar a usar o BrDiagrama agora"
+          >
+            Começar a Usar
+          </v-btn>
         </div>
       </div>
     </section>
@@ -274,15 +292,16 @@ const faqs = [
 <style scoped>
 #faq-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b);
-  color: #e2e8f0;
+  background-color: var(--clr-bg);
+  color: var(--clr-text);
 }
 
-.text-gradient {
-  background: linear-gradient(to right, #1abc9c, #a5f3fc);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+.hero-desc {
+  color: var(--clr-text-muted);
+}
+
+.text-primary-title {
+  color: var(--clr-primary);
   font-weight: 800;
 }
 
@@ -296,29 +315,24 @@ const faqs = [
   gap: 1rem;
   margin-bottom: 2rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--clr-border);
 }
 
 .category-icon {
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   border-radius: 12px;
-  background: rgba(26, 188, 156, 0.1);
+  background: rgba(26, 186, 156, 0.1);
+  color: var(--clr-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.category-icon:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(26, 188, 156, 0.2);
 }
 
 .category-title {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--clr-text);
   margin: 0;
 }
 
@@ -329,25 +343,22 @@ const faqs = [
 }
 
 .faq-item {
-  background: #1e293b;
+  background: var(--clr-bg-surface);
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: none;
   overflow: hidden;
   position: relative;
 
   display: grid;
   grid-template-rows: auto 0fr;
-  transition: grid-template-rows 400ms cubic-bezier(0.86, 0, 0.07, 1) 200ms,
-    border-color 300ms ease,
-    box-shadow 300ms ease,
-    background-color 600ms ease;
+  transition: grid-template-rows 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 200ms ease;
 }
 
 .faq-item.active {
   grid-template-rows: auto 1fr;
-  background: #0f172a;
-  border-color: rgba(26, 188, 156, 0.4);
-  box-shadow: 0 8px 24px rgba(26, 188, 156, 0.2);
+  background: var(--clr-bg-surface);
+  border: none;
 }
 
 .faq-question {
@@ -362,37 +373,34 @@ const faqs = [
   text-align: left;
   z-index: 5;
   position: relative;
+  transition: background-color 0.15s ease;
 }
 
 .faq-question:hover {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--clr-hover);
 }
 
 .question-text {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #cbd5e1;
+  color: var(--clr-text);
   flex: 1;
   padding-right: 1rem;
-  transition: color 600ms ease;
+  transition: color 200ms ease;
 }
 
 .faq-item.active .question-text {
-  color: #1abc9c;
+  color: var(--clr-primary);
 }
 
 .chevron {
-  color: #64748b;
-  transition: transform 0.4s cubic-bezier(0.86, 0, 0.07, 1) 0.2s, color 600ms ease;
+  color: var(--clr-text-muted);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 200ms ease;
   flex-shrink: 0;
 }
 
-.faq-item:hover .chevron {
-  color: #94a3b8;
-}
-
 .faq-item.active .chevron {
-  color: #1abc9c;
+  color: var(--clr-primary);
   transform: rotate(180deg);
 }
 
@@ -404,64 +412,22 @@ const faqs = [
 
 .faq-answer>div {
   padding: 0 1.5rem 1.5rem 1.5rem;
-  color: #94a3b8;
+  color: var(--clr-text-muted);
   line-height: 1.8;
   font-size: 1rem;
 }
 
-.cta-button,
-.cta-button-outline {
-  font-weight: 700;
-  padding: 12px 32px;
-  border-radius: 9999px;
-  transition: all 0.3s ease;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
+.cta-final {
+  background-color: var(--clr-bg);
+  border-top: 1px solid var(--clr-border);
 }
 
-.cta-button {
-  background-color: #1abc9c;
-  color: #0f172a;
-  box-shadow: 0 0 20px rgba(26, 188, 156, 0.4);
+.cta-final h2 {
+  color: var(--clr-text);
 }
 
-.cta-button-outline {
-  background-color: transparent;
-  color: #1abc9c;
-  border: 2px solid #1abc9c;
-}
-
-.cta-button:hover {
-  background-color: #31e0bd;
-  transform: translateY(-2px);
-  box-shadow: 0 0 30px rgba(26, 188, 156, 0.6);
-}
-
-.cta-button-outline:hover {
-  background-color: rgba(26, 188, 156, 0.1);
-  border-color: #31e0bd;
-  transform: translateY(-2px);
-}
-
-.cta-button::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
-  transform: skewX(-20deg);
-  transition: none;
-}
-
-.cta-button:hover::after {
-  left: 200%;
-  transition: left 0.6s ease-in-out;
+.cta-final p {
+  color: var(--clr-text-muted);
 }
 
 @media (max-width: 768px) {

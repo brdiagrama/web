@@ -99,7 +99,7 @@ onMounted(() => {
     </div>
 
     <section
-      class="h-[50vh] bg-[var(--clr-bg-surface)] flex items-center justify-center relative z-20 border-t border-[var(--clr-border)]"
+      class="h-[50vh] bg-[var(--clr-bg)] flex items-center justify-center relative z-20 border-t border-[var(--clr-border)]"
       aria-labelledby="cta-title"
     >
       <div class="text-center px-4">
@@ -119,9 +119,6 @@ onMounted(() => {
           aria-label="Acessar gerador de diagramas agora"
         >
           <span>Acessar Gerador</span>
-          <template #append>
-            <ArrowRight :size="20" class="ml-1" />
-          </template>
         </v-btn>
       </div>
     </section>

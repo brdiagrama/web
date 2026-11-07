@@ -77,7 +77,7 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="flex items-center gap-1 sm:gap-2 md:gap-3">
-        <v-tooltip :text="isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'" location="bottom">
+        <v-tooltip :text="isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'" location="bottom" scroll-strategy="none">
           <template #activator="{ props: tooltipProps }">
             <v-btn
               v-bind="tooltipProps"
@@ -103,9 +103,6 @@ onBeforeUnmount(() => {
           aria-label="Acessar gerador de diagramas"
         >
           <span><span class="hidden sm:inline">Acessar </span>Gerador</span>
-          <template #append>
-            <ArrowRight :size="15" class="ml-0.5 sm:ml-1" />
-          </template>
         </v-btn>
       </div>
     </div>
@@ -149,7 +146,7 @@ onBeforeUnmount(() => {
 
 .nav-link:hover {
   color: var(--clr-text);
-  background-color: var(--clr-border);
+  background-color: var(--clr-hover, var(--clr-border));
 }
 
 .nav-link.active {
