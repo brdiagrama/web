@@ -39,6 +39,7 @@
   --diagram-col-border-fk: rgba(59, 130, 246, 0.55);
   --diagram-selection-box-bg: rgba(59, 130, 246, 0.1);
   --diagram-selection-box-stroke: #3b82f6;
+  --clr-shadow-floating: 0 8px 32px rgba(0, 0, 0, 0.08);
 }
 
 .dark {
@@ -80,6 +81,7 @@
   --diagram-col-highlight-opacity: 0.22;
   --diagram-selection-box-bg: rgba(96, 165, 250, 0.15);
   --diagram-selection-box-stroke: #60a5fa;
+  --clr-shadow-floating: 0 8px 32px rgba(0, 0, 0, 0.40);
 }
 
 .canvas-panel.canvas-light,
@@ -117,6 +119,7 @@
   --diagram-col-border-fk: rgba(59, 130, 246, 0.55);
   --diagram-selection-box-bg: rgba(59, 130, 246, 0.1);
   --diagram-selection-box-stroke: #3b82f6;
+  --clr-shadow-floating: 0 8px 32px rgba(0, 0, 0, 0.08);
 }
 
 .canvas-panel.canvas-dark,
@@ -154,4 +157,5 @@
   --diagram-col-border-fk: rgba(59, 130, 246, 0.55);
   --diagram-selection-box-bg: rgba(37, 84, 154, 0.15);
   --diagram-selection-box-stroke: #25549A;
+  --clr-shadow-floating: 0 8px 32px rgba(0, 0, 0, 0.40);
 }

@@ -1,6 +1,6 @@
 <template>
   <svg ref="svgRoot" class="diagram-canvas" @wheel="handleWheelEvent" @pointerdown="handleMouseDown"
-    @mousedown="handleMouseDown" @mouseleave="handleMouseLeave"
+    @mouseleave="handleMouseLeave"
     :style="{ width: '100%', height: '100%', cursor: store.isPanMode ? (isLeftMousePanning ? 'grabbing' : 'grab') : currentCursor }">
     <defs>
       <pattern id="grid-pattern" :width="store.gridSize" :height="store.gridSize" patternUnits="userSpaceOnUse">

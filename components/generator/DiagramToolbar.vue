@@ -174,19 +174,9 @@ const resetZoom = () => {
     align-items: center;
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
     backdrop-filter: blur(12px);
+    background: var(--clr-card-bg);
+    box-shadow: var(--clr-shadow-floating);
     z-index: 25;
-}
-
-.diagram-toolbar.toolbar-dark {
-    background: rgba(31, 31, 31, 0.85);
-    border: none;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-}
-
-.diagram-toolbar.toolbar-light {
-    background: rgba(255, 255, 255, 0.9);
-    border: none;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
 }
 
 .toolbar-divider {

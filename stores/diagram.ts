@@ -19,12 +19,19 @@ export interface HoveredColumnInfo {
   refTable?: string | null;
 }
 
+export interface LoadingProgress {
+  isLoading: boolean;
+  current: number;
+  total: number;
+}
+
 export interface DiagramState {
   sqlCode: string;
   schema: DatabaseSchema;
   positions: Record<string, { x: number; y: number }>;
   edgeOffsets: Record<string, EdgeOffset>;
   tableOrder: string[];
+  loadingProgress: LoadingProgress;
   errors: SqlProblem[];
   warnings: SqlProblem[];
   selectedTableNames: Set<string>;
@@ -37,6 +44,8 @@ export interface DiagramState {
   isPanMode: boolean;
 }
 
+let currentLoadId = 0;
+
 export const useDiagramStore = defineStore('diagram', {
   state: (): DiagramState => ({
     sqlCode: '',
@@ -47,6 +56,11 @@ export const useDiagramStore = defineStore('diagram', {
     positions: {},
     edgeOffsets: {},
     tableOrder: [],
+    loadingProgress: {
+      isLoading: false,
+      current: 0,
+      total: 0,
+    },
     errors: [],
     warnings: [],
     selectedTableNames: new Set<string>(),
@@ -68,7 +82,7 @@ export const useDiagramStore = defineStore('diagram', {
   },
 
   actions: {
-    setSql(sql: string) {
+    async setSql(sql: string) {
       this.sqlCode = sql;
       const { saveSql, saveTablePositions, saveTableOrder, loadTableOrder } = useDiagramStorage();
       saveSql(sql);
@@ -80,38 +94,111 @@ export const useDiagramStore = defineStore('diagram', {
         this.tableOrder = [];
         this.errors = [];
         this.warnings = [];
+        this.loadingProgress = { isLoading: false, current: 0, total: 0 };
         return;
       }
 
+      const loadId = ++currentLoadId;
+
       try {
         const newSchema = parseSqlSchema(sql);
-        const layoutResult = generateLayout(newSchema, this.positions);
+        const allTableNames = Object.keys(newSchema.tables);
+        const totalTables = allTableNames.length;
 
-        this.schema = newSchema;
+        if (totalTables <= 25) {
+          const layoutResult = generateLayout(newSchema, this.positions);
+          this.schema = newSchema;
+          this.positions = layoutResult.positions;
+          this.edgeOffsets = layoutResult.edgeOffsets;
+          this.errors = [];
+          this.warnings = [];
+
+          const currentOrder = this.tableOrder.length > 0 ? this.tableOrder : (loadTableOrder() || []);
+          const validOrder = currentOrder.filter(name => allTableNames.includes(name));
+          const newTables = allTableNames.filter(name => !validOrder.includes(name));
+          this.tableOrder = [...validOrder, ...newTables];
+
+          this.loadingProgress = { isLoading: false, current: totalTables, total: totalTables };
+          saveTablePositions(this.positions);
+          saveTableOrder(this.tableOrder);
+          return;
+        }
+
+        // Esquema grande (> 25 tabelas): processamento progressivo em lotes
+        this.loadingProgress = { isLoading: true, current: 0, total: totalTables };
+
+        const layoutResult = generateLayout(newSchema, this.positions);
         this.positions = layoutResult.positions;
         this.edgeOffsets = layoutResult.edgeOffsets;
         this.errors = [];
         this.warnings = [];
 
         const currentOrder = this.tableOrder.length > 0 ? this.tableOrder : (loadTableOrder() || []);
-        const tableNames = Object.keys(newSchema.tables);
-        const validOrder = currentOrder.filter(name => tableNames.includes(name));
-        const newTables = tableNames.filter(name => !validOrder.includes(name));
-        this.tableOrder = [...validOrder, ...newTables];
+        const validOrder = currentOrder.filter(name => allTableNames.includes(name));
+        const newTables = allTableNames.filter(name => !validOrder.includes(name));
+        const targetOrder = [...validOrder, ...newTables];
 
-        saveTablePositions(this.positions);
-        saveTableOrder(this.tableOrder);
+        const CHUNK_SIZE = 25;
+        let loadedCount = 0;
+        const progressiveTables: Record<string, Table> = {};
+        const progressiveOrder: string[] = [];
+
+        while (loadedCount < totalTables) {
+          if (currentLoadId !== loadId) return;
+
+          const nextBatch = allTableNames.slice(loadedCount, loadedCount + CHUNK_SIZE);
+          for (const name of nextBatch) {
+            progressiveTables[name] = newSchema.tables[name];
+          }
+
+          for (const name of targetOrder) {
+            if (progressiveTables[name] && !progressiveOrder.includes(name)) {
+              progressiveOrder.push(name);
+            }
+          }
+
+          loadedCount += nextBatch.length;
+
+          this.schema = {
+            tables: { ...progressiveTables },
+            relationships: newSchema.relationships.filter(
+              r => progressiveTables[r.fromTable] && progressiveTables[r.toTable]
+            ),
+          };
+          this.tableOrder = [...progressiveOrder];
+          this.loadingProgress = { isLoading: true, current: loadedCount, total: totalTables };
+
+          await new Promise(resolve => requestAnimationFrame(resolve));
+        }
+
+        if (currentLoadId === loadId) {
+          this.schema = newSchema;
+          this.tableOrder = targetOrder;
+          this.loadingProgress = { isLoading: false, current: totalTables, total: totalTables };
+          saveTablePositions(this.positions);
+          saveTableOrder(this.tableOrder);
+        }
       } catch (e: any) {
-        this.errors = [{
-          line: e.location?.start?.line || 1,
-          message: e.message || 'Erro de sintaxe no SQL',
-          type: 'error',
-        }];
+        if (currentLoadId === loadId) {
+          this.loadingProgress = { isLoading: false, current: 0, total: 0 };
+          this.errors = [{
+            line: e.location?.start?.line || 1,
+            message: e.message || 'Erro de sintaxe no SQL',
+            type: 'error',
+          }];
+        }
       }
     },
 
-    updateTablePosition(tableName: string, pos: { x: number; y: number }) {
+    updateTablePosition(tableName: string, pos: { x: number; y: number }, persist = true) {
       this.positions[tableName] = pos;
+      if (persist) {
+        const { saveTablePositions } = useDiagramStorage();
+        saveTablePositions(this.positions);
+      }
+    },
+
+    persistTablePositions() {
       const { saveTablePositions } = useDiagramStorage();
       saveTablePositions(this.positions);
     },
@@ -203,11 +290,13 @@ export const useDiagramStore = defineStore('diagram', {
     },
 
     resetProject() {
+      currentLoadId++;
       this.sqlCode = '';
       this.schema = { tables: {}, relationships: [] };
       this.positions = {};
       this.edgeOffsets = {};
       this.tableOrder = [];
+      this.loadingProgress = { isLoading: false, current: 0, total: 0 };
       this.errors = [];
       this.warnings = [];
       this.selectedTableNames = new Set();

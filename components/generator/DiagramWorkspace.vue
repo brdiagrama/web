@@ -8,6 +8,9 @@
       <InstallButton aria-label="Instalar aplicativo" />
     </div>
 
+    <!-- Indicador de Carregamento Progressivo -->
+    <DiagramProgressLoader />
+
     <DiagramCanvas
       ref="diagramCanvasRef"
       class="canvas-container"
@@ -26,8 +29,8 @@
             :from-pos="positions[rel.fromTable] || { x: 0, y: 0 }"
             :to-table="tables[rel.toTable]"
             :to-pos="positions[rel.toTable] || { x: 0, y: 0 }"
-            :from-table-width="calculateTableWidth(tables[rel.fromTable])"
-            :to-table-width="calculateTableWidth(tables[rel.toTable])"
+            :from-table-width="tableDimensionsMap[rel.fromTable]?.width || 220"
+            :to-table-width="tableDimensionsMap[rel.toTable]?.width || 220"
             :header-height="headerHeight"
             :row-height="rowHeight"
             :source-offset-y="edgeOffsets[rel.id]?.sourceOffsetY || 0"
@@ -49,8 +52,8 @@
             :is-pan-mode="diagramStore.isPanMode"
             :header-height="headerHeight"
             :row-height="rowHeight"
-            :table-width="calculateTableWidth(table)"
-            :table-height="calculateTableHeight(table)"
+            :table-width="tableDimensionsMap[table.name]?.width || 220"
+            :table-height="tableDimensionsMap[table.name]?.height || 35"
             :selected-tables-count="selectedTableNames.size"
             :highlighted-columns="highlightedColumns"
             @start-drag="startDrag"
@@ -96,6 +99,7 @@ import DiagramCanvas from "~/components/generator/DiagramCanvas.vue";
 import DiagramTableNode from "~/components/generator/DiagramTableNode.vue";
 import RelationshipLine from "~/components/generator/RelationshipLine.vue";
 import DiagramToolbar from "~/components/generator/DiagramToolbar.vue";
+import DiagramProgressLoader from "~/components/generator/DiagramProgressLoader.vue";
 import InstallButton from "~/components/shared/InstallButton.vue";
 import { useDiagram } from "@/composables/useDiagram";
 import { useDiagramStore } from "@/stores/diagram";
@@ -112,6 +116,19 @@ const { tables, relationships, positions, edgeOffsets, selectedTableNames, hover
 
 const headerHeight = 35;
 const rowHeight = 32;
+
+const tableDimensionsMap = computed(() => {
+  const map = {};
+  if (!tables.value) return map;
+  for (const tableName in tables.value) {
+    const table = tables.value[tableName];
+    map[tableName] = {
+      width: calculateTableWidth(table),
+      height: calculateTableHeight(table),
+    };
+  }
+  return map;
+});
 
 const allTablesList = computed(() => {
   if (!tables.value) return [];
@@ -178,18 +195,15 @@ const handleSelectionArea = (area) => {
   const selected = [];
 
   for (const tableName in tables.value) {
-    const table = tables.value[tableName];
+    const dims = tableDimensionsMap.value[tableName];
     const pos = positions.value[tableName];
-    if (!pos) continue;
-
-    const tableWidth = calculateTableWidth(table);
-    const tableHeight = calculateTableHeight(table);
+    if (!pos || !dims) continue;
 
     const intersects = !(
       area.x2 < pos.x ||
-      area.x1 > pos.x + tableWidth ||
+      area.x1 > pos.x + dims.width ||
       area.y2 < pos.y ||
-      area.y1 > pos.y + tableHeight
+      area.y1 > pos.y + dims.height
     );
 
     if (intersects) {
@@ -236,7 +250,7 @@ const startDrag = (event, tableName) => {
         diagramStore.updateTablePosition(name, {
           x: Math.round(initial.x + deltaX),
           y: Math.round(initial.y + deltaY),
-        });
+        }, false);
       }
     });
   };
@@ -245,6 +259,7 @@ const startDrag = (event, tableName) => {
     if (e.button === 0 || e.button === undefined) {
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
+      diagramStore.persistTablePositions();
     }
   };
 
@@ -252,30 +267,31 @@ const startDrag = (event, tableName) => {
   window.addEventListener("pointerup", onPointerUp);
 };
 
-const exportDiagramPNG = async () => {
+const getExportSvgElement = () => {
   if (!tables.value || Object.keys(tables.value).length === 0) {
     toastError("Nada para exportar", "Não há tabelas no diagrama");
-    return;
+    return null;
   }
   const svgElement = diagramCanvasRef.value?.svgRoot;
   if (!svgElement) {
     toastError("Erro na exportação", "Não foi possível acessar o diagrama");
-    return;
+    return null;
   }
-  await exportPng(svgElement, tables.value, positions.value, isCanvasDark.value);
+  return svgElement;
+};
+
+const exportDiagramPNG = async () => {
+  const svg = getExportSvgElement();
+  if (svg) {
+    await exportPng(svg, tables.value, positions.value, isCanvasDark.value);
+  }
 };
 
 const exportDiagramSVG = async () => {
-  if (!tables.value || Object.keys(tables.value).length === 0) {
-    toastError("Nada para exportar", "Não há tabelas no diagrama");
-    return;
+  const svg = getExportSvgElement();
+  if (svg) {
+    await exportSvg(svg, tables.value, positions.value, isCanvasDark.value);
   }
-  const svgElement = diagramCanvasRef.value?.svgRoot;
-  if (!svgElement) {
-    toastError("Erro na exportação", "Não foi possível acessar o diagrama");
-    return;
-  }
-  await exportSvg(svgElement, tables.value, positions.value, isCanvasDark.value);
 };
 
 defineExpose({
