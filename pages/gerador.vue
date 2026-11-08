@@ -11,6 +11,7 @@ import { useDiagramStorage } from "@/composables/useDiagramStorage";
 import { ChevronRight } from 'lucide-vue-next';
 import { useGeneratorTheme } from "@/composables/useGeneratorTheme";
 import { toastSuccess, toastError } from "@/services/toastService";
+import { showConfirm } from "@/services/alertService";
 import { downloadFile } from "@/utils/helpers";
 
 // Metadata
@@ -122,13 +123,19 @@ const toggleProblemsPanel = () => {
   isProblemsVisible.value = !isProblemsVisible.value;
 };
 
-const newProject = () => {
-  if (confirm("Deseja realmente limpar tudo? Seu progresso não salvo será perdido.")) {
+const newProject = async () => {
+  const confirmed = await showConfirm(
+    "Deseja realmente limpar tudo? Seu progresso não salvo será perdido.",
+    "Limpar Projeto",
+    "Limpar"
+  );
+
+  if (confirmed) {
     sqlCode.value = "";
     parseSql("");
     const { clearSql } = useDiagramStorage();
     clearSql();
-    toastSuccess("Novo projeto", "Área de trabalho limpa");
+    toastSuccess("Novo projeto iniciado");
   }
 };
 

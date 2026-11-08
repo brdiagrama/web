@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { CheckCircle, AlertCircle, XCircle, Info, X } from "lucide-vue-next";
+import { Check, AlertCircle, XCircle, Info, X } from "lucide-vue-next";
 import { activeToast, closeToast } from "@/services/toastService";
 
 const getIcon = (type?: string) => {
   switch (type) {
     case "success":
-      return CheckCircle;
+      return Check;
     case "error":
       return XCircle;
     case "warning":
@@ -20,14 +20,14 @@ const getIcon = (type?: string) => {
   <v-snackbar
     v-model="activeToast.isVisible"
     :timeout="activeToast.duration"
-    location="bottom end"
+    location="top end"
     class="custom-app-snackbar"
+    :class="`toast-${activeToast.type || 'info'}`"
     rounded="lg"
-    elevation="10"
   >
     <div class="toast-body">
       <div class="toast-icon-wrapper" :class="`is-${activeToast.type || 'info'}`">
-        <component :is="getIcon(activeToast.type)" :size="20" />
+        <component :is="getIcon(activeToast.type)" :size="16" stroke-width="2.5" />
       </div>
 
       <div class="toast-text-group">
@@ -45,7 +45,7 @@ const getIcon = (type?: string) => {
         aria-label="Fechar notificação"
         @click="closeToast"
       >
-        <X :size="16" />
+        <X :size="14" />
       </v-btn>
     </template>
   </v-snackbar>
@@ -53,18 +53,63 @@ const getIcon = (type?: string) => {
 
 <style scoped>
 :deep(.v-snackbar__wrapper) {
-  background-color: var(--clr-bg-surface) !important;
-  border: 1px solid var(--clr-border) !important;
-  color: var(--clr-text) !important;
-  min-width: 300px !important;
-  max-width: 440px !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
+  border: none !important;
+  box-shadow: none !important;
+  min-width: auto !important;
+  max-width: 360px !important;
+  min-height: 36px !important;
+  border-radius: 10px !important;
+  padding: 4px 10px !important;
+}
+
+.toast-success :deep(.v-snackbar__wrapper) {
+  background-color: var(--clr-primary, #1ABA9C) !important;
+}
+
+.toast-error :deep(.v-snackbar__wrapper) {
+  background-color: #EF4444 !important;
+}
+
+.toast-warning :deep(.v-snackbar__wrapper) {
+  background-color: #F59E0B !important;
+}
+
+.toast-info :deep(.v-snackbar__wrapper) {
+  background-color: #2563EB !important;
+}
+
+.toast-main-title {
+  color: #FFFFFF !important;
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.toast-desc-text {
+  color: rgba(255, 255, 255, 0.88) !important;
+  font-size: 11.5px;
+  line-height: 1.25;
+}
+
+.toast-close-btn {
+  color: rgba(255, 255, 255, 0.75) !important;
+  border: none !important;
+  border-radius: 6px !important;
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  padding: 0 !important;
+}
+
+.toast-close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.16) !important;
+  color: #FFFFFF !important;
 }
 
 .toast-body {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .toast-icon-wrapper {
@@ -72,48 +117,13 @@ const getIcon = (type?: string) => {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-}
-
-.toast-icon-wrapper.is-success {
-  color: var(--clr-primary, #1aba9c);
-}
-
-.toast-icon-wrapper.is-error {
-  color: #ef4444;
-}
-
-.toast-icon-wrapper.is-warning {
-  color: #f59e0b;
-}
-
-.toast-icon-wrapper.is-info {
-  color: #3b82f6;
+  color: #FFFFFF !important;
 }
 
 .toast-text-group {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-}
-
-.toast-main-title {
-  font-weight: 600;
-  font-size: 13.5px;
-  color: var(--clr-text);
-  line-height: 1.3;
-}
-
-.toast-desc-text {
-  font-size: 12.5px;
-  color: var(--clr-text-muted);
-  line-height: 1.3;
-}
-
-.toast-close-btn {
-  color: var(--clr-text-muted) !important;
-}
-
-.toast-close-btn:hover {
-  color: var(--clr-text) !important;
+  gap: 1px;
+  min-width: 0;
 }
 </style>

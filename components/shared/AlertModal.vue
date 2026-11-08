@@ -1,58 +1,77 @@
 <script setup lang="ts">
-import { AlertCircle, CheckCircle, XCircle, Info } from "lucide-vue-next";
+import { AlertTriangle, CheckCircle2, XCircle, Info } from "lucide-vue-next";
 import { activeAlert, closeAlert } from "@/services/alertService";
+import { useGeneratorTheme } from "@/composables/useGeneratorTheme";
+
+const { isCanvasDark } = useGeneratorTheme();
 
 const getIcon = (type?: string) => {
   switch (type) {
     case "success":
-      return CheckCircle;
+      return CheckCircle2;
     case "error":
       return XCircle;
     case "warning":
-      return AlertCircle;
+      return AlertTriangle;
     default:
       return Info;
   }
+};
+
+const isDestructive = () => {
+  const text = (activeAlert.value.buttonText || "").toLowerCase();
+  return (
+    activeAlert.value.type === "error" ||
+    text.includes("limpar") ||
+    text.includes("excluir") ||
+    text.includes("deletar") ||
+    text.includes("apagar")
+  );
 };
 </script>
 
 <template>
   <v-dialog
     v-model="activeAlert.isVisible"
-    max-width="440"
-    scrim="rgba(0, 0, 0, 0.65)"
+    max-width="390"
+    :theme="isCanvasDark ? 'dark' : 'light'"
+    scrim="rgba(0, 0, 0, 0.55)"
     transition="dialog-transition"
     @click:outside="closeAlert(false)"
+    @keydown.esc="closeAlert(false)"
   >
-    <v-card class="alert-dialog-card" rounded="xl" elevation="12">
-      <div class="pa-6 d-flex gap-4 align-start">
-        <div class="alert-icon-box" :class="`is-${activeAlert.type || 'info'}`">
-          <component :is="getIcon(activeAlert.type)" :size="24" />
+    <v-card
+      class="modal-card"
+      :class="isCanvasDark ? 'modal-dark' : 'modal-light'"
+      rounded="xl"
+    >
+      <div class="modal-content">
+        <div class="modal-icon" :class="`type-${activeAlert.type || 'info'}`">
+          <component :is="getIcon(activeAlert.type)" :size="22" stroke-width="2.2" />
         </div>
 
-        <div class="flex-grow-1">
-          <h3 class="text-h6 font-weight-bold mb-1 alert-title">{{ activeAlert.title || 'Aviso' }}</h3>
-          <p class="text-body-2 alert-message">{{ activeAlert.message }}</p>
+        <div class="modal-text">
+          <h3 class="modal-title">{{ activeAlert.title || 'Aviso' }}</h3>
+          <p class="modal-message">{{ activeAlert.message }}</p>
         </div>
       </div>
 
-      <v-divider class="alert-divider" />
-
-      <v-card-actions class="pa-4 justify-end gap-2">
+      <v-card-actions class="modal-actions">
         <v-btn
           v-if="activeAlert.hasCancel"
-          variant="tonal"
+          variant="text"
           rounded="lg"
-          class="alert-btn"
+          class="btn-cancel"
           @click="closeAlert(false)"
         >
           Cancelar
         </v-btn>
+
         <v-btn
-          :color="activeAlert.type === 'error' ? 'error' : 'primary'"
+          :color="isDestructive() ? 'error' : 'primary'"
           variant="flat"
           rounded="lg"
-          class="alert-btn"
+          class="btn-action"
           @click="closeAlert(true)"
         >
           {{ activeAlert.buttonText || 'OK' }}
@@ -63,63 +82,140 @@ const getIcon = (type?: string) => {
 </template>
 
 <style scoped>
-.alert-dialog-card {
-  background-color: var(--clr-bg-surface) !important;
-  border: 1px solid var(--clr-border) !important;
-  color: var(--clr-text) !important;
+.modal-card {
+  border: none !important;
+  padding: 8px;
+  overflow: hidden;
 }
 
-.alert-title {
-  color: var(--clr-text);
-  line-height: 1.3;
+.modal-dark {
+  background-color: #1E1E1E !important;
+  color: #F0F0F0 !important;
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.75), 0 0 1px rgba(255, 255, 255, 0.1) !important;
 }
 
-.alert-message {
-  color: var(--clr-text-muted);
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
-  margin: 0;
+.modal-dark .modal-title {
+  color: #F0F0F0;
 }
 
-.alert-icon-box {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+.modal-dark .modal-message {
+  color: #9AA0A6;
+}
+
+.modal-dark .btn-cancel {
+  color: #9AA0A6 !important;
+}
+
+.modal-dark .btn-cancel:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #FFFFFF !important;
+}
+
+.modal-light {
+  background-color: #FFFFFF !important;
+  color: #1F1F1F !important;
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.18), 0 2px 10px rgba(0, 0, 0, 0.06) !important;
+}
+
+.modal-light .modal-title {
+  color: #1F1F1F;
+}
+
+.modal-light .modal-message {
+  color: #5E6368;
+}
+
+.modal-light .btn-cancel {
+  color: #5E6368 !important;
+}
+
+.modal-light .btn-cancel:hover {
+  background-color: #EBEBEB !important;
+  color: #1F1F1F !important;
+}
+
+.modal-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 16px 12px 16px;
+}
+
+.modal-icon {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: none !important;
   flex-shrink: 0;
 }
 
-.alert-icon-box.is-success {
-  background-color: rgba(26, 186, 156, 0.15);
-  color: var(--clr-primary, #1aba9c);
-}
-
-.alert-icon-box.is-error {
-  background-color: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-}
-
-.alert-icon-box.is-warning {
-  background-color: rgba(245, 158, 11, 0.15);
+.modal-icon.type-warning {
+  background-color: rgba(245, 158, 11, 0.12);
   color: #f59e0b;
 }
 
-.alert-icon-box.is-info {
-  background-color: rgba(59, 130, 246, 0.15);
+.modal-icon.type-error {
+  background-color: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+}
+
+.modal-icon.type-success {
+  background-color: rgba(26, 186, 156, 0.12);
+  color: #1aba9c;
+}
+
+.modal-icon.type-info {
+  background-color: rgba(59, 130, 246, 0.12);
   color: #3b82f6;
 }
 
-.alert-divider {
-  border-color: var(--clr-border) !important;
-  opacity: 0.8;
+.modal-text {
+  flex: 1;
+  min-width: 0;
 }
 
-.alert-btn {
+.modal-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  line-height: 1.3;
+}
+
+.modal-message {
+  font-size: 13px;
+  margin: 0;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 12px 12px 12px;
+}
+
+.btn-cancel {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  padding: 0 14px !important;
+  height: 34px !important;
+  border: none !important;
+}
+
+.btn-action {
+  font-size: 13px !important;
   font-weight: 600 !important;
   text-transform: none !important;
   letter-spacing: 0 !important;
+  padding: 0 16px !important;
+  height: 34px !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 </style>

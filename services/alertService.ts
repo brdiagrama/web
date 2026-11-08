@@ -56,6 +56,10 @@ export const showWarning = (message: string, title = "Atenção"): Promise<boole
   return showAlert({ title, message, type: "warning", buttonText: "OK" });
 };
 
+export const showConfirm = (message: string, title = "Confirmar", buttonText = "Confirmar"): Promise<boolean> => {
+  return showAlert({ title, message, type: "warning", buttonText, hasCancel: true });
+};
+
 export const showInfo = (message: string, title = "Informação"): Promise<boolean> => {
   return showAlert({ title, message, type: "info", buttonText: "OK" });
 };
