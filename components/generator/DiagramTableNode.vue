@@ -57,7 +57,6 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
     @pointerdown="handleDragStart"
     @mousedown="handleDragStart"
   >
-    <!-- Fundo Branco da Tabela -->
     <rect
       :width="tableWidth"
       :height="tableHeight"
@@ -66,16 +65,13 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
       rx="6"
     />
 
-    <!-- Cabeçalho da Tabela -->
     <path
       :d="`M0 6 Q0 0 6 0 L${tableWidth - 6} 0 Q${tableWidth} 0 ${tableWidth} 6 L${tableWidth} ${headerHeight} L0 ${headerHeight} Z`"
       class="table-header-rect"
     />
     <text :x="15" :y="22" class="table-title">{{ table.name }}</text>
 
-    <!-- Lista de Colunas -->
     <g v-for="(col, colIndex) in table.columns" :key="colIndex">
-      <!-- Fundo de hover neutro para colunas comuns (não PK nem FK) -->
       <rect
         v-if="!col.isPk && !col.isFk"
         :x="0"
@@ -86,7 +82,6 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
         class="column-neutral-hover"
       />
 
-      <!-- Área invisível para capturar hover em PK/FK -->
       <rect
         v-if="col.isPk || col.isFk"
         :x="0"
@@ -99,7 +94,6 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
         @mouseleave="emit('columnHover', { isHovering: false })"
       />
 
-      <!-- Fundo de destaque da coluna (hover) -->
       <rect
         v-if="col.isPk || col.isFk"
         :x="0"
@@ -113,12 +107,10 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
         style="pointer-events: none"
       />
 
-      <!-- Ícones de PK e FK com posicionamento original -->
       <g
         :transform="`translate(15, ${headerHeight + 20 + colIndex * rowHeight - 12})`"
         style="pointer-events: none; transform-origin: top left;"
       >
-        <!-- Caso HERANÇA: mostra PK + FK lado a lado -->
         <template v-if="isInheritanceColumn(col)">
           <g class="pk-icon" style="display:inline-block;">
             <Key :size="18" stroke-width="2" />
@@ -128,7 +120,6 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
           </g>
         </template>
 
-        <!-- Caso padrão: PK (quando não for FK) ou FK (incluindo PK composta por FK) -->
         <g v-else-if="col.isPk && !col.isFk" class="pk-icon">
           <Key :size="18" stroke-width="2" style="display: block;" />
         </g>
@@ -137,7 +128,6 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
         </g>
       </g>
 
-      <!-- Nome da Coluna -->
       <text
         :x="isInheritanceColumn(col) ? 64 : (col.isPk || col.isFk ? 40 : 15)"
         :y="headerHeight + 20 + colIndex * rowHeight"
@@ -148,7 +138,6 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
         {{ col.name }}
       </text>
 
-      <!-- Tipo de Dados da Coluna (fonte de código suave com destaque refinado para PK) -->
       <text
         :x="tableWidth - 15"
         :y="headerHeight + 20 + colIndex * rowHeight"
@@ -161,7 +150,6 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
         {{ col.type }}
       </text>
 
-      <!-- Linhas superior e inferior de destaque no hover -->
       <g
         v-if="col.isPk || col.isFk"
         class="column-highlight-borders"
@@ -188,7 +176,6 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
       </g>
     </g>
 
-    <!-- Contorno / Borda da Tabela -->
     <rect
       :width="tableWidth"
       :height="tableHeight"
@@ -218,7 +205,6 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
   transition: stroke 0.16s ease-out, stroke-width 0.16s ease-out, filter 0.16s ease-out;
 }
 
-/* Hover na tabela não selecionada */
 .table-group:not(.selected):hover .table-bg {
   filter: drop-shadow(0 10px 15px -3px rgba(25, 39, 71, 0.15)), drop-shadow(0 4px 6px -4px rgba(25, 39, 71, 0.1));
 }
@@ -228,7 +214,6 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
   stroke-width: 1px;
 }
 
-/* Tabela selecionada */
 .table-group.selected .table-bg,
 .table-bg.selected {
   filter: drop-shadow(0 0 2px var(--diagram-table-shadow-selected, rgba(59, 130, 246, 0.3))) drop-shadow(0 0 4px var(--diagram-table-shadow-selected, rgba(59, 130, 246, 0.35)));
@@ -240,7 +225,6 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
   stroke-width: 2.5px;
 }
 
-/* Hover na tabela selecionada: preserva 2.5px e expande a sombra na base */
 .table-group.selected:hover .table-bg {
   filter: drop-shadow(0 0 4px var(--diagram-table-shadow-selected, rgba(59, 130, 246, 0.45))) drop-shadow(0 10px 20px -3px rgba(25, 39, 71, 0.25));
 }

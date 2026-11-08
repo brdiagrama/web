@@ -61,6 +61,63 @@ let gestureInit = {
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
+let panVelocity = { x: 0, y: 0 };
+let lastPanTime = 0;
+let inertiaAnimationId = null;
+
+const stopInertia = () => {
+  if (inertiaAnimationId !== null) {
+    cancelAnimationFrame(inertiaAnimationId);
+    inertiaAnimationId = null;
+  }
+};
+
+const startInertia = () => {
+  stopInertia();
+
+  if (performance.now() - lastPanTime > 60) {
+    panVelocity = { x: 0, y: 0 };
+    return;
+  }
+
+  const MAX_SPEED = 20;
+  panVelocity.x = clamp(panVelocity.x * 0.85, -MAX_SPEED, MAX_SPEED);
+  panVelocity.y = clamp(panVelocity.y * 0.85, -MAX_SPEED, MAX_SPEED);
+
+  if (Math.hypot(panVelocity.x, panVelocity.y) < 1.0) {
+    panVelocity = { x: 0, y: 0 };
+    return;
+  }
+
+  const FRICTION = 0.89;
+
+  const step = () => {
+    panVelocity.x *= FRICTION;
+    panVelocity.y *= FRICTION;
+
+    if (Math.hypot(panVelocity.x, panVelocity.y) < 0.3 || !panZoomInstance.value) {
+      stopInertia();
+      saveState();
+      return;
+    }
+
+    try {
+      const currentPan = panZoomInstance.value.getPan();
+      panZoomInstance.value.pan({
+        x: currentPan.x + panVelocity.x,
+        y: currentPan.y + panVelocity.y,
+      });
+    } catch (err) {
+      stopInertia();
+      return;
+    }
+
+    inertiaAnimationId = requestAnimationFrame(step);
+  };
+
+  inertiaAnimationId = requestAnimationFrame(step);
+};
+
 const startGestureInit = () => {
   if (!panZoomInstance.value || activePointers.size < 2) return;
 
@@ -116,8 +173,17 @@ const onPointerMoveGlobal = (ev) => {
   if (!prev) return;
 
   if ((isMiddleMouseDown || isLeftMousePanning.value) && activePointers.size === 1 && panZoomInstance.value) {
+    const now = performance.now();
+    const dt = lastPanTime > 0 ? Math.max(now - lastPanTime, 8) : 16;
+    lastPanTime = now;
+
     const dx = ev.clientX - prev.x;
     const dy = ev.clientY - prev.y;
+
+    const instantVx = (dx / dt) * 16.6;
+    const instantVy = (dy / dt) * 16.6;
+    panVelocity.x = panVelocity.x * 0.4 + instantVx * 0.6;
+    panVelocity.y = panVelocity.y * 0.4 + instantVy * 0.6;
 
     try {
       const currentPan = panZoomInstance.value.getPan();
@@ -219,6 +285,10 @@ const saveState = () => {
 };
 
 const handleMouseDown = (e) => {
+  stopInertia();
+  panVelocity = { x: 0, y: 0 };
+  lastPanTime = performance.now();
+
   if (window.PointerEvent && e.pointerId != null) {
     activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (!window._brdiagrama_hasPointerListeners) {
@@ -352,12 +422,14 @@ const handleGlobalMouseUp = (e) => {
   if (e.button === 1 && isMiddleMouseDown) {
     isMiddleMouseDown = false;
     disablePan();
+    startInertia();
   }
   if (e.button === 0 && isLeftMousePanning.value) {
     isLeftMousePanning.value = false;
     disablePan();
+    startInertia();
   }
-}
+};
 
 const handleMouseUp = (e) => {
   if (e.button === 1 && isMiddleMouseDown) {
@@ -390,10 +462,12 @@ const handleMouseLeave = () => {
   if (isMiddleMouseDown) {
     isMiddleMouseDown = false;
     disablePan();
+    startInertia();
   }
   if (isLeftMousePanning.value) {
     isLeftMousePanning.value = false;
     disablePan();
+    startInertia();
   }
 };
 
@@ -421,6 +495,7 @@ const handleWheelEvent = (e) => {
 };
 
 const handleZoom = (e) => {
+  stopInertia();
   if (!panZoomInstance.value) return;
 
   const rect = svgRoot.value.getBoundingClientRect();
@@ -453,7 +528,6 @@ const handleZoom = (e) => {
   } catch (error) { }
 };
 
-// Monitora o zoom vindo da store (ex: do slider na toolbar)
 watch(
   () => store.zoom,
   (newZoom) => {
@@ -499,6 +573,8 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  stopInertia();
+
   if (window.PointerEvent) {
     window.removeEventListener("pointerup", handleGlobalMouseUp);
     window.removeEventListener("pointercancel", handleGlobalMouseUp);

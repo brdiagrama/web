@@ -1,23 +1,20 @@
 :root {
-  /* Tema Claro (Google Gemini - Escala M3) */
-  --clr-bg: #FAF9F9;             /* Nível 0: Fundo principal contínuo */
-  --clr-bg-surface: #FFFFFF;     /* Nível 1: Superfície / seções elevadas */
-  --clr-bg-card: #FFFFFF;        /* Nível 1: Cards / containers / inputs */
+  --clr-bg: #FAF9F9;
+  --clr-bg-surface: #FFFFFF;
+  --clr-bg-card: #FFFFFF;
   --clr-card-bg: rgba(255, 255, 255, 0.90);
   --clr-border: rgba(0, 0, 0, 0.08);
-  --clr-hover: #EBEBEB;          /* Hover nos botões e navegação */
+  --clr-hover: #EBEBEB;
   --clr-text: #1F1F1F;
   --clr-text-muted: #5E6368;
   --clr-primary: #1ABA9C;
   --clr-primary-hover: #169E85;
-  --clr-hero-stage: #FAF9F9;     /* Idêntico ao fundo principal: continuidade perfeita com Header */
+  --clr-hero-stage: #FAF9F9;
   --clr-depth-overlay: #EAEAEA;
   --clr-monitor-bezel: #ffffff;
   --clr-monitor-camera: #8C97A8;
-  --clr-monitor-screen: #d6d6d6;     /* Tela / loading do monitor no modo claro: contraste suave com a moldura */
-  --clr-monitor-screen: #e0e0e0;     /* Tela / loading do monitor no modo claro: contraste suave com a moldura */
+  --clr-monitor-screen: #e0e0e0;
 
-  /* Diagram Canvas & Entities (Valores Originais do Modo Claro) */
   --grid-color: #737882;
   --ref-color: #7f8c8d;
   --ref-highlight-color: #619bcc;
@@ -45,24 +42,22 @@
 }
 
 .dark {
-  /* Tema Escuro (Google Gemini - Escala Matemática M3) */
-  --clr-bg: #0F0F0F;             /* Nível 0: Fundo principal contínuo */
-  --clr-bg-surface: #1F1F1F;     /* Nível 1: Superfície / seções elevadas */
-  --clr-bg-card: #2F2F2F;        /* Nível 2: Cards / containers / inputs */
+  --clr-bg: #0F0F0F;
+  --clr-bg-surface: #1F1F1F;
+  --clr-bg-card: #2F2F2F;
   --clr-card-bg: rgba(31, 31, 31, 0.85);
   --clr-border: rgba(255, 255, 255, 0.08);
-  --clr-hover: #2F2F2F;          /* Nível 2: Hover em itens da interface */
+  --clr-hover: #2F2F2F;
   --clr-text: #F0F0F0;
   --clr-text-muted: #9AA0A6;
   --clr-primary: #1ABA9C;
   --clr-primary-hover: #169E85;
-  --clr-hero-stage: #0F0F0F;     /* Idêntico ao fundo principal: continuidade perfeita com Header */
+  --clr-hero-stage: #0F0F0F;
   --clr-depth-overlay: #080808;
   --clr-monitor-bezel: #1d1d1d;
   --clr-monitor-camera: #484a54;
-  --clr-monitor-screen: #2F2F2F;     /* Tela / loading do monitor no modo escuro: mantido perfeito */
+  --clr-monitor-screen: #2F2F2F;
 
-  /* Diagram Canvas & Entities Dark */
   --grid-color: #4A4D55;
   --ref-color: #9b9ca4;
   --ref-highlight-color: #3ea8de;
@@ -87,7 +82,6 @@
   --diagram-selection-box-stroke: #60a5fa;
 }
 
-/* Escopo Isolado do Canvas do Diagrama (Independente do Tema Global) */
 .canvas-panel.canvas-light,
 .canvas-light {
   --clr-bg: #FAF9F9;

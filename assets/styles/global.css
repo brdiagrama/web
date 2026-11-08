@@ -122,7 +122,6 @@ input[type="reset"]:disabled {
   pointer-events: none;
 }
 
-/* Tooltip sob Tema Escuro (da respectiva região) */
 .v-tooltip.v-overlay.v-theme--dark .v-overlay__content,
 .v-theme--dark.v-tooltip .v-overlay__content {
   background-color: #4e4e4e !important;
@@ -130,7 +129,6 @@ input[type="reset"]:disabled {
   border: none !important;
 }
 
-/* Tooltip sob Tema Claro (da respectiva região) */
 .v-tooltip.v-overlay.v-theme--light .v-overlay__content,
 .v-theme--light.v-tooltip .v-overlay__content {
   background-color: #1F1F1F !important;
@@ -138,7 +136,6 @@ input[type="reset"]:disabled {
   border: none !important;
 }
 
-/* Menus não devem herdar fundos indesejados no overlay container */
 .v-menu > .v-overlay__content {
   background: transparent !important;
 }

@@ -61,7 +61,6 @@ function prepareSvgClone(svgElement: SVGSVGElement, bounds: DiagramBounds, isDar
     viewportLayer.style.transform = "";
   }
 
-  // Remove seleções temporárias e grade de fundo
   const unwantedSelectors = [
     'rect[fill="rgba(59, 130, 246, 0.1)"]',
     '.grid-background',
@@ -71,7 +70,6 @@ function prepareSvgClone(svgElement: SVGSVGElement, bounds: DiagramBounds, isDar
 
   svgClone.querySelectorAll(unwantedSelectors.join(', ')).forEach((el) => el.remove());
 
-  // Fundo com a cor do tema computada diretamente do canvas
   const computedStyle = window.getComputedStyle(svgElement);
   const canvasBg = computedStyle.getPropertyValue("--canvas-bg").trim();
 
@@ -83,7 +81,6 @@ function prepareSvgClone(svgElement: SVGSVGElement, bounds: DiagramBounds, isDar
   bgRect.setAttribute("fill", canvasBg);
   svgClone.insertBefore(bgRect, svgClone.firstChild);
 
-  // Injeta variáveis CSS ativas extraídas do DOM (garante 100% DRY sem cores duplicadas no TS)
   const themeVarNames = [
     "--canvas-bg",
     "--diagram-table-bg",
@@ -176,7 +173,7 @@ export async function exportPng(
 
     const canvas = document.createElement("canvas");
     const MAX_DIMENSION = 16000;
-    let scale = 2; // Alta resolução 2x
+    let scale = 2;
 
     if (bounds.width * scale > MAX_DIMENSION || bounds.height * scale > MAX_DIMENSION) {
       scale = Math.min(MAX_DIMENSION / bounds.width, MAX_DIMENSION / bounds.height);
@@ -188,7 +185,6 @@ export async function exportPng(
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Contexto 2D não suportado");
 
-    // Fundo na cor computada do canvas (100% DRY)
     const computedStyle = window.getComputedStyle(svgElement);
     ctx.fillStyle = computedStyle.getPropertyValue("--canvas-bg").trim();
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -200,7 +196,6 @@ export async function exportPng(
 
     URL.revokeObjectURL(url);
 
-    // Carrega a logo completa oficial (/logo-completa.svg)
     await drawWatermark(ctx, bounds.width, bounds.height, scale);
 
     canvas.toBlob((pngBlob) => {
@@ -247,7 +242,6 @@ async function drawWatermark(
       resolve();
     };
     logoImg.onerror = () => {
-      // Se não carregar a logo, exporta sem ela
       resolve();
     };
     logoImg.src = "/logo-completa.svg";

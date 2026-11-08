@@ -113,7 +113,6 @@ const { tables, relationships, positions, edgeOffsets, selectedTableNames, hover
 const headerHeight = 35;
 const rowHeight = 32;
 
-// Tabelas divididas por estado de seleção
 const allTablesList = computed(() => {
   if (!tables.value) return [];
   return Object.values(tables.value);
@@ -124,7 +123,6 @@ const relationshipsList = computed(() => {
   return relationships.value;
 });
 
-// Colunas destacadas por relacionamento ao passar o mouse
 const highlightedColumns = computed(() => {
   const highlighted = new Set();
   if (!hoveredColumn.value) return highlighted;
@@ -151,7 +149,6 @@ const highlightedColumns = computed(() => {
   return highlighted;
 });
 
-// Handlers de interação
 const handleColumnHover = (data) => {
   diagramStore.setHoveredColumn(data);
 };
