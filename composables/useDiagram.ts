@@ -41,7 +41,7 @@ CREATE TABLE itens_pedido (
 
 export function useDiagram() {
   const store = useDiagramStore();
-  const { sqlCode, errors, warnings, positions, edgeOffsets, selectedTableNames, hoveredColumn } = storeToRefs(store);
+  const { sqlCode, errors, warnings, positions, edgeOffsets, selectedTableNames, hoveredColumn, tableOrder } = storeToRefs(store);
 
   const tables = computed(() => store.tables);
   const relationships = computed(() => store.relationships);
@@ -50,16 +50,27 @@ export function useDiagram() {
     store.setSql(sql);
   };
 
+  const bringTableToFront = (tableName: string) => {
+    store.bringTableToFront(tableName);
+  };
+
+  const bringTablesToFront = (tableNames: string[], topTable?: string) => {
+    store.bringTablesToFront(tableNames, topTable);
+  };
+
   return {
     sqlCode,
     tables,
     relationships,
     positions,
     edgeOffsets,
+    tableOrder,
     errors,
     warnings,
     selectedTableNames,
     hoveredColumn,
     parseSql,
+    bringTableToFront,
+    bringTablesToFront,
   };
 }

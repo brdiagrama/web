@@ -108,14 +108,30 @@ const diagramStore = useDiagramStore();
 const diagramCanvasRef = ref(null);
 const { isCanvasDark, initCanvasTheme } = useGeneratorTheme();
 initCanvasTheme();
-const { tables, relationships, positions, edgeOffsets, selectedTableNames, hoveredColumn } = useDiagram();
+const { tables, relationships, positions, edgeOffsets, selectedTableNames, hoveredColumn, tableOrder } = useDiagram();
 
 const headerHeight = 35;
 const rowHeight = 32;
 
 const allTablesList = computed(() => {
   if (!tables.value) return [];
-  return Object.values(tables.value);
+  const tableMap = tables.value;
+  const order = tableOrder.value;
+  if (!order || order.length === 0) {
+    return Object.values(tableMap);
+  }
+  const ordered = [];
+  for (const name of order) {
+    if (tableMap[name]) {
+      ordered.push(tableMap[name]);
+    }
+  }
+  for (const name in tableMap) {
+    if (!order.includes(name)) {
+      ordered.push(tableMap[name]);
+    }
+  }
+  return ordered;
 });
 
 const relationshipsList = computed(() => {

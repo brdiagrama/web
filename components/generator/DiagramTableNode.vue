@@ -55,7 +55,6 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
     :class="{ selected: isSelected }"
     :style="{ cursor: isPanMode ? 'grab' : 'move' }"
     @pointerdown="handleDragStart"
-    @mousedown="handleDragStart"
   >
     <rect
       :width="tableWidth"

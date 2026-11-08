@@ -24,6 +24,7 @@ export interface DiagramState {
   schema: DatabaseSchema;
   positions: Record<string, { x: number; y: number }>;
   edgeOffsets: Record<string, EdgeOffset>;
+  tableOrder: string[];
   errors: SqlProblem[];
   warnings: SqlProblem[];
   selectedTableNames: Set<string>;
@@ -45,6 +46,7 @@ export const useDiagramStore = defineStore('diagram', {
     },
     positions: {},
     edgeOffsets: {},
+    tableOrder: [],
     errors: [],
     warnings: [],
     selectedTableNames: new Set<string>(),
@@ -68,13 +70,14 @@ export const useDiagramStore = defineStore('diagram', {
   actions: {
     setSql(sql: string) {
       this.sqlCode = sql;
-      const { saveSql, saveTablePositions } = useDiagramStorage();
+      const { saveSql, saveTablePositions, saveTableOrder, loadTableOrder } = useDiagramStorage();
       saveSql(sql);
 
       if (!sql || !sql.trim()) {
         this.schema = { tables: {}, relationships: [] };
         this.positions = {};
         this.edgeOffsets = {};
+        this.tableOrder = [];
         this.errors = [];
         this.warnings = [];
         return;
@@ -90,7 +93,14 @@ export const useDiagramStore = defineStore('diagram', {
         this.errors = [];
         this.warnings = [];
 
+        const currentOrder = this.tableOrder.length > 0 ? this.tableOrder : (loadTableOrder() || []);
+        const tableNames = Object.keys(newSchema.tables);
+        const validOrder = currentOrder.filter(name => tableNames.includes(name));
+        const newTables = tableNames.filter(name => !validOrder.includes(name));
+        this.tableOrder = [...validOrder, ...newTables];
+
         saveTablePositions(this.positions);
+        saveTableOrder(this.tableOrder);
       } catch (e: any) {
         this.errors = [{
           line: e.location?.start?.line || 1,
@@ -112,6 +122,32 @@ export const useDiagramStore = defineStore('diagram', {
       saveTablePositions(this.positions);
     },
 
+    bringTablesToFront(tableNames: string[], topTable?: string) {
+      if (!tableNames || tableNames.length === 0) return;
+      const set = new Set(tableNames);
+      const unselected = this.tableOrder.filter(name => !set.has(name));
+      let selected = this.tableOrder.filter(name => set.has(name));
+
+      for (const name of tableNames) {
+        if (!selected.includes(name)) {
+          selected.push(name);
+        }
+      }
+
+      if (topTable && selected.includes(topTable)) {
+        selected = [...selected.filter(name => name !== topTable), topTable];
+      }
+
+      this.tableOrder = [...unselected, ...selected];
+      const { saveTableOrder } = useDiagramStorage();
+      saveTableOrder(this.tableOrder);
+    },
+
+    bringTableToFront(tableName: string) {
+      if (!tableName) return;
+      this.bringTablesToFront([tableName]);
+    },
+
     selectTable(tableName: string, multiSelect = false) {
       if (multiSelect) {
         const updated = new Set(this.selectedTableNames);
@@ -121,15 +157,20 @@ export const useDiagramStore = defineStore('diagram', {
           updated.add(tableName);
         }
         this.selectedTableNames = updated;
+        this.bringTablesToFront(Array.from(this.selectedTableNames), tableName);
       } else {
         if (!this.selectedTableNames.has(tableName)) {
           this.selectedTableNames = new Set([tableName]);
         }
+        this.bringTablesToFront(Array.from(this.selectedTableNames), tableName);
       }
     },
 
     setSelectedTables(tableNames: string[]) {
       this.selectedTableNames = new Set(tableNames);
+      if (tableNames.length > 0) {
+        this.bringTablesToFront(tableNames);
+      }
     },
 
     clearSelection() {
@@ -166,12 +207,15 @@ export const useDiagramStore = defineStore('diagram', {
       this.schema = { tables: {}, relationships: [] };
       this.positions = {};
       this.edgeOffsets = {};
+      this.tableOrder = [];
       this.errors = [];
       this.warnings = [];
       this.selectedTableNames = new Set();
       this.hoveredColumn = null;
-      const { clearSql } = useDiagramStorage();
+      const { clearSql, clearTablePositions, clearTableOrder } = useDiagramStorage();
       clearSql();
+      clearTablePositions();
+      clearTableOrder();
     },
   },
 });
