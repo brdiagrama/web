@@ -2,8 +2,9 @@
 import { ref } from 'vue';
 import { 
   XCircle, AlertTriangle, Eraser, Upload, Download, 
-  FileCode, ImageIcon, Code2, ChevronLeft 
+  FileCode, ImageIcon, Code2, ChevronLeft, Sun, Moon 
 } from 'lucide-vue-next';
+import { useGeneratorTheme } from '@/composables/useGeneratorTheme';
 
 const props = defineProps<{
   errorCount: number;
@@ -21,7 +22,9 @@ const emit = defineEmits<{
   (e: 'fileImport', event: Event): void;
 }>();
 
-const showExportDropdown = ref(false);
+const { isEditorDark, toggleEditorTheme } = useGeneratorTheme();
+
+const showExportMenu = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 
 const triggerImportLocal = () => {
@@ -33,93 +36,174 @@ const triggerImportLocal = () => {
 </script>
 
 <template>
-  <header class="editor-header" role="banner">
+  <header 
+    class="editor-header" 
+    :class="isEditorDark ? 'editor-dark' : 'editor-light'" 
+    role="banner"
+  >
     <div class="brand-area">
-      <a href="/" aria-label="Voltar para a página inicial do BrDiagrama" class="brand-link">
+      <NuxtLink to="/" aria-label="Voltar para a página inicial do BrDiagrama" class="brand-link">
         <img
           src="~/assets/images/logo/logo-completa.svg"
           alt="BrDiagrama - Logo"
           class="editor-logo"
           width="auto"
-          height="38"
+          height="34"
         />
-      </a>
+      </NuxtLink>
     </div>
 
     <nav class="header-actions" aria-label="Ações do gerador">
-      <!-- Badge de Erros (Vermelho) -->
-      <button
-        v-if="errorCount > 0"
-        class="problems-badge has-errors"
-        @click="emit('toggleProblemsPanel')"
-        :title="`${errorCount} erro(s)`"
-      >
-        <XCircle :size="15" class="badge-icon error-icon" />
-        <span class="badge-count">{{ errorCount }}</span>
-      </button>
+      <!-- Badge de Erros -->
+      <v-tooltip v-if="errorCount > 0" :text="`${errorCount} erro(s) no SQL`" location="bottom" :theme="isEditorDark ? 'dark' : 'light'">
+        <template #activator="{ props: tooltipProps }">
+          <button
+            v-bind="tooltipProps"
+            class="problems-badge has-errors"
+            @click="emit('toggleProblemsPanel')"
+            aria-label="Ver erros de sintaxe SQL"
+          >
+            <XCircle :size="14" class="badge-icon" />
+            <span class="badge-count">{{ errorCount }}</span>
+          </button>
+        </template>
+      </v-tooltip>
 
-      <!-- Badge de Warnings (Amarelo) -->
-      <button
-        v-if="warningCount > 0"
-        class="problems-badge has-warnings"
-        @click="emit('toggleProblemsPanel')"
-        :title="`${warningCount} aviso(s)`"
-      >
-        <AlertTriangle :size="15" class="badge-icon warning-icon" />
-        <span class="badge-count">{{ warningCount }}</span>
-      </button>
+      <!-- Badge de Avisos -->
+      <v-tooltip v-if="warningCount > 0" :text="`${warningCount} aviso(s) no SQL`" location="bottom" :theme="isEditorDark ? 'dark' : 'light'">
+        <template #activator="{ props: tooltipProps }">
+          <button
+            v-bind="tooltipProps"
+            class="problems-badge has-warnings"
+            @click="emit('toggleProblemsPanel')"
+            aria-label="Ver avisos de sintaxe SQL"
+          >
+            <AlertTriangle :size="14" class="badge-icon" />
+            <span class="badge-count">{{ warningCount }}</span>
+          </button>
+        </template>
+      </v-tooltip>
 
-      <button class="icon-btn" @click="emit('newProject')" title="Novo Projeto / Limpar">
-        <Eraser :size="19" />
-      </button>
+      <!-- Limpar / Novo Projeto -->
+      <v-tooltip text="Novo projeto (Limpar)" location="bottom" :theme="isEditorDark ? 'dark' : 'light'">
+        <template #activator="{ props: tooltipProps }">
+          <v-btn
+            v-bind="tooltipProps"
+            icon
+            variant="text"
+            size="small"
+            class="action-btn"
+            aria-label="Novo projeto ou limpar tela"
+            @click="emit('newProject')"
+          >
+            <Eraser :size="18" />
+          </v-btn>
+        </template>
+      </v-tooltip>
 
-      <button class="icon-btn" @click="triggerImportLocal" title="Importar SQL">
-        <Upload :size="19" />
-      </button>
+      <!-- Importar Arquivo SQL -->
+      <v-tooltip text="Importar arquivo SQL" location="bottom" :theme="isEditorDark ? 'dark' : 'light'">
+        <template #activator="{ props: tooltipProps }">
+          <v-btn
+            v-bind="tooltipProps"
+            icon
+            variant="text"
+            size="small"
+            class="action-btn"
+            aria-label="Importar arquivo SQL do computador"
+            @click="triggerImportLocal"
+          >
+            <Upload :size="18" />
+          </v-btn>
+        </template>
+      </v-tooltip>
 
-      <div class="export-dropdown">
-        <button
-          class="icon-btn"
-          :class="{ active: showExportDropdown }"
-          @mouseenter="showExportDropdown = true"
-          aria-label="Menu de exportação"
-          :aria-expanded="showExportDropdown"
+      <!-- Menu de Exportação -->
+      <v-menu v-model="showExportMenu" location="bottom end" :offset="8">
+        <template #activator="{ props: menuProps }">
+          <v-tooltip text="Exportar" location="bottom" :disabled="showExportMenu" :theme="isEditorDark ? 'dark' : 'light'">
+            <template #activator="{ props: tooltipProps }">
+              <v-btn
+                v-bind="{ ...menuProps, ...tooltipProps }"
+                icon
+                variant="text"
+                size="small"
+                class="action-btn"
+                :class="{ 'btn-active': showExportMenu }"
+                aria-label="Menu de exportação"
+              >
+                <Download :size="18" />
+              </v-btn>
+            </template>
+          </v-tooltip>
+        </template>
+
+        <v-list 
+          class="custom-dropdown-list" 
+          :class="isEditorDark ? 'dropdown-dark' : 'dropdown-light'"
+          density="compact" 
+          elevation="4" 
+          rounded="lg"
         >
-          <Download :size="19" aria-hidden="true" />
-        </button>
+          <v-list-item @click="emit('exportSql')" class="dropdown-list-item" rounded="md">
+            <template #prepend>
+              <FileCode :size="16" class="dropdown-icon" />
+            </template>
+            <v-list-item-title class="dropdown-item-title">Arquivo SQL</v-list-item-title>
+          </v-list-item>
 
-        <div
-          v-if="showExportDropdown"
-          class="dropdown-menu"
-          role="menu"
-          @mouseenter="showExportDropdown = true"
-          @mouseleave="showExportDropdown = false"
-        >
-          <div class="dropdown-header">Exportar como...</div>
-          <button @click="emit('exportSql')" class="dropdown-item">
-            <FileCode :size="17" class="dropdown-icon-lucide" />
-            <span>Arquivo SQL</span>
-          </button>
-          <button @click="emit('exportDiagramPNG')" class="dropdown-item">
-            <ImageIcon :size="17" class="dropdown-icon-lucide" />
-            <span>Imagem PNG</span>
-          </button>
-          <button @click="emit('exportDiagramSVG')" class="dropdown-item">
-            <Code2 :size="17" class="dropdown-icon-lucide" />
-            <span>Vetor SVG</span>
-          </button>
-        </div>
-      </div>
+          <v-list-item @click="emit('exportDiagramPNG')" class="dropdown-list-item" rounded="md">
+            <template #prepend>
+              <ImageIcon :size="16" class="dropdown-icon" />
+            </template>
+            <v-list-item-title class="dropdown-item-title">Imagem PNG</v-list-item-title>
+          </v-list-item>
 
-      <div class="header-divider"></div>
+          <v-list-item @click="emit('exportDiagramSVG')" class="dropdown-list-item" rounded="md">
+            <template #prepend>
+              <Code2 :size="16" class="dropdown-icon" />
+            </template>
+            <v-list-item-title class="dropdown-item-title">Vetor SVG</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
 
-      <button
-        class="icon-btn toggle-btn"
-        @click="emit('toggleEditor')"
-        title="Ocultar Editor"
-      >
-        <ChevronLeft :size="21" />
-      </button>
+      <!-- Alternar Tema do Painel Esquerdo (Editor + Cabeçalho) -->
+      <v-tooltip :text="isEditorDark ? 'Mudar editor para tema claro' : 'Mudar editor para tema escuro'" location="bottom" :theme="isEditorDark ? 'dark' : 'light'">
+        <template #activator="{ props: tooltipProps }">
+          <v-btn
+            v-bind="tooltipProps"
+            icon
+            variant="text"
+            size="small"
+            class="action-btn"
+            :aria-label="isEditorDark ? 'Mudar editor para tema claro' : 'Mudar editor para tema escuro'"
+            @click="(e: MouseEvent) => toggleEditorTheme(e)"
+          >
+            <Sun v-if="isEditorDark" :size="18" />
+            <Moon v-else :size="18" />
+          </v-btn>
+        </template>
+      </v-tooltip>
+
+      <div class="header-divider" aria-hidden="true"></div>
+
+      <!-- Ocultar / Minimizar Editor -->
+      <v-tooltip text="Ocultar editor" location="bottom" :theme="isEditorDark ? 'dark' : 'light'">
+        <template #activator="{ props: tooltipProps }">
+          <v-btn
+            v-bind="tooltipProps"
+            icon
+            variant="text"
+            size="small"
+            class="action-btn"
+            aria-label="Ocultar painel do editor"
+            @click="emit('toggleEditor')"
+          >
+            <ChevronLeft :size="20" />
+          </v-btn>
+        </template>
+      </v-tooltip>
 
       <input
         ref="fileInputRef"
@@ -137,15 +221,26 @@ const triggerImportLocal = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #020617;
   padding: 0 16px;
   height: 56px;
   min-height: 56px;
-  border-bottom: 1px solid #1e293b;
   user-select: none;
   -webkit-user-select: none;
   flex-shrink: 0;
   box-sizing: border-box;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.editor-header.editor-dark {
+  background-color: #1C1C1C !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #F0F0F0 !important;
+}
+
+.editor-header.editor-light {
+  background-color: #FFFFFF !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  color: #1F1F1F !important;
 }
 
 .brand-area {
@@ -160,9 +255,9 @@ const triggerImportLocal = () => {
 }
 
 .editor-logo {
-  height: 38px;
+  height: 34px;
   width: auto;
-  max-height: 38px;
+  max-height: 34px;
   object-fit: contain;
   display: block;
 }
@@ -170,116 +265,133 @@ const triggerImportLocal = () => {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
-.icon-btn {
-  background: transparent;
-  border: none;
-  color: #94a3b8;
-  cursor: pointer;
-  width: 34px;
-  height: 34px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.action-btn {
+  border-radius: 8px !important;
   transition: all 0.2s ease;
-  user-select: none;
 }
 
-.icon-btn:hover,
-.icon-btn.active {
-  background-color: #1e293b;
-  color: #5eead4;
+.editor-header.editor-dark .action-btn {
+  color: #9AA0A6 !important;
+}
+
+.editor-header.editor-dark .action-btn:hover,
+.editor-header.editor-dark .action-btn.btn-active {
+  background-color: rgba(26, 186, 156, 0.15) !important;
+  color: #1ABA9C !important;
+}
+
+.editor-header.editor-light .action-btn {
+  color: #5E6368 !important;
+}
+
+.editor-header.editor-light .action-btn:hover,
+.editor-header.editor-light .action-btn.btn-active {
+  background-color: rgba(26, 186, 156, 0.12) !important;
+  color: #1ABA9C !important;
 }
 
 .problems-badge {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 10px;
+  padding: 3px 8px;
   border-radius: 12px;
   border: none;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   transition: all 0.2s ease;
 }
 
 .problems-badge.has-errors {
   background-color: rgba(239, 68, 68, 0.15);
-  color: #f87171;
+  color: #ef4444;
 }
 
 .problems-badge.has-warnings {
   background-color: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
+  color: #f59e0b;
 }
 
 .header-divider {
   width: 1px;
-  height: 22px;
-  background-color: #1e293b;
+  height: 20px;
   margin: 0 4px;
 }
 
-.export-dropdown {
-  position: relative;
+.editor-header.editor-dark .header-divider {
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
-.dropdown-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  background-color: #0f172a;
-  border: 1px solid #1e293b;
-  border-radius: 8px;
-  padding: 6px;
-  min-width: 175px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-  z-index: 100;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.editor-header.editor-light .header-divider {
+  background-color: rgba(0, 0, 0, 0.08);
 }
 
-.dropdown-header {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #64748b;
-  padding: 5px 10px 6px;
-  letter-spacing: 0.5px;
+/* Dropdown Menu de Exportação */
+.custom-dropdown-list {
+  padding: 6px !important;
+  min-width: 170px;
 }
 
-.dropdown-item {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 8px 12px;
-  border-radius: 6px;
-  background: none;
-  border: none;
-  color: #cbd5e1;
-  font-size: 13px;
+.custom-dropdown-list.dropdown-dark {
+  background-color: #1F1F1F !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #F0F0F0 !important;
+}
+
+.custom-dropdown-list.dropdown-light {
+  background-color: #FFFFFF !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  color: #1F1F1F !important;
+}
+
+.dropdown-list-item {
   cursor: pointer;
-  text-align: left;
-  transition: all 0.15s ease;
+  padding: 8px 12px !important;
+  min-height: 36px !important;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.dropdown-item:hover {
-  background-color: #1e293b;
-  color: #5eead4;
+.dropdown-dark .dropdown-list-item {
+  color: #F0F0F0 !important;
 }
 
-.dropdown-icon-lucide {
-  color: #94a3b8;
-  flex-shrink: 0;
+.dropdown-light .dropdown-list-item {
+  color: #1F1F1F !important;
 }
 
-.dropdown-item:hover .dropdown-icon-lucide {
-  color: #5eead4;
+.dropdown-dark .dropdown-list-item:hover {
+  background-color: rgba(26, 186, 156, 0.15) !important;
+  color: #1ABA9C !important;
+}
+
+.dropdown-light .dropdown-list-item:hover {
+  background-color: rgba(26, 186, 156, 0.12) !important;
+  color: #1ABA9C !important;
+}
+
+.dropdown-icon {
+  margin-right: 10px;
+}
+
+.dropdown-dark .dropdown-icon {
+  color: #9AA0A6;
+}
+
+.dropdown-light .dropdown-icon {
+  color: #5E6368;
+}
+
+.dropdown-list-item:hover .dropdown-icon {
+  color: #1ABA9C;
+}
+
+.dropdown-item-title {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  font-family: inherit !important;
 }
 </style>

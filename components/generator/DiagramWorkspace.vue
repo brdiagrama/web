@@ -1,5 +1,9 @@
 <template>
-  <section class="canvas-panel" aria-label="Área do diagrama ER">
+  <section
+    class="canvas-panel"
+    :class="isCanvasDark ? 'canvas-dark' : 'canvas-light'"
+    aria-label="Área do diagrama ER"
+  >
     <div class="install-button-wrapper">
       <InstallButton aria-label="Instalar aplicativo" />
     </div>
@@ -12,10 +16,10 @@
       @canvasPointerDown="clearSelectionOnCanvas"
     >
       <g v-if="tables && Object.keys(tables).length > 0">
-        <!-- Relacionamentos inativos (atrás das tabelas) -->
-        <g class="relationships-back">
+        <!-- Relacionamentos (atrás das tabelas) -->
+        <g class="relationships-layer">
           <RelationshipLine
-            v-for="rel in inactiveRelationships"
+            v-for="rel in relationshipsList"
             :key="rel.id"
             :relationship="rel"
             :from-table="tables[rel.fromTable]"
@@ -33,57 +37,15 @@
           />
         </g>
 
-        <!-- Tabelas Não Selecionadas -->
-        <g class="tables-unselected">
+        <!-- Tabelas -->
+        <g class="tables-layer">
           <DiagramTableNode
-            v-for="table in unselectedTablesList"
+            v-for="table in allTablesList"
             :key="table.name"
             :table="table"
             :x="positions[table.name]?.x || 0"
             :y="positions[table.name]?.y || 0"
-            :is-selected="false"
-            :is-pan-mode="diagramStore.isPanMode"
-            :header-height="headerHeight"
-            :row-height="rowHeight"
-            :table-width="calculateTableWidth(table)"
-            :table-height="calculateTableHeight(table)"
-            :selected-tables-count="selectedTableNames.size"
-            :highlighted-columns="highlightedColumns"
-            @start-drag="startDrag"
-            @column-hover="handleColumnHover"
-          />
-        </g>
-
-        <!-- Relacionamentos ativos (à frente) -->
-        <g class="relationships-front">
-          <RelationshipLine
-            v-for="rel in activeRelationships"
-            :key="rel.id"
-            :relationship="rel"
-            :from-table="tables[rel.fromTable]"
-            :from-pos="positions[rel.fromTable] || { x: 0, y: 0 }"
-            :to-table="tables[rel.toTable]"
-            :to-pos="positions[rel.toTable] || { x: 0, y: 0 }"
-            :from-table-width="calculateTableWidth(tables[rel.fromTable])"
-            :to-table-width="calculateTableWidth(tables[rel.toTable])"
-            :header-height="headerHeight"
-            :row-height="rowHeight"
-            :source-offset-y="edgeOffsets[rel.id]?.sourceOffsetY || 0"
-            :target-offset-y="edgeOffsets[rel.id]?.targetOffsetY || 0"
-            :selected-tables="selectedTableNames"
-            :hovered-column="hoveredColumn"
-          />
-        </g>
-
-        <!-- Tabelas Selecionadas (No topo absoluto) -->
-        <g class="tables-selected">
-          <DiagramTableNode
-            v-for="table in selectedTablesList"
-            :key="table.name"
-            :table="table"
-            :x="positions[table.name]?.x || 0"
-            :y="positions[table.name]?.y || 0"
-            :is-selected="true"
+            :is-selected="selectedTableNames.has(table.name)"
             :is-pan-mode="diagramStore.isPanMode"
             :header-height="headerHeight"
             :row-height="rowHeight"
@@ -140,43 +102,26 @@ import { useDiagramStore } from "@/stores/diagram";
 import { calculateTableWidth, calculateTableHeight } from "@/domain/diagram/tableDimensions";
 import { exportSvg, exportPng } from "@/utils/diagramExporter";
 import { toastError } from "@/services/toastService";
+import { useGeneratorTheme } from "@/composables/useGeneratorTheme";
 
 const diagramStore = useDiagramStore();
 const diagramCanvasRef = ref(null);
+const { isCanvasDark, initCanvasTheme } = useGeneratorTheme();
+initCanvasTheme();
 const { tables, relationships, positions, edgeOffsets, selectedTableNames, hoveredColumn } = useDiagram();
 
 const headerHeight = 35;
 const rowHeight = 32;
 
 // Tabelas divididas por estado de seleção
-const unselectedTablesList = computed(() => {
+const allTablesList = computed(() => {
   if (!tables.value) return [];
-  return Object.values(tables.value).filter(
-    (table) => !selectedTableNames.value.has(table.name)
-  );
+  return Object.values(tables.value);
 });
 
-const selectedTablesList = computed(() => {
-  if (!tables.value) return [];
-  return Object.values(tables.value).filter((table) =>
-    selectedTableNames.value.has(table.name)
-  );
-});
-
-const activeRelationships = computed(() => {
+const relationshipsList = computed(() => {
   if (!relationships.value) return [];
-  return relationships.value.filter(
-    (rel) =>
-      selectedTableNames.value.has(rel.fromTable) || selectedTableNames.value.has(rel.toTable)
-  );
-});
-
-const inactiveRelationships = computed(() => {
-  if (!relationships.value) return [];
-  return relationships.value.filter(
-    (rel) =>
-      !selectedTableNames.value.has(rel.fromTable) && !selectedTableNames.value.has(rel.toTable)
-  );
+  return relationships.value;
 });
 
 // Colunas destacadas por relacionamento ao passar o mouse
@@ -304,7 +249,7 @@ const exportDiagramPNG = async () => {
     toastError("Erro na exportação", "Não foi possível acessar o diagrama");
     return;
   }
-  await exportPng(svgElement, tables.value, positions.value);
+  await exportPng(svgElement, tables.value, positions.value, isCanvasDark.value);
 };
 
 const exportDiagramSVG = async () => {
@@ -317,7 +262,7 @@ const exportDiagramSVG = async () => {
     toastError("Erro na exportação", "Não foi possível acessar o diagrama");
     return;
   }
-  await exportSvg(svgElement, tables.value, positions.value);
+  await exportSvg(svgElement, tables.value, positions.value, isCanvasDark.value);
 };
 
 defineExpose({
@@ -331,10 +276,8 @@ defineExpose({
 .canvas-panel {
   flex: 1;
   position: relative;
-  background: #f0f2f5;
-  background-image: radial-gradient(#dfe6e9 1px, transparent 1px);
-  background-size: 20px 20px;
-  transition: all 0.1s ease-out;
+  background-color: var(--canvas-bg, #f0f2f5);
+  transition: background-color 0.25s ease;
   height: 100%;
   width: 100%;
   overflow: hidden;
@@ -358,19 +301,20 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--clr-card-bg, rgba(255, 255, 255, 0.85));
+  backdrop-filter: blur(4px);
   pointer-events: auto;
   z-index: 20;
 }
 
 .canvas-empty-content {
   text-align: center;
-  color: #0f172a;
-  background: linear-gradient(180deg, #ffffff 0%, #fbffff 100%);
-  padding: 22px 30px;
-  border-radius: 14px;
-  box-shadow: 0 12px 40px rgba(2, 6, 23, 0.08);
-  border: 2px solid rgba(45, 212, 191, 0.14);
+  color: var(--clr-text);
+  background: var(--clr-bg-surface);
+  padding: 24px 32px;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--clr-border);
   max-width: 520px;
   width: min(92%, 520px);
 }
@@ -384,14 +328,14 @@ defineExpose({
 
 .canvas-empty-title {
   margin: 6px 0;
-  font-size: 20px;
-  color: #05223a;
+  font-size: 19px;
+  color: var(--clr-text);
   font-weight: 700;
 }
 
 .canvas-empty-desc {
   margin: 0;
-  color: #475569;
+  color: var(--clr-text-muted);
   font-size: 14px;
 }
 </style>

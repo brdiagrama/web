@@ -10,7 +10,7 @@
     <VueMonacoEditor
       v-model:value="localCode"
       language="br-sql"
-      :theme="themeName"
+      :theme="activeThemeName"
       :options="editorOptions"
       @mount="handleMount"
       @change="handleChange"
@@ -20,8 +20,9 @@
 </template>
 
 <script setup>
-import { ref, watch, shallowRef, toRaw, onUnmounted } from "vue";
+import { ref, computed, watch, shallowRef, toRaw, onUnmounted } from "vue";
 import { VueMonacoEditor } from "@guolao/vue-monaco-editor";
+import { useGeneratorTheme } from "@/composables/useGeneratorTheme";
 
 const props = defineProps({
   modelValue: { type: String, default: "" },
@@ -31,10 +32,14 @@ const props = defineProps({
 
 const emit = defineEmits(["update:modelValue", "editor-ready"]);
 
+const { isEditorDark, initEditorTheme } = useGeneratorTheme();
+initEditorTheme();
+
+const activeThemeName = computed(() => (isEditorDark.value ? "BrDiagramaDarkModern" : "BrDiagramaLightModern"));
+
 const localCode = ref(props.modelValue);
 const editorRef = shallowRef();
 const monacoRef = shallowRef();
-const themeName = "BrDiagramaSoft";
 const editorMounted = ref(false);
 
 defineExpose({
@@ -124,8 +129,8 @@ const editorOptions = {
     horizontal: "auto",
     vertical: "auto",
     handleMouseWheel: true,
-    horizontalScrollbarSize: 12,
-    verticalScrollbarSize: 12,
+    horizontalScrollbarSize: 10,
+    verticalScrollbarSize: 10,
   },
 };
 
@@ -257,7 +262,8 @@ const handleMount = (editor, monaco) => {
     },
   });
 
-  monaco.editor.defineTheme("BrDiagramaSoft", {
+  // Tema Escuro Moderno (VS Code Dark Modern / Google M3) - Preserva 100% a sintaxe da marca
+  monaco.editor.defineTheme("BrDiagramaDarkModern", {
     base: "vs-dark",
     inherit: true,
     rules: [
@@ -265,43 +271,99 @@ const handleMount = (editor, monaco) => {
       { token: "dataType", foreground: "FDBA74" },
       { token: "function", foreground: "93C5FD" },
       { token: "identifier.quoted", foreground: "FCA5A5" },
-      { token: "identifier", foreground: "F1F5F9" },
+      { token: "identifier", foreground: "F0F0F0" },
       { token: "string", foreground: "86EFAC" },
       { token: "number", foreground: "FCA5A5" },
-      { token: "comment", foreground: "64748B", fontStyle: "italic" },
-      { token: "delimiter", foreground: "94A3B8" },
+      { token: "comment", foreground: "767D86", fontStyle: "italic" },
+      { token: "delimiter", foreground: "9AA0A6" },
     ],
     colors: {
-      "editor.background": "#0F172A",
-      "editor.foreground": "#E2E8F0",
-      "editorCursor.foreground": "#F8FAFC",
-      "editor.lineHighlightBackground": "#1E293B",
-      "editorLineNumber.foreground": "#475569",
-      "editor.selectionBackground": "#334155",
+      "editor.background": "#1C1C1C",
+      "editor.foreground": "#F0F0F0",
+      "editorCursor.foreground": "#AEAFAD",
+      "editor.lineHighlightBackground": "#28282860",
+      "editorLineNumber.foreground": "#5E6368",
+      "editorLineNumber.activeForeground": "#F0F0F0",
+      "editor.selectionBackground": "#2F2F2F",
       "editorError.foreground": "#EF4444",
       "editorWarning.foreground": "#F59E0B",
-      "editorWidget.background": "#020617",
-      "editorWidget.border": "#1E293B",
-      "editorWidget.foreground": "#E2E8F0",
-      "input.background": "#0F172A",
-      "input.foreground": "#E2E8F0",
-      "input.border": "#334155",
-      "inputOption.activeBorder": "#5EEAD4",
-      "list.hoverBackground": "#1E293B",
-      "list.activeSelectionBackground": "#334155",
+      "editorWidget.background": "#242424",
+      "editorWidget.border": "#333333",
+      "editorWidget.foreground": "#F0F0F0",
+      "input.background": "#181818",
+      "input.foreground": "#F0F0F0",
+      "input.border": "#333333",
+      "inputOption.activeBorder": "#1ABA9C",
+      "list.hoverBackground": "#262626",
+      "list.activeSelectionBackground": "#2F2F2F",
       "list.activeSelectionForeground": "#FFFFFF",
-      "menu.background": "#020617",
-      "menu.foreground": "#E2E8F0",
-      "menu.selectionBackground": "#1E293B",
-      "menu.selectionForeground": "#5EEAD4",
-      "menu.separatorBackground": "#334155",
-      "scrollbarSlider.background": "#33415580",
-      "scrollbarSlider.hoverBackground": "#475569",
-      "scrollbarSlider.activeBackground": "#64748B",
+      "menu.background": "#242424",
+      "menu.foreground": "#F0F0F0",
+      "menu.selectionBackground": "#2F2F2F",
+      "menu.selectionForeground": "#1ABA9C",
+      "menu.separatorBackground": "#2F2F2F",
+      "scrollbar.shadow": "#00000000",
+      "scrollbarSlider.background": "#ffffff18",
+      "scrollbarSlider.hoverBackground": "#ffffff33",
+      "scrollbarSlider.activeBackground": "#ffffff4d",
     },
   });
 
-  monaco.editor.setTheme("BrDiagramaSoft");
+  // Tema Claro Moderno (Google M3) - Sintaxe da marca calibrada para contraste em fundo claro
+  monaco.editor.defineTheme("BrDiagramaLightModern", {
+    base: "vs",
+    inherit: true,
+    rules: [
+      { token: "keyword", foreground: "0D9488" },
+      { token: "dataType", foreground: "D97706" },
+      { token: "function", foreground: "2563EB" },
+      { token: "identifier.quoted", foreground: "E11D48" },
+      { token: "identifier", foreground: "1F1F1F" },
+      { token: "string", foreground: "16A34A" },
+      { token: "number", foreground: "E11D48" },
+      { token: "comment", foreground: "8C9196", fontStyle: "italic" },
+      { token: "delimiter", foreground: "5E6368" },
+    ],
+    colors: {
+      "editor.background": "#FFFFFF",
+      "editor.foreground": "#1F1F1F",
+      "editorCursor.foreground": "#000000",
+      "editor.lineHighlightBackground": "#F8F9FA",
+      "editorLineNumber.foreground": "#9AA0A6",
+      "editorLineNumber.activeForeground": "#1F1F1F",
+      "editor.selectionBackground": "#E8F0FE",
+      "editorError.foreground": "#DC2626",
+      "editorWarning.foreground": "#D97706",
+      "editorWidget.background": "#FFFFFF",
+      "editorWidget.border": "#E0E0E0",
+      "editorWidget.foreground": "#1F1F1F",
+      "input.background": "#FAF9F9",
+      "input.foreground": "#1F1F1F",
+      "input.border": "#E0E0E0",
+      "inputOption.activeBorder": "#1ABA9C",
+      "list.hoverBackground": "#F1F3F4",
+      "list.activeSelectionBackground": "#E8F0FE",
+      "list.activeSelectionForeground": "#1ABA9C",
+      "menu.background": "#FFFFFF",
+      "menu.foreground": "#1F1F1F",
+      "menu.selectionBackground": "#F1F3F4",
+      "menu.selectionForeground": "#1ABA9C",
+      "menu.separatorBackground": "#E0E0E0",
+      "scrollbar.shadow": "#00000000",
+      "scrollbarSlider.background": "#0000001f",
+      "scrollbarSlider.hoverBackground": "#00000038",
+      "scrollbarSlider.activeBackground": "#00000052",
+    },
+  });
+
+  monaco.editor.setTheme(isEditorDark.value ? "BrDiagramaDarkModern" : "BrDiagramaLightModern");
+
+  watch(isEditorDark, (dark) => {
+    const monacoInstance = toRaw(monacoRef.value);
+    if (monacoInstance) {
+      monacoInstance.editor.setTheme(dark ? "BrDiagramaDarkModern" : "BrDiagramaLightModern");
+    }
+  });
 
   emit("editor-ready", { editor: toRaw(editor), monaco: toRaw(monaco) });
 
@@ -362,18 +424,19 @@ const handleChange = (value) => {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  background: rgba(2, 6, 23, 0.98);
-  color: #e2e8f0;
+  background: var(--clr-bg-surface, #1F1F1F);
+  color: var(--clr-text, #F0F0F0);
+  border: 1px solid var(--clr-border, rgba(255, 255, 255, 0.08));
   padding: 12px 18px;
   border-radius: 10px;
-  box-shadow: 0 8px 20px rgba(2, 6, 23, 0.5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 .editor-loading .spinner {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: 3px solid rgba(255, 255, 255, 0.12);
-  border-top-color: #2dd4bf;
+  border: 3px solid rgba(140, 145, 155, 0.2);
+  border-top-color: var(--clr-primary, #1ABA9C);
   animation: spin 1s linear infinite;
 }
 .loading-text {

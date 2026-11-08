@@ -1,60 +1,101 @@
 <template>
-    <div class="diagram-toolbar">
-        <button @click="resetZoom" class="toolbar-btn reset-zoom-btn" title="Zoom 100%">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <!-- Quadrado externo -->
-                <rect x="3" y="3" width="18" height="18" stroke-width="2" rx="2"/>
-                <!-- Setas nos cantos -->
-                <path d="M 7 7 L 7 10 M 7 7 L 10 7" stroke-width="2" stroke-linecap="round"/>
-                <path d="M 17 7 L 17 10 M 17 7 L 14 7" stroke-width="2" stroke-linecap="round"/>
-                <path d="M 7 17 L 7 14 M 7 17 L 10 17" stroke-width="2" stroke-linecap="round"/>
-                <path d="M 17 17 L 17 14 M 17 17 L 14 17" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-        </button>
+    <div class="diagram-toolbar" :class="isCanvasDark ? 'toolbar-dark' : 'toolbar-light'">
+        <!-- Reset Zoom -->
+        <v-tooltip text="Ajustar zoom (100%)" location="top" :theme="isCanvasDark ? 'dark' : 'light'">
+            <template #activator="{ props: tooltipProps }">
+                <button 
+                    v-bind="tooltipProps"
+                    @click="resetZoom" 
+                    class="toolbar-btn reset-zoom-btn" 
+                    aria-label="Ajustar zoom para 100%"
+                >
+                    <Maximize2 :size="18" />
+                </button>
+            </template>
+        </v-tooltip>
         
         <!-- Botão de Pan Mode -->
-        <button 
-            @click="togglePanMode" 
-            :class="['toolbar-btn', 'pan-mode-btn', { active: store.isPanMode }]" 
-            title="Modo de Navegação (Mover com Clique Esquerdo)"
-        >
-            <svg width="20" height="20" viewBox="0 0 512 512" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                <path d="M256 0c-25.3 0-47.2 14.7-57.6 36c-7-2.6-14.5-4-22.4-4c-35.3 0-64 28.7-64 64l0 165.5-2.7-2.7c-25-25-65.5-25-90.5 0s-25 65.5 0 90.5L106.5 437c48 48 113.1 75 181 75l8.5 0 8 0c1.5 0 3-.1 4.5-.4c91.7-6.2 165-79.4 171.1-171.1c.3-1.5 .4-3 .4-4.5l0-176c0-35.3-28.7-64-64-64c-5.5 0-10.9 .7-16 2l0-2c0-35.3-28.7-64-64-64c-7.9 0-15.4 1.4-22.4 4C303.2 14.7 281.3 0 256 0zM240 96.1l0-.1 0-32c0-8.8 7.2-16 16-16s16 7.2 16 16l0 31.9 0 .1 0 136c0 13.3 10.7 24 24 24s24-10.7 24-24l0-136c0 0 0 0 0-.1c0-8.8 7.2-16 16-16s16 7.2 16 16l0 55.9c0 0 0 .1 0 .1l0 80c0 13.3 10.7 24 24 24s24-10.7 24-24l0-71.9c0 0 0-.1 0-.1c0-8.8 7.2-16 16-16s16 7.2 16 16l0 172.9c-.1 .6-.1 1.3-.2 1.9c-3.4 69.7-59.3 125.6-129 129c-.6 0-1.3 .1-1.9 .2l-4.9 0-8.5 0c-55.2 0-108.1-21.9-147.1-60.9L52.7 315.3c-6.2-6.2-6.2-16.4 0-22.6s16.4-6.2 22.6 0L119 336.4c6.9 6.9 17.2 8.9 26.2 5.2s14.8-12.5 14.8-22.2L160 96c0-8.8 7.2-16 16-16c8.8 0 16 7.1 16 15.9L192 232c0 13.3 10.7 24 24 24s24-10.7 24-24l0-135.9z"/>
-            </svg>
-        </button>
-          <!-- Botão do Grid -->
-        <button 
-            @click="toggleGrid" 
-            :class="['toolbar-btn', 'grid-btn', { active: store.isGridVisible }]"
-            title="Mostrar/Ocultar Grade"
-        >
-            <svg height="28" viewBox="0 0 24 24" width="28" xmlns="http://www.w3.org/2000/svg">
-                <path d="M19,7 L19,17 L22,17 L22,19 L19,19 L19,22 L17,22 L17,19 L7,19 L7,22 L5,22 L5,19 L2,19 L2,17 L5,17 L5,7 L2,7 L2,5 L5,5 L5,2 L7,2 L7,5 L17,5 L17,2 L19,2 L19,5 L22,5 L22,7 L19,7 Z M17,7 L7,7 L7,17 L17,17 L17,7 Z" fill="currentColor"></path>
-            </svg>
-        </button>
+        <v-tooltip text="Modo de navegação (arrastar tela)" location="top" :theme="isCanvasDark ? 'dark' : 'light'">
+            <template #activator="{ props: tooltipProps }">
+                <button 
+                    v-bind="tooltipProps"
+                    @click="togglePanMode" 
+                    :class="['toolbar-btn', 'pan-mode-btn', { active: store.isPanMode }]" 
+                    aria-label="Modo de navegação"
+                >
+                    <Hand :size="18" />
+                </button>
+            </template>
+        </v-tooltip>
+
+        <!-- Botão do Grid -->
+        <v-tooltip text="Mostrar ou ocultar grade" location="top" :theme="isCanvasDark ? 'dark' : 'light'">
+            <template #activator="{ props: tooltipProps }">
+                <button 
+                    v-bind="tooltipProps"
+                    @click="toggleGrid" 
+                    :class="['toolbar-btn', 'grid-btn', { active: store.isGridVisible }]"
+                    aria-label="Mostrar ou ocultar grade"
+                >
+                    <Grid :size="18" />
+                </button>
+            </template>
+        </v-tooltip>
            
-        
         <div class="zoom-control">
-            <button @click="decreaseZoom" class="zoom-btn" title="Diminuir Zoom">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor">
-                    <line x1="2" y1="7" x2="12" y2="7" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
-            </button>
+            <v-tooltip text="Diminuir zoom" location="top" :theme="isCanvasDark ? 'dark' : 'light'">
+                <template #activator="{ props: tooltipProps }">
+                    <button 
+                        v-bind="tooltipProps"
+                        @click="decreaseZoom" 
+                        class="toolbar-btn zoom-btn" 
+                        aria-label="Diminuir zoom"
+                    >
+                        <Minus :size="16" />
+                    </button>
+                </template>
+            </v-tooltip>
+
             <span class="zoom-label">{{ Math.round(zoomScale) }}%</span>
-            <button @click="increaseZoom" class="zoom-btn" title="Aumentar Zoom">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor">
-                    <line x1="7" y1="2" x2="7" y2="12" stroke-width="1.5" stroke-linecap="round"/>
-                    <line x1="2" y1="7" x2="12" y2="7" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
-            </button>
+
+            <v-tooltip text="Aumentar zoom" location="top" :theme="isCanvasDark ? 'dark' : 'light'">
+                <template #activator="{ props: tooltipProps }">
+                    <button 
+                        v-bind="tooltipProps"
+                        @click="increaseZoom" 
+                        class="toolbar-btn zoom-btn" 
+                        aria-label="Aumentar zoom"
+                    >
+                        <Plus :size="16" />
+                    </button>
+                </template>
+            </v-tooltip>
         </div>
+
+        <div class="toolbar-divider" aria-hidden="true"></div>
+
+        <!-- Botão de Tema do Diagrama -->
+        <v-tooltip :text="isCanvasDark ? 'Mudar diagrama para tema claro' : 'Mudar diagrama para tema escuro'" location="top" :theme="isCanvasDark ? 'dark' : 'light'">
+            <template #activator="{ props: tooltipProps }">
+                <button
+                    v-bind="tooltipProps"
+                    @click="(e) => toggleCanvasTheme(e)"
+                    class="toolbar-btn theme-btn"
+                    :aria-label="isCanvasDark ? 'Mudar diagrama para tema claro' : 'Mudar diagrama para tema escuro'"
+                >
+                    <Sun v-if="isCanvasDark" :size="18" />
+                    <Moon v-else :size="18" />
+                </button>
+            </template>
+        </v-tooltip>
     </div>
-    
 </template>
 
 <script setup>
 import { computed } from 'vue';
+import { Maximize2, Hand, Grid, Minus, Plus, Sun, Moon } from 'lucide-vue-next';
 import { useDiagramStore } from '@/stores/diagram';
+import { useGeneratorTheme } from '@/composables/useGeneratorTheme';
 
 const props = defineProps({
     diagramRef: {
@@ -64,6 +105,7 @@ const props = defineProps({
 });
 
 const store = useDiagramStore();
+const { isCanvasDark, toggleCanvasTheme } = useGeneratorTheme();
 
 const toggleGrid = () => {
     store.toggleGrid();
@@ -116,159 +158,127 @@ const decreaseZoom = () => {
 const resetZoom = () => {
     zoomScale.value = 100;
 };
-
 </script>
 
 <style scoped>
 .diagram-toolbar {
     position: absolute;
-    bottom: 34px;
+    bottom: 24px;
     left: 50%;
     transform: translateX(-50%);
-    background: #fff;
-    padding: 12px 14px;
-    border-radius: 10px;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+    padding: 4px 6px;
+    border-radius: 12px;
+    border: none;
     display: flex;
-    gap: 18px;
+    gap: 4px;
     align-items: center;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    backdrop-filter: blur(12px);
+    z-index: 25;
 }
+
+.diagram-toolbar.toolbar-dark {
+    background: rgba(31, 31, 31, 0.85);
+    border: none;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.diagram-toolbar.toolbar-light {
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+.toolbar-divider {
+    width: 1px;
+    height: 18px;
+    background-color: var(--clr-border, rgba(0, 0, 0, 0.08));
+    margin: 0 2px;
+    opacity: 0.6;
+}
+
+.toolbar-dark .toolbar-divider {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
 .toolbar-btn {
-    padding: 10px 16px;
     cursor: pointer;
-    min-width: 44px;
-    min-height: 44px;
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: 8px;
-}
-
-.reset-zoom-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-    padding: 0;
     border: none;
-    background: white;
-    border-radius: 10px;
-    transition: all 0.18s ease;
-    color: #334155;
+    background: transparent;
+    color: var(--clr-text-muted, #5E6368);
+    transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.reset-zoom-btn:hover {
-    background-color: #f0f0f0;
+.toolbar-dark .toolbar-btn {
+    color: #9AA0A6;
 }
 
-.reset-zoom-btn:active {
-    background-color: #e0e0e0;
+.toolbar-light .toolbar-btn {
+    color: #5E6368;
 }
+
+.toolbar-dark .toolbar-btn:hover {
+    background-color: rgba(26, 186, 156, 0.15);
+    color: #1aba9c;
+}
+
+.toolbar-light .toolbar-btn:hover {
+    background-color: rgba(26, 186, 156, 0.12);
+    color: #1aba9c;
+}
+
 .zoom-control {
     display: flex;
     align-items: center;
-    gap: 8px;
-}
-
-.zoom-btn {
-    width: 44px;
-    height: 44px;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    font-weight: 600;
-    cursor: pointer;
+    gap: 2px;
+    background: transparent;
     border: none;
-    background: white;
-    border-radius: 8px;
-    transition: all 0.16s ease;
-    color: #334155;
-}
-
-.zoom-btn:hover {
-    background-color: #f0f0f0;
-}
-
-.zoom-btn:active {
-    background-color: #e0e0e0;
+    padding: 0;
 }
 
 .zoom-label {
-    min-width: 50px;
+    min-width: 40px;
     text-align: center;
     font-weight: 600;
-    font-size: 14px;
-    color: #1e293b;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-}
-.grid-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.16s ease;
-    width: 48px;
-    height: 48px;
-    border: none;
-    background: white;
-    border-radius: 10px;
-    color: #666;
+    font-size: 12px;
+    color: var(--clr-text, #1F1F1F);
+    font-family: inherit;
+    user-select: none;
 }
 
-.grid-btn.active {
-    background-color: rgba(45,212,191,0.14);
-    color: #24a897;
+.toolbar-dark .zoom-label {
+    color: #F0F0F0;
 }
 
-.grid-btn:hover {
-    background-color: #f0f0f0;
+.toolbar-light .zoom-label {
+    color: #1F1F1F;
 }
 
-.grid-btn.active:hover {
-    background-color: rgba(45,212,191,0.18);
-}
-
-.pan-mode-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.16s ease;
-    width: 48px;
-    height: 48px;
-    border: none;
-    background: white;
-    border-radius: 10px;
-    color: #666;
-}
-
+.grid-btn.active,
 .pan-mode-btn.active {
-    background-color: rgba(45,212,191,0.14);
-    color: #24a897;
-}
-
-.pan-mode-btn:hover {
-    background-color: #f0f0f0;
-}
-
-.pan-mode-btn.active:hover {
-    background-color: rgba(45,212,191,0.18);
+    background-color: rgba(26, 186, 156, 0.15) !important;
+    color: #1aba9c !important;
 }
 
 @media (max-width: 768px) {
     .diagram-toolbar {
         bottom: calc(80px + env(safe-area-inset-bottom, 20px));
-        gap: 12px;
-        padding: 12px;
-        left: 50%;
-        transform: translateX(-50%);
+        gap: 4px;
+        padding: 6px;
     }
-    .toolbar-btn, .zoom-btn, .reset-zoom-btn, .grid-btn, .pan-mode-btn {
-        min-width: 52px;
-        min-height: 52px;
-        width: 52px;
-        height: 52px;
+    .toolbar-btn {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        min-height: 40px;
     }
     .zoom-label { display: none; }
 }

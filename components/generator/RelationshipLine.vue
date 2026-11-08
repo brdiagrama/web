@@ -14,7 +14,7 @@
       :marker-end="markerEnd"
     />
 
-    <path v-show="isActive" :d="pathData" class="connector-flow" />
+    <path :d="pathData" class="connector-flow" />
 
     <!-- Labels de Cardinalidade -->
     <text
@@ -146,16 +146,16 @@ const labelPositions = computed(() =>
 
 .connector-visual {
   fill: none;
-  stroke: #7f8c8d;
+  stroke: var(--ref-color, #7f8c8d);
   stroke-width: 2px;
   pointer-events: none;
-  transition: stroke 0.3s ease, stroke-width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.3s ease;
+  transition: stroke 0.16s ease-out, filter 0.16s ease-out;
 }
 
 .relationship-line.is-active .connector-visual {
-  stroke: #192747;
+  stroke: var(--diagram-line-active, #192747);
   stroke-width: 2px;
-  filter: drop-shadow(0 0 2px rgba(25, 39, 71, 0.5));
+  filter: drop-shadow(0 0 2px var(--diagram-line-shadow, rgba(25, 39, 71, 0.5)));
 }
 
 @keyframes flowDash {
@@ -166,28 +166,37 @@ const labelPositions = computed(() =>
 
 .connector-flow {
   fill: none;
-  stroke: #4facfe;
+  stroke: var(--diagram-line-flow, #4facfe);
   stroke-width: 2px;
   pointer-events: none;
   stroke-dasharray: 3 10;
   animation: flowDash 2.5s linear infinite;
-  opacity: 0.8;
+  opacity: 0;
+  transition: opacity 0.16s ease-out;
+}
+
+.relationship-line.is-active .connector-flow {
+  opacity: 0.85;
 }
 
 .cardinality-label {
-  font-size: 0px;
-  fill: #7f8c8d;
-  font-weight: 600;
-  font-family: "Segoe UI", sans-serif;
+  font-size: 14px;
+  fill: var(--ref-color, #7f8c8d);
+  font-weight: 700;
+  font-family: var(--diagram-font, "Segoe UI", sans-serif);
   pointer-events: none;
   user-select: none;
-  transition: opacity 0.2s, transform 0.2s, fill 0.2s;
+  opacity: 0;
+  transform: scale(0.85);
+  transform-box: fill-box;
+  transform-origin: center center;
+  transition: opacity 0.16s ease-out, transform 0.16s ease-out, fill 0.16s ease-out;
 }
 
 .cardinality-label.cardinality-hover {
-  font-size: 20px;
-  fill: #192747;
-  font-weight: 700;
+  opacity: 1;
+  transform: scale(1);
+  fill: var(--diagram-line-active, #192747);
 }
 
 .relationship-line {

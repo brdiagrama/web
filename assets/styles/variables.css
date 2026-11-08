@@ -17,11 +17,31 @@
   --clr-monitor-screen: #d6d6d6;     /* Tela / loading do monitor no modo claro: contraste suave com a moldura */
   --clr-monitor-screen: #e0e0e0;     /* Tela / loading do monitor no modo claro: contraste suave com a moldura */
 
-  /* Diagram Canvas */
-  --ref-color: #d3d3d3;
+  /* Diagram Canvas & Entities (Valores Originais do Modo Claro) */
+  --grid-color: #737882;
+  --ref-color: #7f8c8d;
   --ref-highlight-color: #619bcc;
   --control-point-color: #000000;
   --control-point-stroke: #619bcc;
+  --diagram-font: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --diagram-line-active: #192747;
+  --diagram-line-flow: #4facfe;
+  --diagram-line-shadow: rgba(25, 39, 71, 0.5);
+  --diagram-table-bg: #ffffff;
+  --diagram-table-header: #192747;
+  --diagram-table-title: #ffffff;
+  --diagram-table-text: #2c3e50;
+  --diagram-table-text-type: #7f8c8d;
+  --diagram-table-text-pk: #475569;
+  --diagram-table-border-hover: #192747;
+  --diagram-table-border-selected: #192747ff;
+  --diagram-table-shadow-selected: rgba(59, 130, 246, 0.35);
+  --diagram-col-highlight-pk: #EDFEFC;
+  --diagram-col-highlight-fk: #eff6ff;
+  --diagram-col-border-pk: rgba(26, 186, 156, 0.55);
+  --diagram-col-border-fk: rgba(59, 130, 246, 0.55);
+  --diagram-selection-box-bg: rgba(59, 130, 246, 0.1);
+  --diagram-selection-box-stroke: #3b82f6;
 }
 
 .dark {
@@ -42,9 +62,102 @@
   --clr-monitor-camera: #484a54;
   --clr-monitor-screen: #2F2F2F;     /* Tela / loading do monitor no modo escuro: mantido perfeito */
 
-  /* Diagram Canvas Dark */
+  /* Diagram Canvas & Entities Dark */
+  --grid-color: #4A4D55;
   --ref-color: #9b9ca4;
   --ref-highlight-color: #3ea8de;
   --control-point-color: #d7d7d9;
   --control-point-stroke: #3ea8de;
+  --diagram-font: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --diagram-line-active: #60a5fa;
+  --diagram-line-flow: #93c5fd;
+  --diagram-line-shadow: rgba(96, 165, 250, 0.5);
+  --diagram-table-bg: #1E1E1E;
+  --diagram-table-header: #141414;
+  --diagram-table-title: #ffffff;
+  --diagram-table-text: #F0F0F0;
+  --diagram-table-text-type: #9AA0A6;
+  --diagram-table-text-pk: #E0E0E0;
+  --diagram-table-border-hover: #60a5fa;
+  --diagram-table-border-selected: #60a5fa;
+  --diagram-table-shadow-selected: rgba(96, 165, 250, 0.35);
+  --diagram-col-hover: rgba(255, 255, 255, 0.06);
+  --diagram-col-highlight-opacity: 0.22;
+  --diagram-selection-box-bg: rgba(96, 165, 250, 0.15);
+  --diagram-selection-box-stroke: #60a5fa;
+}
+
+/* Escopo Isolado do Canvas do Diagrama (Independente do Tema Global) */
+.canvas-panel.canvas-light,
+.canvas-light {
+  --clr-bg: #FAF9F9;
+  --clr-bg-surface: #FFFFFF;
+  --clr-bg-card: #FFFFFF;
+  --clr-card-bg: rgba(255, 255, 255, 0.90);
+  --clr-border: rgba(0, 0, 0, 0.08);
+  --clr-hover: #EBEBEB;
+  --clr-text: #1F1F1F;
+  --clr-text-muted: #5E6368;
+  --canvas-bg: #FAF9F9;
+  --grid-color: #737882;
+  --ref-color: #7f8c8d;
+  --ref-highlight-color: #619bcc;
+  --control-point-color: #000000;
+  --control-point-stroke: #619bcc;
+  --diagram-font: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --diagram-line-active: #192747;
+  --diagram-line-flow: #4facfe;
+  --diagram-line-shadow: rgba(25, 39, 71, 0.5);
+  --diagram-table-bg: #ffffff;
+  --diagram-table-header: #192747;
+  --diagram-table-title: #ffffff;
+  --diagram-table-text: #2c3e50;
+  --diagram-table-text-type: #7f8c8d;
+  --diagram-table-text-pk: #475569;
+  --diagram-table-border-hover: #192747;
+  --diagram-table-border-selected: #192747ff;
+  --diagram-table-shadow-selected: rgba(59, 130, 246, 0.35);
+  --diagram-col-highlight-pk: #EDFEFC;
+  --diagram-col-highlight-fk: #eff6ff;
+  --diagram-col-border-pk: rgba(26, 186, 156, 0.55);
+  --diagram-col-border-fk: rgba(59, 130, 246, 0.55);
+  --diagram-selection-box-bg: rgba(59, 130, 246, 0.1);
+  --diagram-selection-box-stroke: #3b82f6;
+}
+
+.canvas-panel.canvas-dark,
+.canvas-dark {
+  --clr-bg: #0F0F0F;
+  --clr-bg-surface: #1F1F1F;
+  --clr-bg-card: #2F2F2F;
+  --clr-card-bg: rgba(31, 31, 31, 0.85);
+  --clr-border: rgba(255, 255, 255, 0.08);
+  --clr-hover: #2F2F2F;
+  --clr-text: #F0F0F0;
+  --clr-text-muted: #9AA0A6;
+  --canvas-bg: #0F0F0F;
+  --grid-color: #4A4D55;
+  --ref-color: #9b9ca4;
+  --ref-highlight-color: #25549A;
+  --control-point-color: #d7d7d9;
+  --control-point-stroke: #25549A;
+  --diagram-font: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --diagram-line-active: #25549A;
+  --diagram-line-flow: #4facfe;
+  --diagram-line-shadow: rgba(37, 84, 154, 0.5);
+  --diagram-table-bg: #1E1E1E;
+  --diagram-table-header: #25549A;
+  --diagram-table-title: #ffffff;
+  --diagram-table-text: #F0F0F0;
+  --diagram-table-text-type: #9AA0A6;
+  --diagram-table-text-pk: #E0E0E0;
+  --diagram-table-border-hover: #25549A;
+  --diagram-table-border-selected: #25549A;
+  --diagram-table-shadow-selected: rgba(37, 84, 154, 0.35);
+  --diagram-col-highlight-pk: rgba(26, 186, 156, 0.10);
+  --diagram-col-highlight-fk: rgba(59, 130, 246, 0.10);
+  --diagram-col-border-pk: rgba(45, 212, 191, 0.6);
+  --diagram-col-border-fk: rgba(59, 130, 246, 0.55);
+  --diagram-selection-box-bg: rgba(37, 84, 154, 0.15);
+  --diagram-selection-box-stroke: #25549A;
 }

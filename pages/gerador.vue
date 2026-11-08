@@ -9,6 +9,7 @@ import Toast from '~/components/shared/Toast.vue';
 import { useDiagram, DEFAULT_SQL } from "@/composables/useDiagram";
 import { useDiagramStorage } from "@/composables/useDiagramStorage";
 import { ChevronRight } from 'lucide-vue-next';
+import { useGeneratorTheme } from "@/composables/useGeneratorTheme";
 import { toastSuccess, toastError } from "@/services/toastService";
 import { downloadFile } from "@/utils/helpers";
 
@@ -21,6 +22,8 @@ useHead({
 });
 
 const { sqlCode, tables, errors: domainErrors, warnings: domainWarnings, parseSql } = useDiagram();
+const { isEditorDark, initEditorTheme } = useGeneratorTheme();
+initEditorTheme();
 
 const workspaceRef = ref(null);
 const isProblemsVisible = ref(false);
@@ -162,69 +165,89 @@ const exportDiagramSVG = () => {
 <template>
   <div class="app" role="application" aria-label="Gerador BrDiagrama">
     <main class="main-content">
-      <!-- Painel do Editor SQL -->
-      <aside
+      <!-- Coluna da Esquerda (Editor + Barra de Redimensionamento) -->
+      <div
         v-if="!isMobile || activeTab === 'editor'"
-        class="editor-panel"
-        :class="{ 'no-transition': isResizing, 'panel-hidden': !isEditorVisible }"
-        :style="{ width: isEditorVisible ? (isMobile ? '100%' : editorWidth + 'px') : '0px' }"
-        role="complementary"
-        aria-label="Painel do gerador SQL"
+        class="editor-shell"
+        :class="{ 
+          'no-transition': isResizing, 
+          'panel-hidden': !isEditorVisible,
+          'editor-dark': isEditorDark,
+          'editor-light': !isEditorDark
+        }"
+        :style="{ width: isEditorVisible ? (isMobile ? '100%' : (editorWidth + 8) + 'px') : '0px' }"
       >
-        <GeneratorToolbar
-          :errorCount="domainErrors.length"
-          :warningCount="domainWarnings.length"
-          @toggleProblemsPanel="toggleProblemsPanel"
-          @newProject="newProject"
-          @exportSql="exportSql"
-          @exportDiagramPNG="exportDiagramPNG"
-          @exportDiagramSVG="exportDiagramSVG"
-          @toggleEditor="toggleEditor"
-          @fileImport="handleFileImport"
-        />
-
-        <button
-          v-if="isMobile && activeTab === 'editor'"
-          class="mobile-editor-close"
-          @click="toggleEditor"
-          title="Fechar editor"
+        <aside
+          class="editor-panel"
+          role="complementary"
+          aria-label="Painel do gerador SQL"
         >
-          ✕
-        </button>
+          <GeneratorToolbar
+            :errorCount="domainErrors.length"
+            :warningCount="domainWarnings.length"
+            @toggleProblemsPanel="toggleProblemsPanel"
+            @newProject="newProject"
+            @exportSql="exportSql"
+            @exportDiagramPNG="exportDiagramPNG"
+            @exportDiagramSVG="exportDiagramSVG"
+            @toggleEditor="toggleEditor"
+            @fileImport="handleFileImport"
+          />
 
-        <MonacoEditorPanel
-          v-model="sqlCode"
-          :markers="[...domainErrors, ...domainWarnings]"
-          :db-tables="availableTableNames"
-          @update:model-value="parseSql"
-          aria-label="Editor de código SQL"
-        />
-      </aside>
+          <button
+            v-if="isMobile && activeTab === 'editor'"
+            class="mobile-editor-close"
+            @click="toggleEditor"
+            title="Fechar editor"
+          >
+            ✕
+          </button>
+
+          <MonacoEditorPanel
+            v-model="sqlCode"
+            :markers="[...domainErrors, ...domainWarnings]"
+            :db-tables="availableTableNames"
+            @update:model-value="parseSql"
+            aria-label="Editor de código SQL"
+          />
+        </aside>
+
+        <!-- Barra de Redimensionamento (Arrastar) -->
+        <div
+          v-if="isEditorVisible && !isMobile"
+          class="resizer-handle"
+          @mousedown="startResize"
+          @pointerdown="startResize"
+          role="separator"
+          aria-label="Arrastar para redimensionar o editor"
+          tabindex="0"
+          title="Arrastar para redimensionar"
+        ></div>
+      </div>
 
       <!-- Barra Lateral Colapsada Original -->
-      <button
+      <v-tooltip 
         v-if="!isEditorVisible && !isMobile"
-        class="collapsed-sidebar"
-        @click="toggleEditor"
-        aria-label="Expandir painel do editor SQL"
-        title="Expandir Editor"
+        text="Expandir editor" 
+        location="right"
+        target="cursor"
+        :offset="12"
+        :theme="isEditorDark ? 'dark' : 'light'"
       >
-        <div class="expand-btn" aria-hidden="true">
-          <ChevronRight :size="20" />
-        </div>
-      </button>
-
-      <!-- Barra de Redimensionamento (Arrastar) -->
-      <div
-        v-if="isEditorVisible && !isMobile"
-        class="resizer-handle"
-        @mousedown="startResize"
-        @pointerdown="startResize"
-        role="separator"
-        aria-label="Arrastar para redimensionar o editor"
-        tabindex="0"
-        title="Arrastar para redimensionar"
-      ></div>
+        <template #activator="{ props: tooltipProps }">
+          <button
+            v-bind="tooltipProps"
+            class="collapsed-sidebar"
+            :class="isEditorDark ? 'editor-dark' : 'editor-light'"
+            @click="toggleEditor"
+            aria-label="Expandir painel do editor SQL"
+          >
+            <div class="expand-btn" aria-hidden="true">
+              <ChevronRight :size="20" />
+            </div>
+          </button>
+        </template>
+      </v-tooltip>
 
       <!-- Área do Diagrama Canvas -->
       <DiagramWorkspace ref="workspaceRef" />
@@ -253,8 +276,8 @@ const exportDiagramSVG = () => {
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-  background-color: #0f172a;
-  color: #e2e8f0;
+  background-color: var(--clr-bg);
+  color: var(--clr-text);
 }
 
 .main-content {
@@ -265,79 +288,141 @@ const exportDiagramSVG = () => {
   position: relative;
 }
 
-.editor-panel {
+.editor-shell {
   display: flex;
-  flex-direction: column;
-  background-color: #0f172a;
+  flex-direction: row;
+  height: 100%;
   flex-shrink: 0;
   transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
   overflow: hidden;
+  position: relative;
 }
 
-.editor-panel.panel-hidden {
+.editor-shell.panel-hidden {
   border-right: none;
 }
 
-.editor-panel.no-transition {
+.editor-shell.no-transition {
   transition: width 0.1s ease-out !important;
   will-change: width;
 }
 
-.editor-panel.no-transition:not(.panel-hidden) {
-  transition: width 0.1s ease-out !important;
-  will-change: width;
+.editor-shell.editor-dark {
+  --panel-bg: #1C1C1C;
+  --panel-surface: #242424;
+  --panel-border: rgba(255, 255, 255, 0.08);
+  --panel-text: #F0F0F0;
+  --panel-text-muted: #9AA0A6;
+  --panel-hover: #2A2A2A;
+}
+
+.editor-shell.editor-light {
+  --panel-bg: #FFFFFF;
+  --panel-surface: #FAF9F9;
+  --panel-border: rgba(0, 0, 0, 0.08);
+  --panel-text: #1F1F1F;
+  --panel-text-muted: #5E6368;
+  --panel-hover: #EBEBEB;
+}
+
+.editor-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+  background-color: var(--panel-bg);
+  color: var(--panel-text);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .resizer-handle {
   width: 8px;
-  background-color: #334155;
+  height: 100%;
   cursor: col-resize;
-  transition: background-color 0.2s ease;
   flex-shrink: 0;
   z-index: 25;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
-.resizer-handle:hover,
-.resizer-handle:active {
-  background-color: #2dd4bf;
+.editor-shell.editor-dark .resizer-handle {
+  background-color: #242424;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.editor-shell.editor-light .resizer-handle {
+  background-color: #F0F0F0;
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.editor-shell .resizer-handle:hover,
+.editor-shell .resizer-handle:active {
+  background-color: var(--clr-primary) !important;
 }
 
 .collapsed-sidebar {
   width: 40px;
-  background-color: #020617;
-  border: none;
-  border-right: 1px solid #1e293b;
+  border: none !important;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding-top: 11px;
   cursor: pointer;
   user-select: none;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s ease;
   flex-shrink: 0;
   z-index: 20;
 }
 
-.collapsed-sidebar:hover {
-  background-color: #0f172a;
+.collapsed-sidebar.editor-dark {
+  background-color: #1C1C1C;
+}
+
+.collapsed-sidebar.editor-light {
+  background-color: #FFFFFF;
+}
+
+.collapsed-sidebar.editor-dark:hover {
+  background-color: #242424;
+}
+
+.collapsed-sidebar.editor-light:hover {
+  background-color: #F1F3F4;
 }
 
 .expand-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #94a3b8;
   background: transparent;
   border: none;
   transition: all 0.2s ease;
 }
 
-.collapsed-sidebar:hover .expand-btn {
-  background-color: #1e293b;
-  color: #5eead4;
+.collapsed-sidebar.editor-dark .expand-btn {
+  color: #9AA0A6;
+}
+
+.collapsed-sidebar.editor-light .expand-btn {
+  color: #5E6368;
+}
+
+.collapsed-sidebar.editor-dark:hover .expand-btn,
+.collapsed-sidebar.editor-dark .expand-btn:hover {
+  background-color: rgba(26, 186, 156, 0.15);
+  color: #1ABA9C;
+}
+
+.collapsed-sidebar.editor-light:hover .expand-btn,
+.collapsed-sidebar.editor-light .expand-btn:hover {
+  background-color: rgba(26, 186, 156, 0.12);
+  color: #1ABA9C;
 }
 
 .global-resize-overlay {
@@ -355,9 +440,9 @@ const exportDiagramSVG = () => {
   top: 12px;
   right: 12px;
   z-index: 50;
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid #334155;
-  color: #f8fafc;
+  background: var(--clr-bg-surface);
+  border: 1px solid var(--clr-border);
+  color: var(--clr-text);
   width: 32px;
   height: 32px;
   border-radius: 6px;

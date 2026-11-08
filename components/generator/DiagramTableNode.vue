@@ -75,6 +75,17 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
 
     <!-- Lista de Colunas -->
     <g v-for="(col, colIndex) in table.columns" :key="colIndex">
+      <!-- Fundo de hover neutro para colunas comuns (não PK nem FK) -->
+      <rect
+        v-if="!col.isPk && !col.isFk"
+        :x="0"
+        :y="headerHeight + colIndex * rowHeight"
+        :width="tableWidth"
+        :height="rowHeight"
+        fill="transparent"
+        class="column-neutral-hover"
+      />
+
       <!-- Área invisível para capturar hover em PK/FK -->
       <rect
         v-if="col.isPk || col.isFk"
@@ -90,16 +101,15 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
 
       <!-- Fundo de destaque da coluna (hover) -->
       <rect
-        v-if="
-          (col.isPk || col.isFk) &&
-          (isColumnHovered(col.name) || isTableColumnHighlighted(col))
-        "
+        v-if="col.isPk || col.isFk"
         :x="0"
         :y="headerHeight + colIndex * rowHeight"
         :width="tableWidth"
-        :height="colIndex === table.columns.length - 1 ? rowHeight : rowHeight"
-        :fill="col.isPk ? '#EDFEFC' : '#eff6ff'"
+        :height="rowHeight"
+        :fill="col.isPk ? 'var(--diagram-col-highlight-pk)' : 'var(--diagram-col-highlight-fk)'"
         :rx="colIndex === table.columns.length - 1 ? 6 : 0"
+        class="column-highlight-bg"
+        :class="{ 'is-active': isColumnHovered(col.name) || isTableColumnHighlighted(col) }"
         style="pointer-events: none"
       />
 
@@ -153,18 +163,17 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
 
       <!-- Linhas superior e inferior de destaque no hover -->
       <g
-        v-if="
-          (col.isPk || col.isFk) &&
-          (isColumnHovered(col.name) || isTableColumnHighlighted(col))
-        "
+        v-if="col.isPk || col.isFk"
+        class="column-highlight-borders"
+        :class="{ 'is-active': isColumnHovered(col.name) || isTableColumnHighlighted(col) }"
         style="pointer-events: none"
       >
         <line
           :x1="0"
-          :y1="headerHeight + colIndex * rowHeight"
+          :y1="headerHeight + colIndex * rowHeight + (colIndex === 0 ? 0.55 : 0)"
           :x2="tableWidth"
-          :y2="headerHeight + colIndex * rowHeight"
-          :stroke="col.isPk ? '#70D8CC' : '#93c5fd'"
+          :y2="headerHeight + colIndex * rowHeight + (colIndex === 0 ? 0.55 : 0)"
+          :stroke="col.isPk ? 'var(--diagram-col-border-pk)' : 'var(--diagram-col-border-fk)'"
           stroke-width="1.1"
         />
         <line
@@ -173,7 +182,7 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
           :y1="headerHeight + (colIndex + 1) * rowHeight"
           :x2="tableWidth"
           :y2="headerHeight + (colIndex + 1) * rowHeight"
-          :stroke="col.isPk ? '#70D8CC' : '#93c5fd'"
+          :stroke="col.isPk ? 'var(--diagram-col-border-pk)' : 'var(--diagram-col-border-fk)'"
           stroke-width="1.1"
         />
       </g>
@@ -196,15 +205,17 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
 }
 
 .table-bg {
-  fill: #ffffff;
+  fill: var(--diagram-table-bg, #ffffff);
   filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.1));
-  transition: filter 0.2s;
+  transition: filter 0.16s ease-out, fill 0.16s ease-out;
 }
 
 .table-rect {
   fill: none;
+  stroke: transparent;
+  stroke-width: 1px;
   pointer-events: none;
-  transition: stroke 0.2s, stroke-width 0.2s, filter 0.2s;
+  transition: stroke 0.16s ease-out, stroke-width 0.16s ease-out, filter 0.16s ease-out;
 }
 
 /* Hover na tabela não selecionada */
@@ -213,56 +224,57 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
 }
 
 .table-group:not(.selected):hover .table-rect {
-  stroke: #192747;
+  stroke: var(--diagram-table-border-hover, #192747);
   stroke-width: 1px;
 }
 
 /* Tabela selecionada */
 .table-group.selected .table-bg,
 .table-bg.selected {
-  filter: drop-shadow(0 0 2px rgba(59, 130, 246, 0.3)) drop-shadow(0 0 4px rgba(59, 130, 246, 0.35));
+  filter: drop-shadow(0 0 2px var(--diagram-table-shadow-selected, rgba(59, 130, 246, 0.3))) drop-shadow(0 0 4px var(--diagram-table-shadow-selected, rgba(59, 130, 246, 0.35)));
 }
 
 .table-group.selected .table-rect,
 .table-rect.selected {
-  stroke: #192747ff;
+  stroke: var(--diagram-table-border-selected, #192747ff);
   stroke-width: 2.5px;
 }
 
 /* Hover na tabela selecionada: preserva 2.5px e expande a sombra na base */
 .table-group.selected:hover .table-bg {
-  filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.45)) drop-shadow(0 10px 20px -3px rgba(25, 39, 71, 0.25));
+  filter: drop-shadow(0 0 4px var(--diagram-table-shadow-selected, rgba(59, 130, 246, 0.45))) drop-shadow(0 10px 20px -3px rgba(25, 39, 71, 0.25));
 }
 
 .table-group.selected:hover .table-rect {
-  stroke: #192747ff;
+  stroke: var(--diagram-table-border-selected, #192747ff);
   stroke-width: 2.5px;
 }
 
 .table-header-rect {
-  fill: #192747;
+  fill: var(--diagram-table-header, #192747);
+  transition: fill 0.16s ease-out;
 }
 
 .table-title {
   font-size: 14px;
   font-weight: 700;
-  fill: #ffffff;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  fill: var(--diagram-table-title, #ffffff);
+  font-family: var(--diagram-font, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif);
   user-select: none;
   pointer-events: none;
 }
 
 .col-text {
   font-size: 12px;
-  fill: #2c3e50;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  fill: var(--diagram-table-text, #2c3e50);
+  font-family: var(--diagram-font, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif);
   user-select: none;
   pointer-events: none;
 }
 
 .col-type {
   font-size: 10.5px;
-  fill: #7f8c8d;
+  fill: var(--diagram-table-text-type, #7f8c8d);
   font-family: "Fira Code", "JetBrains Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   font-weight: 400;
   letter-spacing: 0.1px;
@@ -272,7 +284,7 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
 }
 
 .col-type.pk-type {
-  fill: #475569;
+  fill: var(--diagram-table-text-pk, #475569);
   font-weight: 600;
   opacity: 1;
 }
@@ -285,12 +297,33 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
   color: #3498db;
 }
 
-.column-hover-area {
-  cursor: pointer;
-  transition: fill 0.15s;
+.column-neutral-hover {
+  transition: fill 0.16s ease-out;
 }
 
-.column-hover-area:hover {
-  fill: rgba(25, 39, 71, 0.05);
+.column-neutral-hover:hover {
+  fill: var(--clr-hover);
+}
+
+.column-hover-area {
+  cursor: pointer;
+}
+
+.column-highlight-bg {
+  opacity: 0;
+  transition: opacity 0.16s ease-out;
+}
+
+.column-highlight-bg.is-active {
+  opacity: 1;
+}
+
+.column-highlight-borders {
+  opacity: 0;
+  transition: opacity 0.16s ease-out;
+}
+
+.column-highlight-borders.is-active {
+  opacity: 1;
 }
 </style>

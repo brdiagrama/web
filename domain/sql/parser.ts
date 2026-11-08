@@ -1,7 +1,7 @@
 import { Parser } from 'node-sql-parser';
 import type { DatabaseSchema, Table, Relationship } from '../models/databaseSchema';
 import { extractTable, generateId } from './extractors';
-import { detectCardinality, updateJunctionRelationships } from './relationshipDetector';
+import { detectCardinality, updateInheritanceTables, updateJunctionRelationships } from './relationshipDetector';
 
 export function parseSqlSchema(sql: string): DatabaseSchema {
     const tables: Record<string, Table> = {};
@@ -78,6 +78,7 @@ export function parseSqlSchema(sql: string): DatabaseSchema {
         }
     });
 
+    updateInheritanceTables(tables);
     updateJunctionRelationships(tables, relationships);
     return { tables, relationships };
 }

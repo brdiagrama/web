@@ -12,7 +12,7 @@
       <path
         d="M0 6 L12 6 M12 0 L0 6 L12 12"
         fill="none"
-        stroke="#7f8c8d"
+        stroke="var(--ref-color, #7f8c8d)"
         stroke-width="1.5"
         transform="scale(0.5) rotate(180 6 7)"
       />
@@ -29,7 +29,7 @@
       <path
         d="M0 6 L12 6 M12 0 L0 6 L12 12"
         fill="none"
-        stroke="#192747"
+        stroke="var(--diagram-line-active, #192747)"
         stroke-width="1.5"
         transform="scale(0.5) rotate(180 6 7)"
       />
@@ -49,7 +49,7 @@
         y1="0"
         x2="10"
         y2="12"
-        stroke="#7f8c8d"
+        stroke="var(--ref-color, #7f8c8d)"
         stroke-width="1.5"
         transform="scale(0.7)"
       />
@@ -68,7 +68,7 @@
         y1="0"
         x2="10"
         y2="12"
-        stroke="#7f8c8d"
+        stroke="var(--ref-color, #7f8c8d)"
         stroke-width="1.5"
         transform="scale(0.7)"
       />
@@ -87,7 +87,7 @@
         y1="0"
         x2="10"
         y2="12"
-        stroke="#192747"
+        stroke="var(--diagram-line-active, #192747)"
         stroke-width="1.5"
         transform="scale(0.7)"
       />
@@ -106,7 +106,7 @@
         y1="0"
         x2="10"
         y2="12"
-        stroke="#192747"
+        stroke="var(--diagram-line-active, #192747)"
         stroke-width="1.5"
         transform="scale(0.7)"
       />
@@ -126,7 +126,7 @@
         y1="0"
         x2="1.5"
         y2="12"
-        stroke="#7f8c8d"
+        stroke="var(--ref-color, #7f8c8d)"
         stroke-width="1.5"
         transform="scale(0.7)"
       />
@@ -134,8 +134,8 @@
         cx="7.5"
         cy="6"
         r="2.5"
-        fill="#fff"
-        stroke="#7f8c8d"
+        fill="var(--diagram-table-bg, #fff)"
+        stroke="var(--ref-color, #7f8c8d)"
         stroke-width="1.5"
         transform="scale(0.7)"
       />
@@ -154,7 +154,7 @@
         y1="0"
         x2="1.5"
         y2="12"
-        stroke="#192747"
+        stroke="var(--diagram-line-active, #192747)"
         stroke-width="1.5"
         transform="scale(0.7)"
       />
@@ -162,8 +162,8 @@
         cx="7.5"
         cy="6"
         r="2.5"
-        fill="#fff"
-        stroke="#192747"
+        fill="var(--diagram-table-bg, #fff)"
+        stroke="var(--diagram-line-active, #192747)"
         stroke-width="1.5"
         transform="scale(0.7)"
       />
@@ -181,8 +181,8 @@
         cx="7.5"
         cy="6"
         r="2.5"
-        fill="#fff"
-        stroke="#7f8c8d"
+        fill="var(--diagram-table-bg, #fff)"
+        stroke="var(--ref-color, #7f8c8d)"
         stroke-width="1.5"
         transform="scale(0.7)"
       />
@@ -191,7 +191,7 @@
         y1="0"
         x2="13.5"
         y2="12"
-        stroke="#7f8c8d"
+        stroke="var(--ref-color, #7f8c8d)"
         stroke-width="1.5"
         transform="scale(0.7)"
       />
@@ -209,8 +209,8 @@
         cx="7.5"
         cy="6"
         r="2.5"
-        fill="#fff"
-        stroke="#192747"
+        fill="var(--diagram-table-bg, #fff)"
+        stroke="var(--diagram-line-active, #192747)"
         stroke-width="1.5"
         transform="scale(0.7)"
       />
@@ -219,7 +219,7 @@
         y1="0"
         x2="13.5"
         y2="12"
-        stroke="#192747"
+        stroke="var(--diagram-line-active, #192747)"
         stroke-width="1.5"
         transform="scale(0.7)"
       />
@@ -239,7 +239,7 @@
         y1="0"
         x2="3"
         y2="12"
-        stroke="#7f8c8d"
+        stroke="var(--ref-color, #7f8c8d)"
         stroke-width="1.5"
         transform="scale(0.7)"
       />
@@ -248,7 +248,7 @@
         y1="0"
         x2="7"
         y2="12"
-        stroke="#7f8c8d"
+        stroke="var(--ref-color, #7f8c8d)"
         stroke-width="1.5"
         transform="scale(0.7)"
       />
@@ -267,7 +267,7 @@
         y1="0"
         x2="3"
         y2="12"
-        stroke="#192747"
+        stroke="var(--diagram-line-active, #192747)"
         stroke-width="1.5"
         transform="scale(0.7)"
       />
@@ -276,7 +276,7 @@
         y1="0"
         x2="7"
         y2="12"
-        stroke="#192747"
+        stroke="var(--diagram-line-active, #192747)"
         stroke-width="1.5"
         transform="scale(0.7)"
       />
@@ -295,15 +295,15 @@
         cx="12"
         cy="6"
         r="3"
-        fill="#fff"
-        stroke="#7f8c8d"
+        fill="var(--diagram-table-bg, #fff)"
+        stroke="var(--ref-color, #7f8c8d)"
         stroke-width="1.5"
         transform="scale(0.7)"
       />
       <path
         d="M0 0 L8 6 L0 12"
         fill="none"
-        stroke="#7f8c8d"
+        stroke="var(--ref-color, #7f8c8d)"
         stroke-width="1.5"
         transform="scale(0.7)"
       />
@@ -321,15 +321,15 @@
         cx="12"
         cy="6"
         r="3"
-        fill="#fff"
-        stroke="#192747"
+        fill="var(--diagram-table-bg, #fff)"
+        stroke="var(--diagram-line-active, #192747)"
         stroke-width="1.5"
         transform="scale(0.7)"
       />
       <path
         d="M0 0 L8 6 L0 12"
         fill="none"
-        stroke="#192747"
+        stroke="var(--diagram-line-active, #192747)"
         stroke-width="1.5"
         transform="scale(0.7)"
       />
@@ -344,10 +344,10 @@
       refY="4.65"
       orient="auto"
     >
-      <path d="M7.19128 0.436768V8.83677" stroke="#7F8C8D" stroke-width="1.05" />
+      <path d="M7.19128 0.436768V8.83677" stroke="var(--ref-color, #7F8C8D)" stroke-width="1.05" />
       <path
         d="M0.29126 0.436768L6.59126 4.63677L0.29126 8.83677"
-        stroke="#7F8C8D"
+        stroke="var(--ref-color, #7F8C8D)"
         stroke-width="1.05"
         fill="none"
       />
@@ -361,10 +361,10 @@
       refY="4.65"
       orient="auto"
     >
-      <path d="M7.19128 0.436768V8.83677" stroke="#192747" stroke-width="1.05" />
+      <path d="M7.19128 0.436768V8.83677" stroke="var(--diagram-line-active, #192747)" stroke-width="1.05" />
       <path
         d="M0.29126 0.436768L6.59126 4.63677L0.29126 8.83677"
-        stroke="#192747"
+        stroke="var(--diagram-line-active, #192747)"
         stroke-width="1.05"
         fill="none"
       />
@@ -381,8 +381,8 @@
     >
       <path
         d="M0 6 L10 0 L10 12 Z"
-        fill="#fff"
-        stroke="#7f8c8d"
+        fill="var(--diagram-table-bg, #fff)"
+        stroke="var(--ref-color, #7f8c8d)"
         stroke-width="1.5"
         transform="scale(0.7)"
       />
@@ -398,8 +398,8 @@
     >
       <path
         d="M0 6 L10 0 L10 12 Z"
-        fill="#fff"
-        stroke="#192747"
+        fill="var(--diagram-table-bg, #fff)"
+        stroke="var(--diagram-line-active, #192747)"
         stroke-width="2"
         transform="scale(0.7)"
       />

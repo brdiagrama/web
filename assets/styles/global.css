@@ -122,30 +122,46 @@ input[type="reset"]:disabled {
   pointer-events: none;
 }
 
-html.dark .v-tooltip .v-overlay__content,
-.dark .v-tooltip .v-overlay__content {
+/* Tooltip sob Tema Escuro (da respectiva região) */
+.v-tooltip.v-overlay.v-theme--dark .v-overlay__content,
+.v-theme--dark.v-tooltip .v-overlay__content {
   background-color: #4e4e4e !important;
   color: #FFFFFF !important;
   border: none !important;
 }
 
-html:not(.dark) .v-tooltip .v-overlay__content {
+/* Tooltip sob Tema Claro (da respectiva região) */
+.v-tooltip.v-overlay.v-theme--light .v-overlay__content,
+.v-theme--light.v-tooltip .v-overlay__content {
   background-color: #1F1F1F !important;
   color: #FFFFFF !important;
   border: none !important;
 }
 
+/* Menus não devem herdar fundos indesejados no overlay container */
+.v-menu > .v-overlay__content {
+  background: transparent !important;
+}
+
 ::view-transition-old(root),
-::view-transition-new(root) {
+::view-transition-new(root),
+::view-transition-old(editor-panel),
+::view-transition-new(editor-panel),
+::view-transition-old(canvas-stage),
+::view-transition-new(canvas-stage) {
   animation: none;
   mix-blend-mode: normal;
 }
 
-::view-transition-old(root) {
+::view-transition-old(root),
+::view-transition-old(editor-panel),
+::view-transition-old(canvas-stage) {
   z-index: 1;
 }
 
-::view-transition-new(root) {
+::view-transition-new(root),
+::view-transition-new(editor-panel),
+::view-transition-new(canvas-stage) {
   z-index: 9999;
 }
 

@@ -45,7 +45,7 @@ export function calculateDiagramBounds(
   };
 }
 
-function prepareSvgClone(svgElement: SVGSVGElement, bounds: DiagramBounds): SVGSVGElement {
+function prepareSvgClone(svgElement: SVGSVGElement, bounds: DiagramBounds, isDark = false): SVGSVGElement {
   const svgClone = svgElement.cloneNode(true) as SVGSVGElement;
 
   svgClone.removeAttribute("style");
@@ -53,6 +53,7 @@ function prepareSvgClone(svgElement: SVGSVGElement, bounds: DiagramBounds): SVGS
   svgClone.setAttribute("height", Math.ceil(bounds.height).toString());
   svgClone.setAttribute("viewBox", `${bounds.x} ${bounds.y} ${bounds.width} ${bounds.height}`);
   svgClone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  svgClone.setAttribute("class", isDark ? "diagram-canvas canvas-dark" : "diagram-canvas canvas-light");
 
   const viewportLayer = svgClone.querySelector("#viewport-layer") as HTMLElement | null;
   if (viewportLayer) {
@@ -70,8 +71,44 @@ function prepareSvgClone(svgElement: SVGSVGElement, bounds: DiagramBounds): SVGS
 
   svgClone.querySelectorAll(unwantedSelectors.join(', ')).forEach((el) => el.remove());
 
-  // Coleta regras CSS ativas para manter fontes e estilos intactos
-  let cssText = "";
+  // Fundo com a cor do tema computada diretamente do canvas
+  const computedStyle = window.getComputedStyle(svgElement);
+  const canvasBg = computedStyle.getPropertyValue("--canvas-bg").trim();
+
+  const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  bgRect.setAttribute("x", bounds.x.toString());
+  bgRect.setAttribute("y", bounds.y.toString());
+  bgRect.setAttribute("width", bounds.width.toString());
+  bgRect.setAttribute("height", bounds.height.toString());
+  bgRect.setAttribute("fill", canvasBg);
+  svgClone.insertBefore(bgRect, svgClone.firstChild);
+
+  // Injeta variáveis CSS ativas extraídas do DOM (garante 100% DRY sem cores duplicadas no TS)
+  const themeVarNames = [
+    "--canvas-bg",
+    "--diagram-table-bg",
+    "--diagram-table-header",
+    "--diagram-table-title",
+    "--diagram-table-text",
+    "--diagram-table-text-type",
+    "--diagram-table-text-pk",
+    "--diagram-table-border-hover",
+    "--diagram-table-border-selected",
+    "--ref-color",
+    "--ref-highlight-color",
+    "--diagram-line-active",
+    "--diagram-line-flow",
+    "--diagram-font",
+  ];
+
+  const themeVarsCss = themeVarNames
+    .map((name) => `  ${name}: ${computedStyle.getPropertyValue(name).trim()};`)
+    .filter((line) => !line.endsWith(": ;"))
+    .join("\n");
+
+  const themeCss = `:root, svg {\n${themeVarsCss}\n}`;
+
+  let cssText = themeCss + "\n";
   for (const sheet of Array.from(document.styleSheets)) {
     try {
       const rules = sheet.cssRules || (sheet as any).rules;
@@ -101,11 +138,12 @@ function prepareSvgClone(svgElement: SVGSVGElement, bounds: DiagramBounds): SVGS
 export async function exportSvg(
   svgElement: SVGSVGElement,
   tables: Record<string, Table>,
-  positions: Record<string, { x: number; y: number }>
+  positions: Record<string, { x: number; y: number }>,
+  isDark = false
 ): Promise<void> {
   try {
     const bounds = calculateDiagramBounds(tables, positions);
-    const svgClone = prepareSvgClone(svgElement, bounds);
+    const svgClone = prepareSvgClone(svgElement, bounds, isDark);
     const svgString = new XMLSerializer().serializeToString(svgClone);
 
     downloadFile(svgString, "diagrama.svg", "image/svg+xml;charset=utf-8");
@@ -118,11 +156,12 @@ export async function exportSvg(
 export async function exportPng(
   svgElement: SVGSVGElement,
   tables: Record<string, Table>,
-  positions: Record<string, { x: number; y: number }>
+  positions: Record<string, { x: number; y: number }>,
+  isDark = false
 ): Promise<void> {
   try {
     const bounds = calculateDiagramBounds(tables, positions);
-    const svgClone = prepareSvgClone(svgElement, bounds);
+    const svgClone = prepareSvgClone(svgElement, bounds, isDark);
     const svgString = new XMLSerializer().serializeToString(svgClone);
 
     const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
@@ -149,8 +188,9 @@ export async function exportPng(
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Contexto 2D não suportado");
 
-    // Fundo branco
-    ctx.fillStyle = "#ffffff";
+    // Fundo na cor computada do canvas (100% DRY)
+    const computedStyle = window.getComputedStyle(svgElement);
+    ctx.fillStyle = computedStyle.getPropertyValue("--canvas-bg").trim();
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.save();

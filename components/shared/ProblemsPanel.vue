@@ -82,34 +82,34 @@ const sortedProblems = computed(() => {
 
 <style scoped>
 .problems-panel {
-  background-color: #020617;
-  border-top: 1px solid #1E293B;
+  background-color: var(--clr-bg-surface);
+  border-top: 1px solid var(--clr-border);
   height: 200px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25);
   z-index: 50;
+  transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
 .problems-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 12px;
+  padding: 0 14px;
   height: 40px;
-  background-color: #0F172A;
-  border-bottom: 1px solid #1E293B;
+  background-color: var(--clr-bg);
+  border-bottom: 1px solid var(--clr-border);
   cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease; /* Suavidade */
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .problems-header:hover {
-  background-color: #1E293B;
-  border-bottom-color: #334155;
+  background-color: var(--clr-hover);
 }
 
 .problems-header:hover .panel-title {
-  color: #E2E8F0;
+  color: var(--clr-text);
 }
 
 .header-left {
@@ -119,14 +119,14 @@ const sortedProblems = computed(() => {
 }
 
 .panel-title {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.5px;
-  color: #94A3B8;
+  color: var(--clr-text-muted);
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: 'Segoe UI', sans-serif;
+  font-family: inherit;
 }
 
 .badges-container {
@@ -136,70 +136,57 @@ const sortedProblems = computed(() => {
 
 .count-badge {
   font-size: 11px;
-  padding: 3px 8px;
-  border-radius: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 5px;
   transition: background 0.2s;
-  font-family: 'Segoe UI', sans-serif;
 }
 
 .count-badge.error {
-  background-color: rgba(239, 68, 68, 0.1);
-  color: #FCA5A5;
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
 }
 
 .count-badge.warning {
-  background-color: rgba(245, 158, 11, 0.1);
-  color: #FCD34D;
-  border: 1px solid rgba(245, 158, 11, 0.2);
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
 }
 
 .icon-btn {
   background: none;
   border: none;
-  color: #64748B;
+  color: var(--clr-text-muted);
   cursor: pointer;
   padding: 4px;
-  border-radius: 4px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
 }
+
 .icon-btn:hover {
-  background-color: #334155;
-  color: #F8FAFC;
+  background-color: var(--clr-hover);
+  color: var(--clr-text);
 }
 
 .problem-item {
   display: flex;
   position: relative;
-  padding: 10px 12px;
-  border-bottom: 1px solid #1E293B;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--clr-border);
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.15s ease;
   align-items: flex-start;
   gap: 12px;
-  background-color: #020617;
+  background-color: var(--clr-bg-surface);
 }
 
-.problem-item.error {
-  background-color: rgba(239, 68, 68, 0.08);
-}
-
-.problem-item.error:hover {
-  background-color: rgba(239, 68, 68, 0.15);
-}
-
-.problem-item.warning {
-  background-color: rgba(245, 158, 11, 0.08);
-}
-.problem-item.warning:hover {
-  background-color: rgba(245, 158, 11, 0.15);
+.problem-item:hover {
+  background-color: var(--clr-hover);
 }
 
 .problem-status-strip {
@@ -209,14 +196,14 @@ const sortedProblems = computed(() => {
   bottom: 0;
   width: 3px;
 }
-.problem-item.error .problem-status-strip { background-color: #EF4444; }
-.problem-item.warning .problem-status-strip { background-color: #F59E0B; }
+.problem-item.error .problem-status-strip { background-color: #ef4444; }
+.problem-item.warning .problem-status-strip { background-color: #f59e0b; }
 
 .problem-icon {
   margin-top: 2px;
 }
-.icon-error { color: #EF4444; }
-.icon-warning { color: #F59E0B; }
+.icon-error { color: #ef4444; }
+.icon-warning { color: #f59e0b; }
 
 .problem-content {
   flex: 1;
@@ -234,23 +221,23 @@ const sortedProblems = computed(() => {
 
 .problem-message {
   font-size: 13px;
-  color: #E2E8F0;
-  font-family: system-ui, -apple-system, sans-serif;
+  color: var(--clr-text);
+  font-family: inherit;
   line-height: 1.4;
 }
 
 .code-tag {
   font-family: 'Fira Code', 'JetBrains Mono', monospace;
   font-size: 11px;
-  background: rgba(255,255,255,0.08);
-  padding: 1px 5px;
-  border-radius: 3px;
-  color: #CBD5E1;
+  background: var(--clr-hover);
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: var(--clr-text);
 }
 
 .location-link {
   font-size: 11px;
-  color: #64748B;
+  color: var(--clr-text-muted);
   font-family: monospace;
   text-decoration: underline;
   text-decoration-color: transparent;
@@ -258,8 +245,8 @@ const sortedProblems = computed(() => {
 }
 
 .problem-item:hover .location-link {
-  color: #94A3B8;
-  text-decoration-color: #94A3B8;
+  color: var(--clr-primary);
+  text-decoration-color: var(--clr-primary);
 }
 
 .problems-list {
@@ -267,10 +254,6 @@ const sortedProblems = computed(() => {
   overflow-y: auto;
   min-height: 0;
 }
-
-.problems-list::-webkit-scrollbar { width: 8px; }
-.problems-list::-webkit-scrollbar-track { background: #020617; }
-.problems-list::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
 
 .slide-up-enter-active,
 .slide-up-leave-active {

@@ -4,8 +4,8 @@
     :style="{ width: '100%', height: '100%', cursor: store.isPanMode ? (isLeftMousePanning ? 'grabbing' : 'grab') : currentCursor }">
     <defs>
       <pattern id="grid-pattern" :width="store.gridSize" :height="store.gridSize" patternUnits="userSpaceOnUse">
-        <circle :cx="store.gridSize / 2" :cy="store.gridSize / 2" r="1" fill="#999"
-          :opacity="Math.max(0.1, Math.min(0.8, store.zoom * 2))" />
+        <circle :cx="store.gridSize / 2" :cy="store.gridSize / 2" r="1" fill="var(--grid-color, var(--ref-color, #999))"
+          :opacity="Math.max(0.3, Math.min(0.65, store.zoom))" />
       </pattern>
     </defs>
 
@@ -25,7 +25,7 @@
         style="pointer-events: all; cursor: crosshair" />
       <rect v-if="selectionBox.visible" :x="Math.min(selectionBox.startX, selectionBox.endX)"
         :y="Math.min(selectionBox.startY, selectionBox.endY)" :width="Math.abs(selectionBox.endX - selectionBox.startX)"
-        :height="Math.abs(selectionBox.endY - selectionBox.startY)" fill="rgba(59, 130, 246, 0.1)" stroke="#3b82f6"
+        :height="Math.abs(selectionBox.endY - selectionBox.startY)" fill="var(--diagram-selection-box-bg, rgba(59, 130, 246, 0.1))" stroke="var(--diagram-selection-box-stroke, #3b82f6)"
         stroke-width="1" stroke-dasharray="5,5" style="pointer-events: none" />
     </g>
   </svg>

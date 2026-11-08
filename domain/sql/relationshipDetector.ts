@@ -36,13 +36,19 @@ export function isJunctionTable(tableData: Table): boolean {
 export function isInheritanceRelationship(tableData: Table, fkColumn: Column, refTableName: string, newTables: Record<string, Table>): boolean {
     if (!fkColumn.isPk || !fkColumn.isFk) return false;
 
-    const fkCount = tableData.columns.filter(c => c.isFk).length;
-    if (fkCount > 1) return false;
-
     const pkCount = tableData.columns.filter(c => c.isPk).length;
     if (pkCount !== 1) return false;
 
     return !!newTables[refTableName];
+}
+
+export function updateInheritanceTables(tables: Record<string, Table>): void {
+    for (const table of Object.values(tables)) {
+        const pkColumns = table.columns.filter(c => c.isPk);
+        if (pkColumns.length === 1 && pkColumns[0].isFk) {
+            table.isInheritance = true;
+        }
+    }
 }
 
 export function updateJunctionRelationships(tables: Record<string, Table>, relationships: Relationship[]): void {
