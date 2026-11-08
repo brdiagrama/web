@@ -8,6 +8,9 @@ const isEditorThemeInitialized = ref(false);
 const canvasTheme = ref<Theme>('light');
 const isCanvasThemeInitialized = ref(false);
 
+const modelingTheme = ref<Theme>('dark');
+const isModelingThemeInitialized = ref(false);
+
 function runRegionalTransition(
   targetElement: HTMLElement | null,
   transitionName: string,
@@ -108,7 +111,8 @@ export function useGeneratorTheme() {
     const nextTheme: Theme = editorTheme.value === 'dark' ? 'light' : 'dark';
     const targetElement =
       typeof document !== 'undefined'
-        ? ((document.querySelector('.editor-shell') as HTMLElement | null) ||
+        ? ((document.querySelector('.panel-shell.is-editor') as HTMLElement | null) ||
+          (document.querySelector('.editor-shell') as HTMLElement | null) ||
           (document.querySelector('.editor-panel') as HTMLElement | null))
         : null;
 
@@ -152,6 +156,43 @@ export function useGeneratorTheme() {
   const isEditorDark = computed(() => editorTheme.value === 'dark');
   const isCanvasDark = computed(() => canvasTheme.value === 'dark');
 
+  const initModelingTheme = () => {
+    if (import.meta.server || isModelingThemeInitialized.value) return;
+
+    try {
+      const stored = localStorage.getItem('brdiagrama-modeling-theme') as Theme | null;
+      if (stored === 'dark' || stored === 'light') {
+        modelingTheme.value = stored;
+      } else {
+        modelingTheme.value = 'dark';
+      }
+    } catch {
+      modelingTheme.value = 'dark';
+    }
+
+    isModelingThemeInitialized.value = true;
+  };
+
+  const setModelingTheme = (theme: Theme) => {
+    modelingTheme.value = theme;
+    try {
+      localStorage.setItem('brdiagrama-modeling-theme', theme);
+    } catch {}
+  };
+
+  const toggleModelingTheme = (event?: MouseEvent) => {
+    const nextTheme: Theme = modelingTheme.value === 'dark' ? 'light' : 'dark';
+    const targetElement =
+      typeof document !== 'undefined'
+        ? ((document.querySelector('.panel-shell.is-modeling') as HTMLElement | null) ||
+          (document.querySelector('.modeling-panel') as HTMLElement | null))
+        : null;
+
+    runRegionalTransition(targetElement, 'modeling-panel', () => setModelingTheme(nextTheme), event);
+  };
+
+  const isModelingDark = computed(() => modelingTheme.value === 'dark');
+
   return {
     canvasTheme,
     isCanvasDark,
@@ -163,5 +204,10 @@ export function useGeneratorTheme() {
     initEditorTheme,
     setEditorTheme,
     toggleEditorTheme,
+    modelingTheme,
+    isModelingDark,
+    initModelingTheme,
+    setModelingTheme,
+    toggleModelingTheme,
   };
 }

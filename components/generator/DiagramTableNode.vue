@@ -2,19 +2,25 @@
 import { Key, Link } from "lucide-vue-next";
 import type { Table, Column } from "@/domain/models/databaseSchema";
 
-const props = defineProps<{
-  table: Table;
-  x: number;
-  y: number;
-  isSelected: boolean;
-  isPanMode: boolean;
-  headerHeight: number;
-  rowHeight: number;
-  tableWidth: number;
-  tableHeight: number;
-  selectedTablesCount: number;
-  highlightedColumns: Set<string>;
-}>();
+const props = withDefaults(
+  defineProps<{
+    table: Table;
+    x: number;
+    y: number;
+    isSelected: boolean;
+    isPanMode: boolean;
+    headerHeight: number;
+    rowHeight: number;
+    tableWidth: number;
+    tableHeight: number;
+    selectedTablesCount: number;
+    highlightedColumns: Set<string>;
+    detailLevel?: 'full' | 'simplified';
+  }>(),
+  {
+    detailLevel: 'full',
+  }
+);
 
 const emit = defineEmits<{
   (e: 'startDrag', event: PointerEvent | MouseEvent, tableName: string): void;
@@ -52,7 +58,7 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
   <g
     :transform="`translate(${x}, ${y})`"
     class="table-group"
-    :class="{ selected: isSelected }"
+    :class="{ selected: isSelected, 'is-simplified': detailLevel === 'simplified' }"
     :style="{ cursor: isPanMode ? 'grab' : 'move' }"
     @pointerdown="handleDragStart"
   >
@@ -68,112 +74,156 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
       :d="`M0 6 Q0 0 6 0 L${tableWidth - 6} 0 Q${tableWidth} 0 ${tableWidth} 6 L${tableWidth} ${headerHeight} L0 ${headerHeight} Z`"
       class="table-header-rect"
     />
-    <text :x="15" :y="22" class="table-title">{{ table.name }}</text>
+    <text v-if="detailLevel === 'full'" :x="15" :y="22" class="table-title">{{ table.name }}</text>
+    <rect
+      v-else
+      :x="15"
+      :y="12"
+      :width="Math.min(tableWidth - 30, Math.max(50, table.name.length * 7.5))"
+      height="11"
+      rx="3"
+      class="table-header-skeleton"
+    />
 
-    <g v-for="(col, colIndex) in table.columns" :key="colIndex">
-      <rect
-        v-if="!col.isPk && !col.isFk"
-        :x="0"
-        :y="headerHeight + colIndex * rowHeight"
-        :width="tableWidth"
-        :height="rowHeight"
-        fill="transparent"
-        class="column-neutral-hover"
-      />
+    <!-- Modo Completo (Zoom Normal ou Exportação) -->
+    <template v-if="detailLevel === 'full'">
+      <g v-for="(col, colIndex) in table.columns" :key="colIndex">
+        <rect
+          v-if="!col.isPk && !col.isFk"
+          :x="0"
+          :y="headerHeight + colIndex * rowHeight"
+          :width="tableWidth"
+          :height="rowHeight"
+          fill="transparent"
+          class="column-neutral-hover"
+        />
 
-      <rect
-        v-if="col.isPk || col.isFk"
-        :x="0"
-        :y="headerHeight + colIndex * rowHeight"
-        :width="tableWidth"
-        :height="rowHeight"
-        fill="transparent"
-        class="column-hover-area"
-        @mouseenter="emit('columnHover', { tableName: table.name, columnName: col.name, isPk: col.isPk, isFk: col.isFk, refTable: col.refTable, isHovering: true })"
-        @mouseleave="emit('columnHover', { isHovering: false })"
-      />
+        <rect
+          v-if="col.isPk || col.isFk"
+          :x="0"
+          :y="headerHeight + colIndex * rowHeight"
+          :width="tableWidth"
+          :height="rowHeight"
+          fill="transparent"
+          class="column-hover-area"
+          @mouseenter="emit('columnHover', { tableName: table.name, columnName: col.name, isPk: col.isPk, isFk: col.isFk, refTable: col.refTable, isHovering: true })"
+          @mouseleave="emit('columnHover', { isHovering: false })"
+        />
 
-      <rect
-        v-if="col.isPk || col.isFk"
-        :x="0"
-        :y="headerHeight + colIndex * rowHeight"
-        :width="tableWidth"
-        :height="rowHeight"
-        :fill="col.isPk ? 'var(--diagram-col-highlight-pk)' : 'var(--diagram-col-highlight-fk)'"
-        :rx="colIndex === table.columns.length - 1 ? 6 : 0"
-        class="column-highlight-bg"
-        :class="{ 'is-active': isColumnHovered(col.name) || isTableColumnHighlighted(col) }"
-        style="pointer-events: none"
-      />
+        <rect
+          v-if="col.isPk || col.isFk"
+          :x="0"
+          :y="headerHeight + colIndex * rowHeight"
+          :width="tableWidth"
+          :height="rowHeight"
+          :fill="col.isPk ? 'var(--diagram-col-highlight-pk)' : 'var(--diagram-col-highlight-fk)'"
+          :rx="colIndex === table.columns.length - 1 ? 6 : 0"
+          class="column-highlight-bg"
+          :class="{ 'is-active': isColumnHovered(col.name) || isTableColumnHighlighted(col) }"
+          style="pointer-events: none"
+        />
 
-      <g
-        :transform="`translate(15, ${headerHeight + 20 + colIndex * rowHeight - 12})`"
-        style="pointer-events: none; transform-origin: top left;"
-      >
-        <template v-if="isInheritanceColumn(col)">
-          <g class="pk-icon" style="display:inline-block;">
-            <Key :size="18" stroke-width="2" />
+        <g
+          :transform="`translate(15, ${headerHeight + 20 + colIndex * rowHeight - 12})`"
+          style="pointer-events: none; transform-origin: top left;"
+        >
+          <template v-if="isInheritanceColumn(col)">
+            <g class="pk-icon" style="display:inline-block;">
+              <Key :size="18" stroke-width="2" />
+            </g>
+            <g class="fk-icon" style="display:inline-block; transform: translateX(22px);">
+              <Link :size="17" stroke-width="2" />
+            </g>
+          </template>
+
+          <g v-else-if="col.isPk && !col.isFk" class="pk-icon">
+            <Key :size="18" stroke-width="2" style="display: block;" />
           </g>
-          <g class="fk-icon" style="display:inline-block; transform: translateX(22px);">
-            <Link :size="17" stroke-width="2" />
+          <g v-else-if="col.isFk" class="fk-icon">
+            <Link :size="17" stroke-width="2" style="display: block;" />
           </g>
+        </g>
+
+        <text
+          :x="isInheritanceColumn(col) ? 64 : (col.isPk || col.isFk ? 40 : 15)"
+          :y="headerHeight + 20 + colIndex * rowHeight"
+          class="col-text"
+          :font-weight="col.isPk ? '600' : '400'"
+          style="pointer-events: none"
+        >
+          {{ col.name }}
+        </text>
+
+        <text
+          :x="tableWidth - 15"
+          :y="headerHeight + 20 + colIndex * rowHeight"
+          text-anchor="end"
+          class="col-type"
+          :class="{ 'pk-type': col.isPk }"
+          :font-weight="col.isPk ? '600' : '400'"
+          style="pointer-events: none"
+        >
+          {{ col.type }}
+        </text>
+
+        <g
+          v-if="col.isPk || col.isFk"
+          class="column-highlight-borders"
+          :class="{ 'is-active': isColumnHovered(col.name) || isTableColumnHighlighted(col) }"
+          style="pointer-events: none"
+        >
+          <line
+            :x1="0"
+            :y1="headerHeight + colIndex * rowHeight + (colIndex === 0 ? 0.55 : 0)"
+            :x2="tableWidth"
+            :y2="headerHeight + colIndex * rowHeight + (colIndex === 0 ? 0.55 : 0)"
+            :stroke="col.isPk ? 'var(--diagram-col-border-pk)' : 'var(--diagram-col-border-fk)'"
+            stroke-width="1.1"
+          />
+          <line
+            v-if="colIndex < table.columns.length - 1"
+            :x1="0"
+            :y1="headerHeight + (colIndex + 1) * rowHeight"
+            :x2="tableWidth"
+            :y2="headerHeight + (colIndex + 1) * rowHeight"
+            :stroke="col.isPk ? 'var(--diagram-col-border-pk)' : 'var(--diagram-col-border-fk)'"
+            stroke-width="1.1"
+          />
+        </g>
+      </g>
+    </template>
+
+    <!-- Modo Simplificado / LOD (Zoom Out em Diagramas Grandes <= 20%) -->
+    <template v-else>
+      <g v-for="(col, colIndex) in table.columns" :key="colIndex">
+        <template v-if="col.isPk || col.isFk">
+          <circle
+            :cx="18"
+            :cy="headerHeight + 20 + colIndex * rowHeight - 4"
+            r="3.5"
+            :fill="col.isPk ? 'var(--diagram-col-border-pk)' : 'var(--diagram-col-border-fk)'"
+          />
+          <rect
+            :x="28"
+            :y="headerHeight + 20 + colIndex * rowHeight - 6"
+            :width="Math.min(tableWidth - 46, 52 + (colIndex % 4) * 22)"
+            height="3.5"
+            rx="1.75"
+            class="column-skeleton-line"
+            :class="{ 'skeleton-pk': col.isPk, 'skeleton-fk': col.isFk }"
+          />
         </template>
-
-        <g v-else-if="col.isPk && !col.isFk" class="pk-icon">
-          <Key :size="18" stroke-width="2" style="display: block;" />
-        </g>
-        <g v-else-if="col.isFk" class="fk-icon">
-          <Link :size="17" stroke-width="2" style="display: block;" />
-        </g>
-      </g>
-
-      <text
-        :x="isInheritanceColumn(col) ? 64 : (col.isPk || col.isFk ? 40 : 15)"
-        :y="headerHeight + 20 + colIndex * rowHeight"
-        class="col-text"
-        :font-weight="col.isPk ? '600' : '400'"
-        style="pointer-events: none"
-      >
-        {{ col.name }}
-      </text>
-
-      <text
-        :x="tableWidth - 15"
-        :y="headerHeight + 20 + colIndex * rowHeight"
-        text-anchor="end"
-        class="col-type"
-        :class="{ 'pk-type': col.isPk }"
-        :font-weight="col.isPk ? '600' : '400'"
-        style="pointer-events: none"
-      >
-        {{ col.type }}
-      </text>
-
-      <g
-        v-if="col.isPk || col.isFk"
-        class="column-highlight-borders"
-        :class="{ 'is-active': isColumnHovered(col.name) || isTableColumnHighlighted(col) }"
-        style="pointer-events: none"
-      >
-        <line
-          :x1="0"
-          :y1="headerHeight + colIndex * rowHeight + (colIndex === 0 ? 0.55 : 0)"
-          :x2="tableWidth"
-          :y2="headerHeight + colIndex * rowHeight + (colIndex === 0 ? 0.55 : 0)"
-          :stroke="col.isPk ? 'var(--diagram-col-border-pk)' : 'var(--diagram-col-border-fk)'"
-          stroke-width="1.1"
-        />
-        <line
-          v-if="colIndex < table.columns.length - 1"
-          :x1="0"
-          :y1="headerHeight + (colIndex + 1) * rowHeight"
-          :x2="tableWidth"
-          :y2="headerHeight + (colIndex + 1) * rowHeight"
-          :stroke="col.isPk ? 'var(--diagram-col-border-pk)' : 'var(--diagram-col-border-fk)'"
-          stroke-width="1.1"
+        <rect
+          v-else
+          :x="18"
+          :y="headerHeight + 20 + colIndex * rowHeight - 6"
+          :width="Math.min(tableWidth - 36, 44 + (colIndex % 4) * 20)"
+          height="3.5"
+          rx="1.75"
+          class="column-skeleton-line"
         />
       </g>
-    </g>
+    </template>
 
     <rect
       :width="tableWidth"
@@ -233,6 +283,11 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
   stroke-width: 2.5px;
 }
 
+.table-group.is-simplified .table-bg,
+.table-group.is-simplified:hover .table-bg {
+  filter: none;
+}
+
 .table-header-rect {
   fill: var(--diagram-table-header, #192747);
   transition: fill 0.16s ease-out;
@@ -244,6 +299,12 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
   fill: var(--diagram-table-title, #ffffff);
   font-family: var(--diagram-font, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif);
   user-select: none;
+  pointer-events: none;
+}
+
+.table-header-skeleton {
+  fill: var(--diagram-table-title);
+  opacity: 0.55;
   pointer-events: none;
 }
 
@@ -308,5 +369,21 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
 
 .column-highlight-borders.is-active {
   opacity: 1;
+}
+
+.column-skeleton-line {
+  fill: var(--diagram-table-text-type);
+  opacity: 0.22;
+  pointer-events: none;
+}
+
+.column-skeleton-line.skeleton-pk {
+  fill: var(--diagram-col-border-pk);
+  opacity: 0.55;
+}
+
+.column-skeleton-line.skeleton-fk {
+  fill: var(--diagram-col-border-fk);
+  opacity: 0.55;
 }
 </style>

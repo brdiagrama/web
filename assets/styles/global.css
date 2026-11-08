@@ -20,6 +20,21 @@ body,
   outline-offset: 2px;
 }
 
+/* Campos de entrada gerenciam seu próprio foco (sem outline nativo retangular) */
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible,
+.v-field input:focus,
+.v-field input:focus-visible,
+.v-field__input:focus,
+.v-field__input:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -145,20 +160,24 @@ input[type="reset"]:disabled {
 ::view-transition-old(editor-panel),
 ::view-transition-new(editor-panel),
 ::view-transition-old(canvas-stage),
-::view-transition-new(canvas-stage) {
+::view-transition-new(canvas-stage),
+::view-transition-old(modeling-panel),
+::view-transition-new(modeling-panel) {
   animation: none;
   mix-blend-mode: normal;
 }
 
 ::view-transition-old(root),
 ::view-transition-old(editor-panel),
-::view-transition-old(canvas-stage) {
+::view-transition-old(canvas-stage),
+::view-transition-old(modeling-panel) {
   z-index: 1;
 }
 
 ::view-transition-new(root),
 ::view-transition-new(editor-panel),
-::view-transition-new(canvas-stage) {
+::view-transition-new(canvas-stage),
+::view-transition-new(modeling-panel) {
   z-index: 9999;
 }
 

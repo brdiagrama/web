@@ -3,12 +3,13 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import GeneratorToolbar from '~/components/generator/GeneratorToolbar.vue';
 import MonacoEditorPanel from '~/components/generator/MonacoEditorPanel.vue';
 import DiagramWorkspace from '~/components/generator/DiagramWorkspace.vue';
+import ModelingSidebarPanel from '~/components/generator/ModelingSidebarPanel.vue';
 import ProblemsPanel from '~/components/shared/ProblemsPanel.vue';
 import AlertModal from '~/components/shared/AlertModal.vue';
 import Toast from '~/components/shared/Toast.vue';
 import { useDiagram, DEFAULT_SQL } from "@/composables/useDiagram";
 import { useDiagramStorage } from "@/composables/useDiagramStorage";
-import { ChevronRight } from 'lucide-vue-next';
+import { ChevronRight, ChevronLeft } from 'lucide-vue-next';
 import { useGeneratorTheme } from "@/composables/useGeneratorTheme";
 import { toastSuccess, toastError } from "@/services/toastService";
 import { showConfirm } from "@/services/alertService";
@@ -22,21 +23,31 @@ useHead({
   ]
 });
 
-const { sqlCode, tables, errors: domainErrors, warnings: domainWarnings, parseSql } = useDiagram();
-const { isEditorDark, initEditorTheme } = useGeneratorTheme();
+const { sqlCode, tables, tableOrder, errors: domainErrors, warnings: domainWarnings, parseSql } = useDiagram();
+const { isEditorDark, initEditorTheme, isModelingDark, initModelingTheme } = useGeneratorTheme();
 initEditorTheme();
+initModelingTheme();
 
 const workspaceRef = ref(null);
 const isProblemsVisible = ref(false);
 const editorWidth = ref(550);
 const isResizing = ref(false);
 const isEditorVisible = ref(true);
+
+const modelingWidth = ref(380);
+const isModelingResizing = ref(false);
+const isModelingVisible = ref(true);
+
 const activeTab = ref('diagram');
 const isMobile = ref(false);
 
 const MIN_WIDTH = 300;
 const MAX_WIDTH = 1200;
 const SNAP_THRESHOLD = 150;
+
+const MIN_MODELING_WIDTH = 280;
+const MAX_MODELING_WIDTH = 750;
+const MODELING_SNAP_THRESHOLD = 150;
 
 const availableTableNames = computed(() => Object.keys(tables.value));
 
@@ -57,6 +68,10 @@ onUnmounted(() => {
   window.removeEventListener('mouseup', stopResize);
   window.removeEventListener('pointermove', handleResize);
   window.removeEventListener('pointerup', stopResize);
+  window.removeEventListener('mousemove', handleModelingResize);
+  window.removeEventListener('mouseup', stopModelingResize);
+  window.removeEventListener('pointermove', handleModelingResize);
+  window.removeEventListener('pointerup', stopModelingResize);
 });
 
 const onResizeWindow = () => {
@@ -103,6 +118,65 @@ const stopResize = () => {
   window.removeEventListener('mouseup', stopResize);
   window.removeEventListener('pointermove', handleResize);
   window.removeEventListener('pointerup', stopResize);
+};
+
+const startModelingResize = (e) => {
+  if (isMobile.value) return;
+  e.preventDefault();
+  isModelingResizing.value = true;
+  document.body.classList.add('is-resizing-global');
+  window.addEventListener('mousemove', handleModelingResize);
+  window.addEventListener('mouseup', stopModelingResize);
+  window.addEventListener('pointermove', handleModelingResize);
+  window.addEventListener('pointerup', stopModelingResize);
+};
+
+const handleModelingResize = (e) => {
+  if (!isModelingResizing.value) return;
+
+  const distanceFromRight = window.innerWidth - e.clientX;
+
+  if (distanceFromRight < MODELING_SNAP_THRESHOLD) {
+    if (isModelingVisible.value) {
+      isModelingVisible.value = false;
+    }
+  } else {
+    if (!isModelingVisible.value) {
+      isModelingVisible.value = true;
+    }
+
+    let newWidth = distanceFromRight;
+    if (newWidth < MIN_MODELING_WIDTH) newWidth = MIN_MODELING_WIDTH;
+    if (newWidth > MAX_MODELING_WIDTH) newWidth = MAX_MODELING_WIDTH;
+
+    modelingWidth.value = newWidth;
+  }
+};
+
+const stopModelingResize = () => {
+  isModelingResizing.value = false;
+  document.body.classList.remove('is-resizing-global');
+  window.removeEventListener('mousemove', handleModelingResize);
+  window.removeEventListener('mouseup', stopModelingResize);
+  window.removeEventListener('pointermove', handleModelingResize);
+  window.removeEventListener('pointerup', stopModelingResize);
+};
+
+const toggleModeling = () => {
+  isModelingVisible.value = !isModelingVisible.value;
+};
+
+const handleAddTableFromPanel = () => {
+  const existingNames = new Set(Object.keys(tables.value).map(n => n.toLowerCase()));
+  let counter = 1;
+  while (existingNames.has(`nova_tabela_${counter}`)) {
+    counter++;
+  }
+  const newTableName = `nova_tabela_${counter}`;
+  const tableDdl = `\n\nCREATE TABLE ${newTableName} (\n  id INT PRIMARY KEY AUTO_INCREMENT,\n  nome VARCHAR(100) NOT NULL\n);`;
+  sqlCode.value += tableDdl;
+  parseSql(sqlCode.value);
+  toastSuccess("Tabela criada", `Tabela ${newTableName} adicionada ao esquema.`);
 };
 
 const toggleEditor = () => {
@@ -175,12 +249,12 @@ const exportDiagramSVG = () => {
       <!-- Coluna da Esquerda (Editor + Barra de Redimensionamento) -->
       <div
         v-if="!isMobile || activeTab === 'editor'"
-        class="editor-shell"
+        class="panel-shell is-editor"
         :class="{ 
           'no-transition': isResizing, 
           'panel-hidden': !isEditorVisible,
-          'editor-dark': isEditorDark,
-          'editor-light': !isEditorDark
+          'theme-dark': isEditorDark,
+          'theme-light': !isEditorDark
         }"
         :style="{ width: isEditorVisible ? (isMobile ? '100%' : (editorWidth + 8) + 'px') : '0px' }"
       >
@@ -220,19 +294,30 @@ const exportDiagramSVG = () => {
         </aside>
 
         <!-- Barra de Redimensionamento (Arrastar) -->
-        <div
+        <v-tooltip 
           v-if="isEditorVisible && !isMobile"
-          class="resizer-handle"
-          @mousedown="startResize"
-          @pointerdown="startResize"
-          role="separator"
-          aria-label="Arrastar para redimensionar o editor"
-          tabindex="0"
-          title="Arrastar para redimensionar"
-        ></div>
+          text="Arrastar para redimensionar" 
+          location="right"
+          target="cursor"
+          :offset="12"
+          :disabled="isResizing"
+          :theme="isEditorDark ? 'dark' : 'light'"
+        >
+          <template #activator="{ props: tooltipProps }">
+            <div
+              v-bind="tooltipProps"
+              class="resizer-handle"
+              @mousedown="startResize"
+              @pointerdown="startResize"
+              role="separator"
+              aria-label="Arrastar para redimensionar o editor"
+              tabindex="0"
+            ></div>
+          </template>
+        </v-tooltip>
       </div>
 
-      <!-- Barra Lateral Colapsada Original -->
+      <!-- Barra Lateral Colapsada Editor (Esquerda) -->
       <v-tooltip 
         v-if="!isEditorVisible && !isMobile"
         text="Expandir editor" 
@@ -244,7 +329,7 @@ const exportDiagramSVG = () => {
         <template #activator="{ props: tooltipProps }">
           <button
             v-bind="tooltipProps"
-            class="collapsed-sidebar"
+            class="collapsed-sidebar is-editor-collapsed"
             :class="isEditorDark ? 'editor-dark' : 'editor-light'"
             @click="toggleEditor"
             aria-label="Expandir painel do editor SQL"
@@ -259,6 +344,73 @@ const exportDiagramSVG = () => {
       <!-- Área do Diagrama Canvas -->
       <DiagramWorkspace ref="workspaceRef" />
 
+      <!-- Barra Lateral Colapsada Modelagem (Direita - Espelhada ao Editor) -->
+      <v-tooltip 
+        v-if="!isModelingVisible && !isMobile"
+        text="Expandir modelagem" 
+        location="left"
+        target="cursor"
+        :offset="12"
+        :theme="isModelingDark ? 'dark' : 'light'"
+      >
+        <template #activator="{ props: tooltipProps }">
+          <button
+            v-bind="tooltipProps"
+            class="collapsed-sidebar is-modeling-collapsed"
+            :class="isModelingDark ? 'editor-dark' : 'editor-light'"
+            @click="toggleModeling"
+            aria-label="Expandir painel de modelagem ER"
+          >
+            <div class="expand-btn" aria-hidden="true">
+              <ChevronLeft :size="20" />
+            </div>
+          </button>
+        </template>
+      </v-tooltip>
+
+      <!-- Coluna da Direita (Painel de Modelagem ER) -->
+      <div
+        v-if="!isMobile"
+        class="panel-shell is-modeling"
+        :class="{ 
+          'no-transition': isModelingResizing, 
+          'panel-hidden': !isModelingVisible,
+          'theme-dark': isModelingDark,
+          'theme-light': !isModelingDark
+        }"
+        :style="{ width: isModelingVisible ? (modelingWidth + 8) + 'px' : '0px' }"
+      >
+        <!-- Barra de Redimensionamento (Arrastar à esquerda do painel direito) -->
+        <v-tooltip 
+          v-if="isModelingVisible && !isMobile"
+          text="Arrastar para redimensionar" 
+          location="left"
+          target="cursor"
+          :offset="12"
+          :disabled="isModelingResizing"
+          :theme="isModelingDark ? 'dark' : 'light'"
+        >
+          <template #activator="{ props: tooltipProps }">
+            <div
+              v-bind="tooltipProps"
+              class="resizer-handle"
+              @mousedown="startModelingResize"
+              @pointerdown="startModelingResize"
+              role="separator"
+              aria-label="Arrastar para redimensionar o painel de modelagem"
+              tabindex="0"
+            ></div>
+          </template>
+        </v-tooltip>
+
+        <ModelingSidebarPanel
+          :tables="tables"
+          :table-order="tableOrder"
+          @collapse="toggleModeling"
+          @add-table="handleAddTableFromPanel"
+        />
+      </div>
+
       <!-- Painel de Problemas (Erros/Warnings) -->
       <ProblemsPanel
         :problems="[...domainErrors, ...domainWarnings]"
@@ -268,7 +420,7 @@ const exportDiagramSVG = () => {
       />
 
       <!-- Overlay de Redimensionamento Global -->
-      <div v-if="isResizing" class="global-resize-overlay"></div>
+      <div v-if="isResizing || isModelingResizing" class="global-resize-overlay"></div>
     </main>
 
     <AlertModal />
@@ -295,7 +447,8 @@ const exportDiagramSVG = () => {
   position: relative;
 }
 
-.editor-shell {
+/* Casca Compartilhada de Painéis Laterais (DRY) */
+.panel-shell {
   display: flex;
   flex-direction: row;
   height: 100%;
@@ -303,18 +456,33 @@ const exportDiagramSVG = () => {
   transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
   overflow: hidden;
   position: relative;
+  background-color: var(--panel-bg);
 }
 
-.editor-shell.panel-hidden {
+.panel-shell.is-editor.panel-hidden {
   border-right: none;
 }
 
-.editor-shell.no-transition {
+.panel-shell.is-modeling.panel-hidden {
+  border-left: none;
+}
+
+.panel-shell.is-modeling.panel-hidden :deep(.modeling-panel) {
+  min-width: 280px;
+}
+
+.panel-shell.panel-hidden :deep(.table-list-scroll),
+.panel-shell.panel-hidden :deep(::-webkit-scrollbar) {
+  overflow-y: hidden !important;
+  display: none !important;
+}
+
+.panel-shell.no-transition {
   transition: width 0.1s ease-out !important;
   will-change: width;
 }
 
-.editor-shell.editor-dark {
+.panel-shell.theme-dark {
   --panel-bg: #1C1C1C;
   --panel-surface: #242424;
   --panel-border: rgba(255, 255, 255, 0.08);
@@ -323,13 +491,39 @@ const exportDiagramSVG = () => {
   --panel-hover: #2A2A2A;
 }
 
-.editor-shell.editor-light {
+.panel-shell.theme-light {
   --panel-bg: #FFFFFF;
   --panel-surface: #FAF9F9;
   --panel-border: rgba(0, 0, 0, 0.08);
   --panel-text: #1F1F1F;
   --panel-text-muted: #5E6368;
   --panel-hover: #EBEBEB;
+}
+
+.panel-shell .resizer-handle {
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  flex-shrink: 0;
+  z-index: 25;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.panel-shell.theme-dark .resizer-handle {
+  background-color: #242424;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.panel-shell.theme-light .resizer-handle {
+  background-color: #F0F0F0;
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.panel-shell .resizer-handle:hover,
+.panel-shell .resizer-handle:active {
+  background-color: var(--clr-primary) !important;
 }
 
 .editor-panel {
@@ -344,35 +538,9 @@ const exportDiagramSVG = () => {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-.resizer-handle {
-  width: 8px;
-  height: 100%;
-  cursor: col-resize;
-  flex-shrink: 0;
-  z-index: 25;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
-}
-
-.editor-shell.editor-dark .resizer-handle {
-  background-color: #242424;
-  border-left: 1px solid rgba(255, 255, 255, 0.08);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.editor-shell.editor-light .resizer-handle {
-  background-color: #F0F0F0;
-  border-left: 1px solid rgba(0, 0, 0, 0.08);
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
-}
-
-.editor-shell .resizer-handle:hover,
-.editor-shell .resizer-handle:active {
-  background-color: var(--clr-primary) !important;
-}
-
 .collapsed-sidebar {
   width: 40px;
-  border: none !important;
+  border: none;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -382,6 +550,22 @@ const exportDiagramSVG = () => {
   transition: background-color 0.2s ease;
   flex-shrink: 0;
   z-index: 20;
+}
+
+.collapsed-sidebar.is-editor-collapsed.editor-dark {
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.collapsed-sidebar.is-editor-collapsed.editor-light {
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.collapsed-sidebar.is-modeling-collapsed.editor-dark {
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.collapsed-sidebar.is-modeling-collapsed.editor-light {
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .collapsed-sidebar.editor-dark {

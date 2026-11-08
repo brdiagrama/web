@@ -1,20 +1,20 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { Database } from "lucide-vue-next";
+import { Database, Loader2 } from "lucide-vue-next";
 import { useDiagram } from "@/composables/useDiagram";
-import { useGeneratorTheme } from "@/composables/useGeneratorTheme";
 
 const { loadingProgress } = useDiagram();
-const { isCanvasDark } = useGeneratorTheme();
 
 const percentage = computed(() => {
   if (!loadingProgress.value.total) return 0;
   return Math.min(100, Math.round((loadingProgress.value.current / loadingProgress.value.total) * 100));
 });
+
+const isParsing = computed(() => loadingProgress.value.phase === 'parsing');
 </script>
 
 <template>
-  <v-slide-y-transition>
+  <v-scale-transition origin="center center">
     <div
       v-if="loadingProgress.isLoading"
       class="progress-loader-wrapper"
@@ -24,79 +24,94 @@ const percentage = computed(() => {
       <v-sheet
         class="progress-loader-card"
         elevation="0"
-        rounded="lg"
+        rounded="xl"
       >
         <div class="progress-loader-header">
           <div class="progress-icon-wrap" aria-hidden="true">
-            <Database :size="16" class="progress-icon" />
+            <Loader2 v-if="isParsing" :size="20" class="progress-icon-spin" />
+            <Database v-else :size="20" class="progress-icon" />
           </div>
 
           <div class="progress-info">
-            <span class="progress-title">Carregando entidades...</span>
+            <span class="progress-title">
+              {{ isParsing ? 'Compilando esquema SQL...' : 'Renderizando tabelas...' }}
+            </span>
             <span class="progress-count">
-              {{ loadingProgress.current }} de {{ loadingProgress.total }}
+              {{ isParsing ? 'Analisando sintaxe em segundo plano...' : `${loadingProgress.current} de ${loadingProgress.total}` }}
             </span>
           </div>
 
-          <span class="progress-percentage">{{ percentage }}%</span>
+          <span v-if="!isParsing" class="progress-percentage">{{ percentage }}%</span>
         </div>
 
         <v-progress-linear
-          :model-value="percentage"
-          height="4"
+          :indeterminate="isParsing"
+          :model-value="isParsing ? undefined : percentage"
+          height="5"
           rounded="pill"
-          color="var(--clr-primary, #1ABA9C)"
+          color="var(--clr-primary)"
           class="progress-bar"
         />
       </v-sheet>
     </div>
-  </v-slide-y-transition>
+  </v-scale-transition>
 </template>
 
 <style scoped>
 .progress-loader-wrapper {
   position: absolute;
-  top: 18px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   z-index: 45;
   pointer-events: none;
 }
 
 .progress-loader-card {
-  min-width: 280px;
-  max-width: 340px;
-  padding: 10px 14px 8px;
-  border-radius: 12px;
+  min-width: 320px;
+  max-width: 380px;
+  padding: 16px 20px 14px;
+  border-radius: 16px;
   border: none;
-  background: var(--clr-card-bg);
+  background: var(--clr-bg-surface);
   box-shadow: var(--clr-shadow-floating);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .progress-loader-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
+  gap: 12px;
+  margin-bottom: 10px;
 }
 
 .progress-icon-wrap {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(26, 186, 156, 0.12);
-  color: var(--clr-primary, #1ABA9C);
+  color: var(--clr-primary);
   flex-shrink: 0;
 }
 
 .progress-icon {
   animation: pulse-icon 1.6s ease-in-out infinite;
+}
+
+.progress-icon-spin {
+  animation: spin-icon 1s linear infinite;
+}
+
+@keyframes spin-icon {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes pulse-icon {
@@ -118,23 +133,23 @@ const percentage = computed(() => {
 }
 
 .progress-title {
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   font-weight: 600;
   color: var(--clr-text);
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
 .progress-count {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   color: var(--clr-text-muted);
-  line-height: 1.2;
-  margin-top: 1px;
+  line-height: 1.25;
+  margin-top: 2px;
 }
 
 .progress-percentage {
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   font-weight: 700;
-  color: var(--clr-primary, #1ABA9C);
+  color: var(--clr-primary);
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 }

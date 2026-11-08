@@ -507,7 +507,7 @@ const handleZoom = (e) => {
   const scaleFactor = 1.1 ** delta;
   let newZoom = currentZoom * scaleFactor;
 
-  const minZoom = 0.01;
+  const minZoom = 0.05;
   const maxZoom = 2.0;
 
   newZoom = Math.max(minZoom, Math.min(maxZoom, newZoom));
@@ -516,14 +516,7 @@ const handleZoom = (e) => {
     return;
   }
   try {
-    panZoomInstance.value.setMinZoom(0.001);
-    panZoomInstance.value.setMaxZoom(10);
-
     panZoomInstance.value.zoom(newZoom);
-
-    panZoomInstance.value.setMinZoom(0.01);
-    panZoomInstance.value.setMaxZoom(2.0);
-
     saveState();
   } catch (error) { }
 };
@@ -537,8 +530,49 @@ watch(
   }
 );
 
+let resizeObserver = null;
+let lastCanvasRight = null;
+let lastWindowWidth = null;
+
+const updateCanvasSize = () => {
+  if (!svgRoot.value) return;
+  const rect = svgRoot.value.getBoundingClientRect();
+  const currentWidth = Math.round(rect.width);
+  const currentHeight = Math.round(rect.height);
+  const currentRight = Math.round(rect.right);
+  const currentWindowWidth = window.innerWidth;
+
+  store.updateViewportSize({
+    width: currentWidth,
+    height: currentHeight,
+  });
+
+  if (
+    panZoomInstance.value &&
+    lastCanvasRight !== null &&
+    lastWindowWidth === currentWindowWidth
+  ) {
+    const deltaRight = currentRight - lastCanvasRight;
+    if (deltaRight !== 0) {
+      panZoomInstance.value.panBy({ x: deltaRight, y: 0 });
+      saveState();
+    }
+  }
+
+  lastCanvasRight = currentRight;
+  lastWindowWidth = currentWindowWidth;
+};
+
 onMounted(() => {
   if (svgRoot.value) {
+    updateCanvasSize();
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => {
+        updateCanvasSize();
+      });
+      resizeObserver.observe(svgRoot.value);
+    }
+
     setTimeout(() => {
       try {
         panZoomInstance.value = svgPanZoom(svgRoot.value, {
@@ -546,13 +580,13 @@ onMounted(() => {
           panEnabled: false,
           dblClickZoomEnabled: false,
           zoomScaleSensitivity: 0,
-          minZoom: 0.01,
+          minZoom: 0.05,
           maxZoom: 2.0,
           fit: false,
           center: false,
         });
 
-        panZoomInstance.value.setMinZoom(0.01);
+        panZoomInstance.value.setMinZoom(0.05);
         panZoomInstance.value.setMaxZoom(2.0);
 
         panZoomInstance.value.zoom(store.zoom);
@@ -574,6 +608,11 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopInertia();
+
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+    resizeObserver = null;
+  }
 
   if (window.PointerEvent) {
     window.removeEventListener("pointerup", handleGlobalMouseUp);

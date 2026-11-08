@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import type { DatabaseSchema, Table, Relationship } from '@/domain/models/databaseSchema';
-import { parseSqlSchema } from '@/domain/sql/parser';
+import { parseSqlAsync } from '@/services/sqlParserService';
 import { generateLayout, type EdgeOffset } from '@/domain/diagram/layout2d';
 import { useDiagramStorage } from '@/composables/useDiagramStorage';
 
@@ -21,6 +21,7 @@ export interface HoveredColumnInfo {
 
 export interface LoadingProgress {
   isLoading: boolean;
+  phase: 'parsing' | 'rendering';
   current: number;
   total: number;
 }
@@ -39,6 +40,8 @@ export interface DiagramState {
   // Viewport state
   zoom: number;
   pan: { x: number; y: number };
+  viewportSize: { width: number; height: number };
+  isExporting: boolean;
   isGridVisible: boolean;
   gridSize: number;
   isPanMode: boolean;
@@ -58,6 +61,7 @@ export const useDiagramStore = defineStore('diagram', {
     tableOrder: [],
     loadingProgress: {
       isLoading: false,
+      phase: 'parsing',
       current: 0,
       total: 0,
     },
@@ -67,6 +71,8 @@ export const useDiagramStore = defineStore('diagram', {
     hoveredColumn: null,
     zoom: 1.0,
     pan: { x: 0, y: 0 },
+    viewportSize: { width: 0, height: 0 },
+    isExporting: false,
     isGridVisible: false,
     gridSize: 20,
     isPanMode: false,
@@ -94,38 +100,24 @@ export const useDiagramStore = defineStore('diagram', {
         this.tableOrder = [];
         this.errors = [];
         this.warnings = [];
-        this.loadingProgress = { isLoading: false, current: 0, total: 0 };
+        this.loadingProgress = { isLoading: false, phase: 'parsing', current: 0, total: 0 };
         return;
       }
 
       const loadId = ++currentLoadId;
+      const parseTimer = setTimeout(() => {
+        if (currentLoadId === loadId) {
+          this.loadingProgress = { isLoading: true, phase: 'parsing', current: 0, total: 0 };
+        }
+      }, 200);
 
       try {
-        const newSchema = parseSqlSchema(sql);
+        const newSchema = await parseSqlAsync(sql);
+        clearTimeout(parseTimer);
+        if (currentLoadId !== loadId) return;
+
         const allTableNames = Object.keys(newSchema.tables);
         const totalTables = allTableNames.length;
-
-        if (totalTables <= 25) {
-          const layoutResult = generateLayout(newSchema, this.positions);
-          this.schema = newSchema;
-          this.positions = layoutResult.positions;
-          this.edgeOffsets = layoutResult.edgeOffsets;
-          this.errors = [];
-          this.warnings = [];
-
-          const currentOrder = this.tableOrder.length > 0 ? this.tableOrder : (loadTableOrder() || []);
-          const validOrder = currentOrder.filter(name => allTableNames.includes(name));
-          const newTables = allTableNames.filter(name => !validOrder.includes(name));
-          this.tableOrder = [...validOrder, ...newTables];
-
-          this.loadingProgress = { isLoading: false, current: totalTables, total: totalTables };
-          saveTablePositions(this.positions);
-          saveTableOrder(this.tableOrder);
-          return;
-        }
-
-        // Esquema grande (> 25 tabelas): processamento progressivo em lotes
-        this.loadingProgress = { isLoading: true, current: 0, total: totalTables };
 
         const layoutResult = generateLayout(newSchema, this.positions);
         this.positions = layoutResult.positions;
@@ -133,12 +125,26 @@ export const useDiagramStore = defineStore('diagram', {
         this.errors = [];
         this.warnings = [];
 
+        const allTableSet = new Set(allTableNames);
         const currentOrder = this.tableOrder.length > 0 ? this.tableOrder : (loadTableOrder() || []);
-        const validOrder = currentOrder.filter(name => allTableNames.includes(name));
-        const newTables = allTableNames.filter(name => !validOrder.includes(name));
+        const validOrder = currentOrder.filter(name => allTableSet.has(name));
+        const validSet = new Set(validOrder);
+        const newTables = allTableNames.filter(name => !validSet.has(name));
         const targetOrder = [...validOrder, ...newTables];
 
-        const CHUNK_SIZE = 25;
+        if (totalTables <= 200) {
+          this.schema = newSchema;
+          this.tableOrder = targetOrder;
+          this.loadingProgress = { isLoading: false, phase: 'rendering', current: totalTables, total: totalTables };
+          saveTablePositions(this.positions);
+          saveTableOrder(this.tableOrder);
+          return;
+        }
+
+        // Esquema grande (> 200 tabelas): processamento progressivo em lotes de 50
+        this.loadingProgress = { isLoading: true, phase: 'rendering', current: 0, total: totalTables };
+
+        const CHUNK_SIZE = 50;
         let loadedCount = 0;
         const progressiveTables: Record<string, Table> = {};
         const progressiveOrder: string[] = [];
@@ -166,7 +172,7 @@ export const useDiagramStore = defineStore('diagram', {
             ),
           };
           this.tableOrder = [...progressiveOrder];
-          this.loadingProgress = { isLoading: true, current: loadedCount, total: totalTables };
+          this.loadingProgress = { isLoading: true, phase: 'rendering', current: loadedCount, total: totalTables };
 
           await new Promise(resolve => requestAnimationFrame(resolve));
         }
@@ -174,15 +180,16 @@ export const useDiagramStore = defineStore('diagram', {
         if (currentLoadId === loadId) {
           this.schema = newSchema;
           this.tableOrder = targetOrder;
-          this.loadingProgress = { isLoading: false, current: totalTables, total: totalTables };
+          this.loadingProgress = { isLoading: false, phase: 'rendering', current: totalTables, total: totalTables };
           saveTablePositions(this.positions);
           saveTableOrder(this.tableOrder);
         }
       } catch (e: any) {
+        clearTimeout(parseTimer);
         if (currentLoadId === loadId) {
-          this.loadingProgress = { isLoading: false, current: 0, total: 0 };
+          this.loadingProgress = { isLoading: false, phase: 'parsing', current: 0, total: 0 };
           this.errors = [{
-            line: e.location?.start?.line || 1,
+            line: e.line || e.location?.start?.line || 1,
             message: e.message || 'Erro de sintaxe no SQL',
             type: 'error',
           }];
@@ -275,6 +282,14 @@ export const useDiagramStore = defineStore('diagram', {
 
     updatePan(newPan: { x: number; y: number }) {
       this.pan = newPan;
+    },
+
+    updateViewportSize(size: { width: number; height: number }) {
+      this.viewportSize = size;
+    },
+
+    setExporting(status: boolean) {
+      this.isExporting = status;
     },
 
     toggleGrid() {

@@ -149,7 +149,7 @@ const decreaseZoom = () => {
     } else if (current > 31) {
         newZoom = Math.max(31, current - 3);
     } else {
-        newZoom = Math.max(1, current - 1);
+        newZoom = Math.max(5, current - 1);
     }
     
     zoomScale.value = newZoom;
@@ -173,8 +173,7 @@ const resetZoom = () => {
     gap: 4px;
     align-items: center;
     transition: background-color 0.2s ease, box-shadow 0.2s ease;
-    backdrop-filter: blur(12px);
-    background: var(--clr-card-bg);
+    background: var(--clr-bg-surface);
     box-shadow: var(--clr-shadow-floating);
     z-index: 25;
 }

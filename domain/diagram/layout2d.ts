@@ -16,7 +16,8 @@ export function generateLayout(
   existingPositions?: Record<string, { x: number; y: number }>
 ): DiagramLayoutResult {
   const positions: Record<string, { x: number; y: number }> = {};
-  const maxPerRow = 5;
+  const totalTables = Object.keys(schema.tables || {}).length;
+  const maxPerRow = Math.max(5, Math.ceil(Math.sqrt(totalTables * 1.6)));
   const xSpacing = 300;
   const ySpacing = 180;
   let tableIndex = 0;

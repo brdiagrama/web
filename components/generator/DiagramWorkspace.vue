@@ -22,7 +22,7 @@
         <!-- Relacionamentos (atrás das tabelas) -->
         <g class="relationships-layer">
           <RelationshipLine
-            v-for="rel in relationshipsList"
+            v-for="rel in renderedRelationshipsList"
             :key="rel.id"
             :relationship="rel"
             :from-table="tables[rel.fromTable]"
@@ -37,13 +37,14 @@
             :target-offset-y="edgeOffsets[rel.id]?.targetOffsetY || 0"
             :selected-tables="selectedTableNames"
             :hovered-column="hoveredColumn"
+            :detail-level="detailLevel"
           />
         </g>
 
         <!-- Tabelas -->
         <g class="tables-layer">
           <DiagramTableNode
-            v-for="table in allTablesList"
+            v-for="table in renderedTablesList"
             :key="table.name"
             :table="table"
             :x="positions[table.name]?.x || 0"
@@ -56,6 +57,7 @@
             :table-height="tableDimensionsMap[table.name]?.height || 35"
             :selected-tables-count="selectedTableNames.size"
             :highlighted-columns="highlightedColumns"
+            :detail-level="detailLevel"
             @start-drag="startDrag"
             @column-hover="handleColumnHover"
           />
@@ -63,8 +65,8 @@
       </g>
     </DiagramCanvas>
 
-    <!-- Overlay quando não há tabelas -->
-    <div v-if="!tables || Object.keys(tables).length === 0" class="canvas-empty-overlay">
+    <!-- Overlay quando não há tabelas (substituído pelo loader durante o carregamento) -->
+    <div v-if="(!tables || Object.keys(tables).length === 0) && !diagramStore.loadingProgress.isLoading" class="canvas-empty-overlay">
       <div class="canvas-empty-content">
         <div class="canvas-empty-icon" aria-hidden="true">
           <svg width="56" height="56" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -94,7 +96,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, nextTick } from "vue";
 import DiagramCanvas from "~/components/generator/DiagramCanvas.vue";
 import DiagramTableNode from "~/components/generator/DiagramTableNode.vue";
 import RelationshipLine from "~/components/generator/RelationshipLine.vue";
@@ -116,6 +118,9 @@ const { tables, relationships, positions, edgeOffsets, selectedTableNames, hover
 
 const headerHeight = 35;
 const rowHeight = 32;
+
+const CULLING_THRESHOLD = 30;
+const VIEWPORT_BUFFER = 250;
 
 const tableDimensionsMap = computed(() => {
   const map = {};
@@ -151,9 +156,75 @@ const allTablesList = computed(() => {
   return ordered;
 });
 
+const visibleTableNamesSet = computed(() => {
+  const tableMap = tables.value;
+  if (!tableMap) return new Set();
+
+  const allNames = Object.keys(tableMap);
+  if (allNames.length <= CULLING_THRESHOLD || diagramStore.isExporting) {
+    return new Set(allNames);
+  }
+
+  const size = diagramStore.viewportSize;
+  if (!size || size.width === 0 || size.height === 0) {
+    return new Set(allNames);
+  }
+
+  const zoom = diagramStore.zoom || 1;
+  const pan = diagramStore.pan || { x: 0, y: 0 };
+
+  const minX = -pan.x / zoom - VIEWPORT_BUFFER;
+  const maxX = (size.width - pan.x) / zoom + VIEWPORT_BUFFER;
+  const minY = -pan.y / zoom - VIEWPORT_BUFFER;
+  const maxY = (size.height - pan.y) / zoom + VIEWPORT_BUFFER;
+
+  const visible = new Set();
+  const posMap = positions.value;
+  const dimsMap = tableDimensionsMap.value;
+
+  for (const name of allNames) {
+    const pos = posMap[name];
+    if (!pos) {
+      visible.add(name);
+      continue;
+    }
+
+    const dims = dimsMap[name] || { width: 220, height: 35 };
+    const isVisible = !(
+      pos.x + dims.width < minX ||
+      pos.x > maxX ||
+      pos.y + dims.height < minY ||
+      pos.y > maxY
+    );
+
+    if (isVisible) {
+      visible.add(name);
+    }
+  }
+
+  return visible;
+});
+
+const renderedTablesList = computed(() => {
+  const visible = visibleTableNamesSet.value;
+  return allTablesList.value.filter((table) => visible.has(table.name));
+});
+
 const relationshipsList = computed(() => {
   if (!relationships.value) return [];
   return relationships.value;
+});
+
+const renderedRelationshipsList = computed(() => {
+  const visible = visibleTableNamesSet.value;
+  return relationshipsList.value.filter(
+    (rel) => visible.has(rel.fromTable) || visible.has(rel.toTable)
+  );
+});
+
+const detailLevel = computed(() => {
+  if (diagramStore.isExporting) return 'full';
+  return (diagramStore.zoom || 1) <= 0.30 ? 'simplified' : 'full';
 });
 
 const highlightedColumns = computed(() => {
@@ -282,15 +353,27 @@ const getExportSvgElement = () => {
 
 const exportDiagramPNG = async () => {
   const svg = getExportSvgElement();
-  if (svg) {
+  if (!svg) return;
+
+  diagramStore.setExporting(true);
+  try {
+    await nextTick();
     await exportPng(svg, tables.value, positions.value, isCanvasDark.value);
+  } finally {
+    diagramStore.setExporting(false);
   }
 };
 
 const exportDiagramSVG = async () => {
   const svg = getExportSvgElement();
-  if (svg) {
+  if (!svg) return;
+
+  diagramStore.setExporting(true);
+  try {
+    await nextTick();
     await exportSvg(svg, tables.value, positions.value, isCanvasDark.value);
+  } finally {
+    diagramStore.setExporting(false);
   }
 };
 
@@ -304,6 +387,7 @@ defineExpose({
 <style scoped>
 .canvas-panel {
   flex: 1;
+  min-width: 0;
   position: relative;
   background-color: var(--canvas-bg, #f0f2f5);
   transition: background-color 0.25s ease;
@@ -330,7 +414,7 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--clr-card-bg, rgba(255, 255, 255, 0.85));
+  background: var(--clr-card-bg);
   backdrop-filter: blur(4px);
   pointer-events: auto;
   z-index: 20;

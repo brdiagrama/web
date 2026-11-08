@@ -1,6 +1,10 @@
 <template>
-  <g class="relationship-line" :class="{ 'is-active': isActive }">
+  <g
+    class="relationship-line"
+    :class="{ 'is-active': isActive, 'is-simplified': detailLevel === 'simplified' }"
+  >
     <path
+      v-if="detailLevel === 'full'"
       :d="pathData"
       class="connector-hitbox"
       @mouseenter="onHover"
@@ -14,26 +18,28 @@
       :marker-end="markerEnd"
     />
 
-    <path :d="pathData" class="connector-flow" />
+    <template v-if="detailLevel === 'full'">
+      <path :d="pathData" class="connector-flow" />
 
-    <!-- Labels de Cardinalidade -->
-    <text
-      :x="labelPositions.start.x"
-      :y="labelPositions.start.y"
-      class="cardinality-label"
-      :class="{ 'cardinality-hover': isActive }"
-    >
-      {{ cardinalityStart }}
-    </text>
+      <!-- Labels de Cardinalidade -->
+      <text
+        :x="labelPositions.start.x"
+        :y="labelPositions.start.y"
+        class="cardinality-label"
+        :class="{ 'cardinality-hover': isActive }"
+      >
+        {{ cardinalityStart }}
+      </text>
 
-    <text
-      :x="labelPositions.end.x"
-      :y="labelPositions.end.y"
-      class="cardinality-label"
-      :class="{ 'cardinality-hover': isActive }"
-    >
-      {{ cardinalityEnd }}
-    </text>
+      <text
+        :x="labelPositions.end.x"
+        :y="labelPositions.end.y"
+        class="cardinality-label"
+        :class="{ 'cardinality-hover': isActive }"
+      >
+        {{ cardinalityEnd }}
+      </text>
+    </template>
   </g>
 </template>
 
@@ -60,6 +66,7 @@ const props = defineProps({
   targetOffsetY: { type: Number, default: 0 },
   selectedTables: { type: Set, default: () => new Set() },
   hoveredColumn: { type: Object, default: null },
+  detailLevel: { type: String, default: "full" },
 });
 
 const isHovered = ref(false);
@@ -158,6 +165,10 @@ const labelPositions = computed(() =>
   filter: drop-shadow(0 0 2px var(--diagram-line-shadow, rgba(25, 39, 71, 0.5)));
 }
 
+.relationship-line.is-simplified .connector-visual {
+  filter: none;
+}
+
 @keyframes flowDash {
   to {
     stroke-dashoffset: 40px;
@@ -170,13 +181,13 @@ const labelPositions = computed(() =>
   stroke-width: 2px;
   pointer-events: none;
   stroke-dasharray: 3 10;
-  animation: flowDash 2.5s linear infinite;
   opacity: 0;
   transition: opacity 0.16s ease-out;
 }
 
 .relationship-line.is-active .connector-flow {
   opacity: 0.85;
+  animation: flowDash 2.5s linear infinite;
 }
 
 .cardinality-label {
