@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, nextTick } from "vue";
 import { 
   Database, Plus, Search, ChevronRight, ChevronDown, 
   Key, Link2, Sun, Moon, X, TableProperties 
 } from "lucide-vue-next";
 import type { Table } from "@/domain/models/databaseSchema";
 import { useGeneratorTheme } from "@/composables/useGeneratorTheme";
+import { useDiagram } from "@/composables/useDiagram";
 
 const props = defineProps<{
   tables: Record<string, Table>;
@@ -15,12 +16,15 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "collapse"): void;
   (e: "addTable"): void;
+  (e: "focusTable", tableName: string): void;
 }>();
 
 const { isModelingDark, toggleModelingTheme } = useGeneratorTheme();
+const { isStampActive, toggleStampMode, selectedTableNames, selectTable } = useDiagram();
 
 const searchQuery = ref("");
 const expandedTables = ref<Set<string>>(new Set());
+const scrollContainerRef = ref<HTMLElement | null>(null);
 
 watch(searchQuery, (val) => {
   if (val === null || val === undefined) {
@@ -28,10 +32,12 @@ watch(searchQuery, (val) => {
   }
 });
 
+const naturalCompare = (a: string, b: string) => {
+  return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+};
+
 const tableList = computed(() => {
-  const allNames = props.tableOrder && props.tableOrder.length > 0 
-    ? props.tableOrder.filter(name => props.tables[name])
-    : Object.keys(props.tables);
+  const allNames = Object.keys(props.tables).sort(naturalCompare);
 
   const query = (searchQuery.value || "").trim().toLowerCase();
   if (!query) {
@@ -47,21 +53,104 @@ const tableList = computed(() => {
     });
 });
 
+const isInternalClick = ref(false);
+const lastCenteredTableName = ref<string | null>(null);
+
 const toggleExpandTable = (tableName: string) => {
   if (expandedTables.value.has(tableName)) {
     expandedTables.value.delete(tableName);
   } else {
+    isInternalClick.value = true;
+    lastCenteredTableName.value = tableName;
     expandedTables.value.add(tableName);
+    selectTable(tableName, false);
+    emit("focusTable", tableName);
   }
 };
 
 const isTableExpanded = (tableName: string) => expandedTables.value.has(tableName);
+
+const isBatchExpanding = ref(false);
+
+const scrollToCard = (tableName: string) => {
+  const cardEl = scrollContainerRef.value?.querySelector(
+    `[data-table-name="${CSS.escape(tableName)}"]`
+  );
+  if (cardEl) {
+    cardEl.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+};
+
+watch(
+  () => Array.from(selectedTableNames.value),
+  async (selectedList, prevList = []) => {
+    // Sincroniza acordeão com o estado de seleção:
+    // Tabelas que foram desmarcadas fecham o acordeão
+    const currentSet = new Set(selectedList);
+    for (const prev of prevList) {
+      if (!currentSet.has(prev)) {
+        expandedTables.value.delete(prev);
+      }
+    }
+
+    if (selectedList.length === 0) return;
+
+    // Se mais de 2 tabelas forem selecionadas simultaneamente,
+    // desativa a animação temporariamente para expansão instantânea e sem lag
+    const isMulti = selectedList.length > 2;
+    if (isMulti) {
+      isBatchExpanding.value = true;
+    }
+
+    // Abre todas as tabelas atualmente selecionadas no canvas
+    for (const name of selectedList) {
+      if (props.tables[name]) {
+        expandedTables.value.add(name);
+      }
+    }
+
+    // Rola até a tabela selecionada pelo canvas se estiver fora da vizinhança (mais de 3 de distância)
+    const latestSelected = selectedList[selectedList.length - 1];
+    if (props.tables[latestSelected]) {
+      if (!isInternalClick.value) {
+        let shouldScroll = true;
+        if (lastCenteredTableName.value) {
+          const names = tableList.value.map(t => t.name);
+          const prevIdx = names.indexOf(lastCenteredTableName.value);
+          const newIdx = names.indexOf(latestSelected);
+          if (prevIdx !== -1 && newIdx !== -1 && Math.abs(newIdx - prevIdx) <= 3) {
+            shouldScroll = false;
+          }
+        }
+
+        if (shouldScroll) {
+          lastCenteredTableName.value = latestSelected;
+          await nextTick();
+          scrollToCard(latestSelected);
+        }
+      } else {
+        isInternalClick.value = false;
+      }
+    }
+
+    if (isMulti) {
+      await nextTick();
+      requestAnimationFrame(() => {
+        isBatchExpanding.value = false;
+      });
+    }
+  },
+  { deep: true }
+);
 </script>
 
 <template>
   <aside 
     class="modeling-panel" 
-    :class="isModelingDark ? 'panel-dark' : 'panel-light'"
+    :class="[
+      isModelingDark ? 'panel-dark' : 'panel-light',
+      { 'is-stamp-mode': isStampActive }
+    ]"
     role="complementary"
     aria-label="Painel de modelagem ER"
   >
@@ -69,9 +158,9 @@ const isTableExpanded = (tableName: string) => expandedTables.value.has(tableNam
     <header class="modeling-header">
       <div class="header-brand">
         <div class="brand-icon-wrap" aria-hidden="true">
-          <TableProperties :size="18" />
+          <Database :size="17" />
         </div>
-        <span class="brand-title">Modelagem ER</span>
+        <span class="brand-title">Modelagem</span>
       </div>
 
       <nav class="header-actions" aria-label="Ações de modelagem">
@@ -143,23 +232,34 @@ const isTableExpanded = (tableName: string) => expandedTables.value.has(tableNam
         </template>
       </v-text-field>
 
-      <v-btn 
-        class="create-table-btn"
-        variant="flat"
-        size="small"
-        rounded="lg"
-        @click="emit('addTable')"
-        aria-label="Criar nova tabela"
+      <v-tooltip
+        text="Nova Tabela (T) Clique para carimbar no canvas"
+        location="bottom"
+        :theme="isModelingDark ? 'dark' : 'light'"
       >
-        <template #prepend>
-          <Plus :size="15" />
+        <template #activator="{ props: tooltipProps }">
+          <v-btn 
+            v-bind="tooltipProps"
+            class="create-table-btn"
+            :class="{ 'is-stamp-active': isStampActive }"
+            variant="flat"
+            size="small"
+            rounded="lg"
+            @click="toggleStampMode"
+            aria-label="Nova Tabela (Atalho T)"
+          >
+            <template #prepend>
+              <Plus :size="15" />
+            </template>
+            Nova Tabela
+            <span class="shortcut-tag" aria-hidden="true">T</span>
+          </v-btn>
         </template>
-        Nova Tabela
-      </v-btn>
+      </v-tooltip>
     </div>
 
     <!-- Lista de Tabelas em Acordeão Limpo (Frameless) -->
-    <div class="table-list-scroll">
+    <div ref="scrollContainerRef" class="table-list-scroll">
       <div v-if="tableList.length === 0" class="empty-state">
         <div class="empty-icon-wrap" aria-hidden="true">
           <Database :size="28" />
@@ -182,8 +282,12 @@ const isTableExpanded = (tableName: string) => expandedTables.value.has(tableNam
         <div 
           v-for="table in tableList" 
           :key="table.name"
+          :data-table-name="table.name"
           class="table-accordion-card"
-          :class="{ 'is-expanded': isTableExpanded(table.name) }"
+          :class="{ 
+            'is-expanded': isTableExpanded(table.name),
+            'is-selected': selectedTableNames.has(table.name)
+          }"
         >
           <!-- Cabeçalho do Card da Tabela -->
           <div 
@@ -199,6 +303,7 @@ const isTableExpanded = (tableName: string) => expandedTables.value.has(tableNam
               <span class="chevron-indicator" aria-hidden="true">
                 <ChevronRight :size="15" class="chevron-icon" />
               </span>
+              <TableProperties :size="14" class="table-entity-icon" aria-hidden="true" />
               <span class="table-name">{{ table.name }}</span>
             </div>
 
@@ -208,7 +313,9 @@ const isTableExpanded = (tableName: string) => expandedTables.value.has(tableNam
           </div>
 
           <!-- Corpo Expansível (Lista de Colunas) -->
-          <v-expand-transition>
+          <v-expand-transition 
+            :disabled="isBatchExpanding"
+          >
             <div v-if="isTableExpanded(table.name)" class="card-collapse-wrapper">
               <div class="card-body">
                 <div class="columns-table-view">
@@ -275,6 +382,25 @@ const isTableExpanded = (tableName: string) => expandedTables.value.has(tableNam
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+/*  */.modeling-panel.is-stamp-mode {
+  cursor: crosshair;
+}
+
+.modeling-panel.is-stamp-mode button,
+.modeling-panel.is-stamp-mode [role="button"],
+.modeling-panel.is-stamp-mode .v-btn,
+.modeling-panel.is-stamp-mode .action-btn,
+.modeling-panel.is-stamp-mode .card-header,
+.modeling-panel.is-stamp-mode .column-row,
+.modeling-panel.is-stamp-mode .add-column-row-btn {
+  cursor: pointer;
+}
+
+.modeling-panel.is-stamp-mode input,
+.modeling-panel.is-stamp-mode .v-field__input {
+  cursor: text;
+}
+
 /* Temas com contraste editorial refinado */
 .modeling-panel.panel-dark {
   --panel-bg: #1C1C1C;
@@ -286,6 +412,9 @@ const isTableExpanded = (tableName: string) => expandedTables.value.has(tableNam
   --panel-hover: #2A2A2A;
   --panel-input-bg: #151515;
   --column-hover-bg: #3D3D3D;
+  --btn-neutral-bg: #2C2C2C;
+  --btn-neutral-hover: #363636;
+  --btn-neutral-text: #F0F0F0;
   --scrollbar-thumb: rgba(255, 255, 255, 0.22);
   --scrollbar-thumb-hover: rgba(255, 255, 255, 0.38);
 }
@@ -300,11 +429,13 @@ const isTableExpanded = (tableName: string) => expandedTables.value.has(tableNam
   --panel-hover: #F1F3F4;
   --panel-input-bg: #F1F3F4;
   --column-hover-bg: #E5E7EB;
+  --btn-neutral-bg: #EAECEF;
+  --btn-neutral-hover: #DFE2E6;
+  --btn-neutral-text: #1F1F1F;
   --scrollbar-thumb: rgba(0, 0, 0, 0.22);
   --scrollbar-thumb-hover: rgba(0, 0, 0, 0.38);
 }
 
-/* Cabeçalho */
 .modeling-header {
   display: flex;
   align-items: center;
@@ -468,18 +599,82 @@ const isTableExpanded = (tableName: string) => expandedTables.value.has(tableNam
   height: 34px !important;
   padding: 0 12px !important;
   font-size: 12.5px !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
   letter-spacing: normal !important;
   text-transform: none !important;
-  background-color: var(--clr-primary) !important;
-  color: #0F0F0F !important;
+  background-color: var(--btn-neutral-bg) !important;
+  border: none !important;
+  color: var(--btn-neutral-text) !important;
   box-shadow: none !important;
+  outline: none !important;
+  outline-offset: 0 !important;
   flex-shrink: 0;
-  transition: background-color 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
 }
 
 .create-table-btn:hover {
+  background-color: var(--btn-neutral-hover) !important;
+  border: none !important;
+  color: var(--btn-neutral-text) !important;
+  box-shadow: none !important;
+  outline: none !important;
+  outline-offset: 0 !important;
+}
+
+.create-table-btn:focus,
+.create-table-btn:focus-visible,
+.create-table-btn:active,
+.create-table-btn.v-btn--active {
+  outline: none !important;
+  outline-offset: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.create-table-btn :deep(.v-btn__overlay) {
+  display: none !important;
+}
+
+.create-table-btn.is-stamp-active {
+  background-color: var(--clr-primary) !important;
+  border: none !important;
+  color: #0F0F0F !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  outline-offset: 0 !important;
+}
+
+.create-table-btn.is-stamp-active:hover {
   background-color: var(--clr-primary-hover) !important;
+  border: none !important;
+  color: #0F0F0F !important;
+  box-shadow: none !important;
+  outline: none !important;
+  outline-offset: 0 !important;
+}
+
+.shortcut-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background-color: rgba(140, 145, 155, 0.2);
+  color: var(--panel-text-muted);
+  margin-left: 6px;
+  line-height: 1.2;
+  transition: all 0.2s ease;
+}
+
+.create-table-btn.is-stamp-active .shortcut-tag {
+  background-color: rgba(0, 0, 0, 0.18);
+  color: #0F0F0F;
 }
 
 /* Scroll da Lista */
@@ -583,6 +778,10 @@ const isTableExpanded = (tableName: string) => expandedTables.value.has(tableNam
   background-color: var(--panel-surface-elevated);
 }
 
+.table-accordion-card.is-selected {
+  background-color: var(--panel-surface-elevated);
+}
+
 .card-header {
   display: flex;
   align-items: center;
@@ -608,6 +807,23 @@ const isTableExpanded = (tableName: string) => expandedTables.value.has(tableNam
 
 .table-accordion-card.is-expanded .chevron-indicator {
   transform: rotate(90deg);
+}
+
+.table-entity-icon {
+  color: var(--panel-text-muted);
+  opacity: 0.7;
+  flex-shrink: 0;
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.table-accordion-card:hover .table-entity-icon,
+.table-accordion-card.is-selected .table-entity-icon {
+  opacity: 1;
+}
+
+.table-accordion-card.is-expanded .table-entity-icon {
+  color: var(--clr-primary);
+  opacity: 1;
 }
 
 .table-name {

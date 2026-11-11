@@ -1,7 +1,7 @@
 <template>
-  <svg ref="svgRoot" class="diagram-canvas" @wheel="handleWheelEvent" @pointerdown="handleMouseDown"
-    @mouseleave="handleMouseLeave"
-    :style="{ width: '100%', height: '100%', cursor: store.isPanMode ? (isLeftMousePanning ? 'grabbing' : 'grab') : currentCursor }">
+  <svg ref="svgRoot" class="diagram-canvas" tabindex="-1" @wheel="handleWheelEvent" @pointerdown="handleMouseDown"
+    @pointermove="handleCanvasPointerMove" @mouseleave="handleMouseLeave" @contextmenu="handleContextMenu"
+    :style="{ width: '100%', height: '100%', outline: 'none', cursor: store.isStampActive ? 'crosshair' : (store.isPanMode ? (isLeftMousePanning ? 'grabbing' : 'grab') : currentCursor) }">
     <defs>
       <pattern id="grid-pattern" :width="store.gridSize" :height="store.gridSize" patternUnits="userSpaceOnUse">
         <circle :cx="store.gridSize / 2" :cy="store.gridSize / 2" r="1" fill="var(--grid-color, var(--ref-color, #999))"
@@ -21,6 +21,13 @@
 
       <slot />
 
+      <!-- Silhueta Fantasma do Modo Carimbo (Stamp Tool) -->
+      <DiagramTableGhost
+        v-if="store.isStampActive && store.stampGhostPosition"
+        :x="store.stampGhostPosition.x"
+        :y="store.stampGhostPosition.y"
+      />
+
       <rect v-if="selectionBox.visible" :x="-50000" :y="-50000" width="100000" height="100000" fill="transparent"
         style="pointer-events: all; cursor: crosshair" />
       <rect v-if="selectionBox.visible" :x="Math.min(selectionBox.startX, selectionBox.endX)"
@@ -36,9 +43,9 @@ import { onMounted, onUnmounted, ref, watch } from "vue";
 import svgPanZoom from "svg-pan-zoom";
 import { useDiagramStore } from "@/stores/diagram";
 import DiagramMarkers from "./DiagramMarkers.vue";
+import DiagramTableGhost from "./DiagramTableGhost.vue";
 
-
-const emit = defineEmits(["selectionArea", "selectionSelecting", "canvasPointerDown"]);
+const emit = defineEmits(["selectionArea", "selectionSelecting", "canvasPointerDown", "stampPlaced"]);
 
 const store = useDiagramStore();
 
@@ -64,6 +71,14 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 let panVelocity = { x: 0, y: 0 };
 let lastPanTime = 0;
 let inertiaAnimationId = null;
+let panAnimationId = null;
+
+const stopPanAnimation = () => {
+  if (panAnimationId !== null) {
+    cancelAnimationFrame(panAnimationId);
+    panAnimationId = null;
+  }
+};
 
 const stopInertia = () => {
   if (inertiaAnimationId !== null) {
@@ -286,8 +301,41 @@ const saveState = () => {
 
 const handleMouseDown = (e) => {
   stopInertia();
+  stopPanAnimation();
   panVelocity = { x: 0, y: 0 };
   lastPanTime = performance.now();
+
+  // Desfocar qualquer campo de texto ou editor Monaco ao interagir no canvas
+  if (document.activeElement && typeof document.activeElement.blur === 'function') {
+    const tagName = document.activeElement.tagName?.toUpperCase();
+    const isInput = tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT';
+    const isMonaco = !!document.activeElement.closest?.('.monaco-editor');
+    if (isInput || isMonaco || document.activeElement.getAttribute?.('contenteditable') === 'true') {
+      document.activeElement.blur();
+    }
+  }
+
+  // Tratamento do Modo Carimbo (Stamp Tool)
+  if (store.isStampActive) {
+    if (e.button === 0) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (svgRoot.value && panZoomInstance.value) {
+        const rect = svgRoot.value.getBoundingClientRect();
+        const pan = panZoomInstance.value.getPan();
+        const zoom = panZoomInstance.value.getZoom();
+        const posX = Math.round((e.clientX - rect.left - pan.x) / zoom);
+        const posY = Math.round((e.clientY - rect.top - pan.y) / zoom);
+        emit('stampPlaced', { x: posX, y: posY });
+      }
+      return;
+    } else if (e.button === 2) {
+      e.preventDefault();
+      e.stopPropagation();
+      store.cancelStampMode();
+      return;
+    }
+  }
 
   if (window.PointerEvent && e.pointerId != null) {
     activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -458,7 +506,48 @@ const handleMouseUp = (e) => {
   }
 };
 
+let ghostRafId = null;
+let latestPointerX = 0;
+let latestPointerY = 0;
+
+const handleCanvasPointerMove = (e) => {
+  if (!store.isStampActive) return;
+  latestPointerX = e.clientX;
+  latestPointerY = e.clientY;
+
+  if (ghostRafId) return;
+
+  ghostRafId = requestAnimationFrame(() => {
+    ghostRafId = null;
+    if (!store.isStampActive || !svgRoot.value || !panZoomInstance.value) return;
+    const rect = svgRoot.value.getBoundingClientRect();
+    const pan = panZoomInstance.value.getPan();
+    const zoom = panZoomInstance.value.getZoom();
+    const posX = (latestPointerX - rect.left - pan.x) / zoom;
+    const posY = (latestPointerY - rect.top - pan.y) / zoom;
+    store.setStampGhostPosition({ x: posX, y: posY });
+  });
+};
+
+const handleContextMenu = (e) => {
+  if (store.isStampActive) {
+    e.preventDefault();
+    if (ghostRafId) {
+      cancelAnimationFrame(ghostRafId);
+      ghostRafId = null;
+    }
+    store.cancelStampMode();
+  }
+};
+
 const handleMouseLeave = () => {
+  if (ghostRafId) {
+    cancelAnimationFrame(ghostRafId);
+    ghostRafId = null;
+  }
+  if (store.isStampActive) {
+    store.setStampGhostPosition(null);
+  }
   if (isMiddleMouseDown) {
     isMiddleMouseDown = false;
     disablePan();
@@ -496,6 +585,7 @@ const handleWheelEvent = (e) => {
 
 const handleZoom = (e) => {
   stopInertia();
+  stopPanAnimation();
   if (!panZoomInstance.value) return;
 
   const rect = svgRoot.value.getBoundingClientRect();
@@ -608,6 +698,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopInertia();
+  stopPanAnimation();
 
   if (resizeObserver) {
     resizeObserver.disconnect();
@@ -638,6 +729,7 @@ onUnmounted(() => {
 });
 
 const fitToScreen = () => {
+  stopPanAnimation();
   if (panZoomInstance.value) {
     panZoomInstance.value.fit();
     panZoomInstance.value.center();
@@ -645,8 +737,57 @@ const fitToScreen = () => {
   }
 };
 
+const panToCoordinates = (targetX, targetY, { animate = true, duration = 280 } = {}) => {
+  if (!panZoomInstance.value || !svgRoot.value) return;
+
+  stopInertia();
+  stopPanAnimation();
+
+  const rect = svgRoot.value.getBoundingClientRect();
+  const currentZoom = panZoomInstance.value.getZoom();
+  const targetPanX = rect.width / 2 - targetX * currentZoom;
+  const targetPanY = rect.height / 2 - targetY * currentZoom;
+
+  if (!animate || duration <= 0) {
+    panZoomInstance.value.pan({ x: targetPanX, y: targetPanY });
+    saveState();
+    return;
+  }
+
+  const startPan = panZoomInstance.value.getPan();
+  const deltaX = targetPanX - startPan.x;
+  const deltaY = targetPanY - startPan.y;
+  const startTime = performance.now();
+
+  const step = (now) => {
+    if (!panZoomInstance.value) {
+      stopPanAnimation();
+      return;
+    }
+
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+
+    panZoomInstance.value.pan({
+      x: startPan.x + deltaX * eased,
+      y: startPan.y + deltaY * eased,
+    });
+
+    if (progress < 1) {
+      panAnimationId = requestAnimationFrame(step);
+    } else {
+      panAnimationId = null;
+      saveState();
+    }
+  };
+
+  panAnimationId = requestAnimationFrame(step);
+};
+
 defineExpose({
   fitToScreen,
+  panToCoordinates,
   panZoomInstance,
   svgRoot,
 });
@@ -677,7 +818,6 @@ defineExpose({
   font-size: 14px;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   pointer-events: none;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .col-text {
@@ -721,16 +861,6 @@ defineExpose({
 
 .table-group {
   cursor: move !important;
-  transition: filter 0.2s ease;
-}
-
-.table-group:hover {
-  filter: drop-shadow(0 6px 12px #0041d826);
-}
-
-.table-group:hover .table-rect {
-  stroke: #192747;
-  stroke-width: 1px;
 }
 
 .table-group:active {

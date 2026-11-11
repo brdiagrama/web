@@ -23,7 +23,10 @@ useHead({
   ]
 });
 
-const { sqlCode, tables, tableOrder, errors: domainErrors, warnings: domainWarnings, parseSql } = useDiagram();
+const { 
+  sqlCode, tables, tableOrder, errors: domainErrors, warnings: domainWarnings, parseSql,
+  isStampActive, cancelStampMode, toggleStampMode 
+} = useDiagram();
 const { isEditorDark, initEditorTheme, isModelingDark, initModelingTheme } = useGeneratorTheme();
 initEditorTheme();
 initModelingTheme();
@@ -54,6 +57,7 @@ const availableTableNames = computed(() => Object.keys(tables.value));
 onMounted(() => {
   isMobile.value = window.innerWidth < 768;
   window.addEventListener('resize', onResizeWindow);
+  window.addEventListener('keydown', handleGlobalKeyDown);
 
   const { loadSql } = useDiagramStorage();
   const savedSql = loadSql();
@@ -64,6 +68,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', onResizeWindow);
+  window.removeEventListener('keydown', handleGlobalKeyDown);
   window.removeEventListener('mousemove', handleResize);
   window.removeEventListener('mouseup', stopResize);
   window.removeEventListener('pointermove', handleResize);
@@ -73,6 +78,28 @@ onUnmounted(() => {
   window.removeEventListener('pointermove', handleModelingResize);
   window.removeEventListener('pointerup', stopModelingResize);
 });
+
+const handleGlobalKeyDown = (e) => {
+  if (e.key === 'Escape' && isStampActive.value) {
+    cancelStampMode();
+    return;
+  }
+
+  if ((e.key === 't' || e.key === 'T') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    const activeEl = document.activeElement;
+    if (activeEl) {
+      const tagName = activeEl.tagName.toUpperCase();
+      const isInput = tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT';
+      const isContentEditable = activeEl.getAttribute('contenteditable') === 'true' || activeEl.classList.contains('monaco-editor');
+      const isMonaco = !!activeEl.closest('.monaco-editor');
+      if (isInput || isContentEditable || isMonaco) {
+        return;
+      }
+    }
+    e.preventDefault();
+    toggleStampMode();
+  }
+};
 
 const onResizeWindow = () => {
   isMobile.value = window.innerWidth < 768;
@@ -167,16 +194,11 @@ const toggleModeling = () => {
 };
 
 const handleAddTableFromPanel = () => {
-  const existingNames = new Set(Object.keys(tables.value).map(n => n.toLowerCase()));
-  let counter = 1;
-  while (existingNames.has(`nova_tabela_${counter}`)) {
-    counter++;
-  }
-  const newTableName = `nova_tabela_${counter}`;
-  const tableDdl = `\n\nCREATE TABLE ${newTableName} (\n  id INT PRIMARY KEY AUTO_INCREMENT,\n  nome VARCHAR(100) NOT NULL\n);`;
-  sqlCode.value += tableDdl;
-  parseSql(sqlCode.value);
-  toastSuccess("Tabela criada", `Tabela ${newTableName} adicionada ao esquema.`);
+  toggleStampMode();
+};
+
+const handleFocusTableFromPanel = (tableName) => {
+  workspaceRef.value?.focusTable(tableName);
 };
 
 const toggleEditor = () => {
@@ -408,6 +430,7 @@ const exportDiagramSVG = () => {
           :table-order="tableOrder"
           @collapse="toggleModeling"
           @add-table="handleAddTableFromPanel"
+          @focus-table="handleFocusTableFromPanel"
         />
       </div>
 

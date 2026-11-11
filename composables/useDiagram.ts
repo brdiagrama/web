@@ -41,7 +41,11 @@ CREATE TABLE itens_pedido (
 
 export function useDiagram() {
   const store = useDiagramStore();
-  const { sqlCode, errors, warnings, positions, edgeOffsets, selectedTableNames, hoveredColumn, tableOrder, loadingProgress } = storeToRefs(store);
+  const { 
+    sqlCode, errors, warnings, positions, edgeOffsets, 
+    selectedTableNames, hoveredColumn, tableOrder, loadingProgress,
+    isStampActive, stampGhostPosition 
+  } = storeToRefs(store);
 
   const tables = computed(() => store.tables);
   const relationships = computed(() => store.relationships);
@@ -58,6 +62,14 @@ export function useDiagram() {
     store.bringTablesToFront(tableNames, topTable);
   };
 
+  const startStampMode = () => store.startStampMode();
+  const cancelStampMode = () => store.cancelStampMode();
+  const toggleStampMode = () => store.toggleStampMode();
+  const setStampGhostPosition = (pos: { x: number; y: number } | null) => store.setStampGhostPosition(pos);
+  const commitStampPlacement = (pos: { x: number; y: number }) => store.commitStampPlacement(pos);
+  const selectTable = (tableName: string, multiSelect = false) => store.selectTable(tableName, multiSelect);
+  const clearSelection = () => store.clearSelection();
+
   return {
     sqlCode,
     tables,
@@ -70,8 +82,17 @@ export function useDiagram() {
     warnings,
     selectedTableNames,
     hoveredColumn,
+    isStampActive,
+    stampGhostPosition,
     parseSql,
     bringTableToFront,
     bringTablesToFront,
+    startStampMode,
+    cancelStampMode,
+    toggleStampMode,
+    setStampGhostPosition,
+    commitStampPlacement,
+    selectTable,
+    clearSelection,
   };
 }

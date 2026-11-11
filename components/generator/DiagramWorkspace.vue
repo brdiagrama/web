@@ -3,12 +3,12 @@
     class="canvas-panel"
     :class="isCanvasDark ? 'canvas-dark' : 'canvas-light'"
     aria-label="Área do diagrama ER"
+    @pointerdown.capture="blurActiveInput"
   >
     <div class="install-button-wrapper">
       <InstallButton aria-label="Instalar aplicativo" />
     </div>
 
-    <!-- Indicador de Carregamento Progressivo -->
     <DiagramProgressLoader />
 
     <DiagramCanvas
@@ -17,9 +17,9 @@
       @selectionArea="handleSelectionArea"
       @selectionSelecting="handleSelectionArea"
       @canvasPointerDown="clearSelectionOnCanvas"
+      @stampPlaced="handleStampPlaced"
     >
       <g v-if="tables && Object.keys(tables).length > 0">
-        <!-- Relacionamentos (atrás das tabelas) -->
         <g class="relationships-layer">
           <RelationshipLine
             v-for="rel in renderedRelationshipsList"
@@ -65,7 +65,6 @@
       </g>
     </DiagramCanvas>
 
-    <!-- Overlay quando não há tabelas (substituído pelo loader durante o carregamento) -->
     <div v-if="(!tables || Object.keys(tables).length === 0) && !diagramStore.loadingProgress.isLoading" class="canvas-empty-overlay">
       <div class="canvas-empty-content">
         <div class="canvas-empty-icon" aria-hidden="true">
@@ -81,7 +80,6 @@
       </div>
     </div>
 
-    <!-- Barra de Ferramentas Flutuante -->
     <DiagramToolbar
       :zoom-level="diagramStore.zoom"
       :is-pan-mode="diagramStore.isPanMode"
@@ -107,14 +105,34 @@ import { useDiagram } from "@/composables/useDiagram";
 import { useDiagramStore } from "@/stores/diagram";
 import { calculateTableWidth, calculateTableHeight } from "@/domain/diagram/tableDimensions";
 import { exportSvg, exportPng } from "@/utils/diagramExporter";
-import { toastError } from "@/services/toastService";
+import { toastError, toastSuccess } from "@/services/toastService";
 import { useGeneratorTheme } from "@/composables/useGeneratorTheme";
 
 const diagramStore = useDiagramStore();
 const diagramCanvasRef = ref(null);
 const { isCanvasDark, initCanvasTheme } = useGeneratorTheme();
 initCanvasTheme();
-const { tables, relationships, positions, edgeOffsets, selectedTableNames, hoveredColumn, tableOrder } = useDiagram();
+const { 
+  tables, relationships, positions, edgeOffsets, 
+  selectedTableNames, hoveredColumn, tableOrder,
+  commitStampPlacement 
+} = useDiagram();
+
+const handleStampPlaced = (pos) => {
+  commitStampPlacement(pos);
+};
+
+const blurActiveInput = () => {
+  const activeEl = document.activeElement;
+  if (activeEl && typeof activeEl.blur === 'function') {
+    const tagName = activeEl.tagName?.toUpperCase();
+    const isInput = tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT';
+    const isMonaco = !!activeEl.closest?.('.monaco-editor');
+    if (isInput || isMonaco || activeEl.getAttribute?.('contenteditable') === 'true') {
+      activeEl.blur();
+    }
+  }
+};
 
 const headerHeight = 35;
 const rowHeight = 32;
@@ -307,29 +325,56 @@ const startDrag = (event, tableName) => {
     }
   });
 
-  const onPointerMove = (e) => {
-    const currentPan = diagramStore.pan;
-    const currentZoom = diagramStore.zoom;
-    const mouseX = (e.clientX - currentPan.x) / currentZoom;
-    const mouseY = (e.clientY - currentPan.y) / currentZoom;
-    const deltaX = mouseX - initialMouseX;
-    const deltaY = mouseY - initialMouseY;
+  let dragRafId = null;
+  let latestClientX = event.clientX;
+  let latestClientY = event.clientY;
 
-    selectedTableNames.value.forEach((name) => {
-      const initial = initialPositions[name];
-      if (initial) {
-        diagramStore.updateTablePosition(name, {
-          x: Math.round(initial.x + deltaX),
-          y: Math.round(initial.y + deltaY),
-        }, false);
-      }
+  const onPointerMove = (e) => {
+    latestClientX = e.clientX;
+    latestClientY = e.clientY;
+
+    if (dragRafId) return;
+
+    dragRafId = requestAnimationFrame(() => {
+      dragRafId = null;
+      const currentPan = diagramStore.pan;
+      const currentZoom = diagramStore.zoom;
+      const mouseX = (latestClientX - currentPan.x) / currentZoom;
+      const mouseY = (latestClientY - currentPan.y) / currentZoom;
+      const deltaX = mouseX - initialMouseX;
+      const deltaY = mouseY - initialMouseY;
+
+      selectedTableNames.value.forEach((name) => {
+        const initial = initialPositions[name];
+        if (initial) {
+          diagramStore.updateTablePosition(name, {
+            x: initial.x + deltaX,
+            y: initial.y + deltaY,
+          }, false);
+        }
+      });
     });
   };
 
   const onPointerUp = (e) => {
     if (e.button === 0 || e.button === undefined) {
+      if (dragRafId) {
+        cancelAnimationFrame(dragRafId);
+        dragRafId = null;
+      }
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
+
+      selectedTableNames.value.forEach((name) => {
+        const currentPos = positions.value[name];
+        if (currentPos) {
+          diagramStore.updateTablePosition(name, {
+            x: Math.round(currentPos.x),
+            y: Math.round(currentPos.y),
+          }, false);
+        }
+      });
+
       diagramStore.persistTablePositions();
     }
   };
@@ -377,8 +422,19 @@ const exportDiagramSVG = async () => {
   }
 };
 
+const focusTable = (tableName) => {
+  if (!tables.value || !tables.value[tableName]) return;
+  diagramStore.setSelectedTables([tableName]);
+  const pos = positions.value[tableName] || { x: 0, y: 0 };
+  const dims = tableDimensionsMap.value[tableName] || { width: 220, height: 99 };
+  const centerX = pos.x + dims.width / 2;
+  const centerY = pos.y + dims.height / 2;
+  diagramCanvasRef.value?.panToCoordinates(centerX, centerY);
+};
+
 defineExpose({
   diagramCanvasRef,
+  focusTable,
   exportDiagramPNG,
   exportDiagramSVG,
 });
@@ -399,6 +455,11 @@ defineExpose({
 .canvas-container {
   width: 100%;
   height: 100%;
+}
+
+.relationships-layer,
+.tables-layer {
+  isolation: isolate;
 }
 
 .install-button-wrapper {

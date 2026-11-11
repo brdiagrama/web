@@ -251,11 +251,12 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
   stroke: transparent;
   stroke-width: 1px;
   pointer-events: none;
-  transition: stroke 0.16s ease-out, stroke-width 0.16s ease-out, filter 0.16s ease-out;
+  transition: stroke 0.16s ease-out, stroke-width 0.16s ease-out;
 }
 
+/* Hover na tabela não selecionada: restaura o azul característico (#0041d826) */
 .table-group:not(.selected):hover .table-bg {
-  filter: drop-shadow(0 10px 15px -3px rgba(25, 39, 71, 0.15)), drop-shadow(0 4px 6px -4px rgba(25, 39, 71, 0.1));
+  filter: drop-shadow(0 6px 12px rgba(0, 65, 216, 0.15)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.08));
 }
 
 .table-group:not(.selected):hover .table-rect {
@@ -263,21 +264,15 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
   stroke-width: 1px;
 }
 
+/* Tabela selecionada: preserva permanentemente o box-shadow azul mesmo ao passar hover nas colunas */
 .table-group.selected .table-bg,
-.table-bg.selected {
+.table-bg.selected,
+.table-group.selected:hover .table-bg {
   filter: drop-shadow(0 0 2px var(--diagram-table-shadow-selected, rgba(59, 130, 246, 0.3))) drop-shadow(0 0 4px var(--diagram-table-shadow-selected, rgba(59, 130, 246, 0.35)));
 }
 
 .table-group.selected .table-rect,
-.table-rect.selected {
-  stroke: var(--diagram-table-border-selected, #192747ff);
-  stroke-width: 2.5px;
-}
-
-.table-group.selected:hover .table-bg {
-  filter: drop-shadow(0 0 4px var(--diagram-table-shadow-selected, rgba(59, 130, 246, 0.45))) drop-shadow(0 10px 20px -3px rgba(25, 39, 71, 0.25));
-}
-
+.table-rect.selected,
 .table-group.selected:hover .table-rect {
   stroke: var(--diagram-table-border-selected, #192747ff);
   stroke-width: 2.5px;
@@ -300,6 +295,10 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
   font-family: var(--diagram-font, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif);
   user-select: none;
   pointer-events: none;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  /* Mantém suavização grayscale constante, evitando alternância ClearType durante animações/transições do SVG */
+  opacity: 0.999;
 }
 
 .table-header-skeleton {

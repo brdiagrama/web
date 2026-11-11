@@ -45,6 +45,8 @@ export interface DiagramState {
   isGridVisible: boolean;
   gridSize: number;
   isPanMode: boolean;
+  isStampActive: boolean;
+  stampGhostPosition: { x: number; y: number } | null;
 }
 
 let currentLoadId = 0;
@@ -76,6 +78,8 @@ export const useDiagramStore = defineStore('diagram', {
     isGridVisible: false,
     gridSize: 20,
     isPanMode: false,
+    isStampActive: false,
+    stampGhostPosition: null,
   }),
 
   getters: {
@@ -302,6 +306,49 @@ export const useDiagramStore = defineStore('diagram', {
 
     setGridSize(size: number) {
       this.gridSize = size;
+    },
+
+    startStampMode() {
+      this.isStampActive = true;
+      this.isPanMode = false;
+    },
+
+    cancelStampMode() {
+      this.isStampActive = false;
+      this.stampGhostPosition = null;
+    },
+
+    toggleStampMode() {
+      if (this.isStampActive) {
+        this.cancelStampMode();
+      } else {
+        this.startStampMode();
+      }
+    },
+
+    setStampGhostPosition(pos: { x: number; y: number } | null) {
+      this.stampGhostPosition = pos;
+    },
+
+    commitStampPlacement(pos: { x: number; y: number }): string {
+      const existingNames = new Set(Object.keys(this.schema.tables).map(n => n.toLowerCase()));
+      let counter = 1;
+      while (existingNames.has(`nova_tabela_${counter}`)) {
+        counter++;
+      }
+      const newTableName = `nova_tabela_${counter}`;
+      const tableDdl = `\n\nCREATE TABLE ${newTableName} (\n  id INT PRIMARY KEY AUTO_INCREMENT,\n  nome VARCHAR(100) NOT NULL\n);`;
+
+      this.positions[newTableName] = {
+        x: Math.round(pos.x),
+        y: Math.round(pos.y),
+      };
+
+      this.isStampActive = false;
+      this.stampGhostPosition = null;
+
+      this.setSql(this.sqlCode + tableDdl);
+      return newTableName;
     },
 
     resetProject() {
