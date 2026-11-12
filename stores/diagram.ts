@@ -3,6 +3,12 @@ import type { DatabaseSchema, Table, Relationship } from '@/domain/models/databa
 import { parseSqlAsync } from '@/services/sqlParserService';
 import { generateLayout, type EdgeOffset } from '@/domain/diagram/layout2d';
 import { useDiagramStorage } from '@/composables/useDiagramStorage';
+import { 
+  replaceTableNameInSql, 
+  replaceColumnNameInSql, 
+  replaceColumnTypeInSql 
+} from '@/domain/sql/schemaModifier';
+import { mapSqlErrorsToTables } from '@/domain/sql/sqlLineMapper';
 
 export interface SqlProblem {
   line: number;
@@ -47,6 +53,8 @@ export interface DiagramState {
   isPanMode: boolean;
   isStampActive: boolean;
   stampGhostPosition: { x: number; y: number } | null;
+  draftTableNames: Record<string, string>;
+  tableErrors: Record<string, string>;
 }
 
 let currentLoadId = 0;
@@ -80,6 +88,8 @@ export const useDiagramStore = defineStore('diagram', {
     isPanMode: false,
     isStampActive: false,
     stampGhostPosition: null,
+    draftTableNames: {},
+    tableErrors: {},
   }),
 
   getters: {
@@ -104,6 +114,8 @@ export const useDiagramStore = defineStore('diagram', {
         this.tableOrder = [];
         this.errors = [];
         this.warnings = [];
+        this.draftTableNames = {};
+        this.tableErrors = {};
         this.loadingProgress = { isLoading: false, phase: 'parsing', current: 0, total: 0 };
         return;
       }
@@ -128,6 +140,7 @@ export const useDiagramStore = defineStore('diagram', {
         this.edgeOffsets = layoutResult.edgeOffsets;
         this.errors = [];
         this.warnings = [];
+        this.tableErrors = {};
 
         const allTableSet = new Set(allTableNames);
         const currentOrder = this.tableOrder.length > 0 ? this.tableOrder : (loadTableOrder() || []);
@@ -136,9 +149,20 @@ export const useDiagramStore = defineStore('diagram', {
         const newTables = allTableNames.filter(name => !validSet.has(name));
         const targetOrder = [...validOrder, ...newTables];
 
+        if (this.selectedTableNames.size > 0) {
+          const validSelected = new Set<string>();
+          for (const name of this.selectedTableNames) {
+            if (allTableSet.has(name)) {
+              validSelected.add(name);
+            }
+          }
+          this.selectedTableNames = validSelected;
+        }
+
         if (totalTables <= 200) {
           this.schema = newSchema;
           this.tableOrder = targetOrder;
+          this.draftTableNames = {};
           this.loadingProgress = { isLoading: false, phase: 'rendering', current: totalTables, total: totalTables };
           saveTablePositions(this.positions);
           saveTableOrder(this.tableOrder);
@@ -184,6 +208,7 @@ export const useDiagramStore = defineStore('diagram', {
         if (currentLoadId === loadId) {
           this.schema = newSchema;
           this.tableOrder = targetOrder;
+          this.draftTableNames = {};
           this.loadingProgress = { isLoading: false, phase: 'rendering', current: totalTables, total: totalTables };
           saveTablePositions(this.positions);
           saveTableOrder(this.tableOrder);
@@ -192,11 +217,21 @@ export const useDiagramStore = defineStore('diagram', {
         clearTimeout(parseTimer);
         if (currentLoadId === loadId) {
           this.loadingProgress = { isLoading: false, phase: 'parsing', current: 0, total: 0 };
+          const errorLine = e.line || e.location?.start?.line || 1;
+          const errorMessage = e.message || 'Erro de sintaxe no SQL';
           this.errors = [{
-            line: e.line || e.location?.start?.line || 1,
-            message: e.message || 'Erro de sintaxe no SQL',
+            line: errorLine,
+            message: errorMessage,
             type: 'error',
           }];
+          const { tableErrors, draftNames } = mapSqlErrorsToTables(
+            sql,
+            errorLine,
+            errorMessage,
+            this.schema.tables
+          );
+          this.tableErrors = tableErrors;
+          this.draftTableNames = draftNames;
         }
       }
     },
@@ -351,6 +386,55 @@ export const useDiagramStore = defineStore('diagram', {
       return newTableName;
     },
 
+    renameTable(oldSqlName: string, newSqlName: string, schemaTableName?: string): boolean {
+      if (oldSqlName === newSqlName) return false;
+
+      const baseName = schemaTableName || oldSqlName;
+      this.draftTableNames = {
+        ...this.draftTableNames,
+        [baseName]: newSqlName
+      };
+
+      // Mantém a posição do nome antigo intacta (evitando pulo para 0,0 durante o parse ou em erro SQL)
+      // e já registra a mesma posição para o novo nome caso o SQL seja válido.
+      const sourcePos = this.positions[baseName] || this.positions[oldSqlName];
+      if (sourcePos && newSqlName) {
+        this.positions[newSqlName] = { ...sourcePos };
+      }
+
+      if (newSqlName && (this.selectedTableNames.has(baseName) || this.selectedTableNames.has(oldSqlName))) {
+        this.selectedTableNames.add(newSqlName);
+      }
+
+      const orderIdx = this.tableOrder.indexOf(oldSqlName);
+      if (orderIdx !== -1 && newSqlName) {
+        this.tableOrder[orderIdx] = newSqlName;
+      } else {
+        const baseIdx = this.tableOrder.indexOf(baseName);
+        if (baseIdx !== -1 && newSqlName) {
+          this.tableOrder[baseIdx] = newSqlName;
+        }
+      }
+
+      const updatedSql = replaceTableNameInSql(this.sqlCode, oldSqlName, newSqlName);
+      this.setSql(updatedSql);
+      return true;
+    },
+
+    renameColumn(tableName: string, oldColName: string, newColName: string): boolean {
+      if (oldColName === newColName || !tableName) return false;
+      const updatedSql = replaceColumnNameInSql(this.sqlCode, tableName, oldColName, newColName);
+      this.setSql(updatedSql);
+      return true;
+    },
+
+    changeColumnType(tableName: string, colName: string, oldType: string, newType: string): boolean {
+      if (!tableName || !colName || oldType === newType) return false;
+      const updatedSql = replaceColumnTypeInSql(this.sqlCode, tableName, colName, oldType, newType);
+      this.setSql(updatedSql);
+      return true;
+    },
+
     resetProject() {
       currentLoadId++;
       this.sqlCode = '';
@@ -363,6 +447,8 @@ export const useDiagramStore = defineStore('diagram', {
       this.warnings = [];
       this.selectedTableNames = new Set();
       this.hoveredColumn = null;
+      this.draftTableNames = {};
+      this.tableErrors = {};
       const { clearSql, clearTablePositions, clearTableOrder } = useDiagramStorage();
       clearSql();
       clearTablePositions();

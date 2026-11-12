@@ -66,9 +66,10 @@ function applyTableConstraint(def: any, tableData: Table): void {
     }
 }
 
-export function extractTable(ast: any): Table {
+export function extractTable(ast: any, index = 0): Table {
     const tableName = ast.table[0].table;
     const tableData: Table = {
+        id: `table_idx_${index}`,
         name: tableName,
         columns: [],
         isJunction: false,

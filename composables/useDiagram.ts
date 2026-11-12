@@ -44,7 +44,7 @@ export function useDiagram() {
   const { 
     sqlCode, errors, warnings, positions, edgeOffsets, 
     selectedTableNames, hoveredColumn, tableOrder, loadingProgress,
-    isStampActive, stampGhostPosition 
+    isStampActive, stampGhostPosition, draftTableNames, tableErrors 
   } = storeToRefs(store);
 
   const tables = computed(() => store.tables);
@@ -69,6 +69,12 @@ export function useDiagram() {
   const commitStampPlacement = (pos: { x: number; y: number }) => store.commitStampPlacement(pos);
   const selectTable = (tableName: string, multiSelect = false) => store.selectTable(tableName, multiSelect);
   const clearSelection = () => store.clearSelection();
+  const renameTable = (oldSqlName: string, newSqlName: string, schemaTableName?: string) =>
+    store.renameTable(oldSqlName, newSqlName, schemaTableName);
+  const renameColumn = (tableName: string, oldColName: string, newColName: string) =>
+    store.renameColumn(tableName, oldColName, newColName);
+  const changeColumnType = (tableName: string, colName: string, oldType: string, newType: string) =>
+    store.changeColumnType(tableName, colName, oldType, newType);
 
   return {
     sqlCode,
@@ -84,6 +90,8 @@ export function useDiagram() {
     hoveredColumn,
     isStampActive,
     stampGhostPosition,
+    draftTableNames,
+    tableErrors,
     parseSql,
     bringTableToFront,
     bringTablesToFront,
@@ -94,5 +102,8 @@ export function useDiagram() {
     commitStampPlacement,
     selectTable,
     clearSelection,
+    renameTable,
+    renameColumn,
+    changeColumnType,
   };
 }

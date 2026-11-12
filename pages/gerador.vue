@@ -43,6 +43,7 @@ const isModelingVisible = ref(true);
 
 const activeTab = ref('diagram');
 const isMobile = ref(false);
+const isBetaNoticeVisible = ref(true);
 
 const MIN_WIDTH = 300;
 const MAX_WIDTH = 1200;
@@ -444,6 +445,42 @@ const exportDiagramSVG = () => {
 
       <!-- Overlay de Redimensionamento Global -->
       <div v-if="isResizing || isModelingResizing" class="global-resize-overlay"></div>
+
+      <!-- Aviso Flutuante / Toast Persistente de Atualização (Canto Inferior Esquerdo) -->
+      <transition name="fade-slide">
+        <div
+          v-if="isBetaNoticeVisible"
+          class="canvas-beta-toast"
+          role="status"
+          aria-live="polite"
+        >
+          <div class="beta-toast-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <div class="beta-toast-content">
+            <span class="beta-toast-title">Em atualização</span>
+            <p class="beta-toast-text">
+              Estamos atualizando a ferramenta para permitir alterações direto pelos Diagramas. Bugs podem ser encontrados durante o uso.
+            </p>
+          </div>
+          <button
+            type="button"
+            class="beta-toast-close"
+            title="Fechar aviso"
+            aria-label="Fechar aviso de atualização"
+            @click="isBetaNoticeVisible = false"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      </transition>
     </main>
 
     <AlertModal />
@@ -498,6 +535,91 @@ const exportDiagramSVG = () => {
 .panel-shell.panel-hidden :deep(::-webkit-scrollbar) {
   overflow-y: hidden !important;
   display: none !important;
+}
+
+/* Toast/Aviso Fixo no Canto Inferior Esquerdo */
+.canvas-beta-toast {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  z-index: 45;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 360px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background-color: rgba(28, 28, 28, 0.94);
+  color: #f3f4f6;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.35), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.beta-toast-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f59e0b;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.beta-toast-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.beta-toast-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.beta-toast-text {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: rgba(243, 244, 246, 0.85);
+}
+
+.beta-toast-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  margin-top: -2px;
+  margin-right: -4px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.beta-toast-close:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(10px) scale(0.96);
 }
 
 .panel-shell.no-transition {

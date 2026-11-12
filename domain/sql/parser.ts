@@ -16,9 +16,10 @@ export function parseSqlSchema(sql: string): DatabaseSchema {
     const astList: any[] = Array.isArray(parsed) ? parsed : [parsed];
 
     // Extração de tabelas
+    let tableIndex = 0;
     astList.forEach((ast: any) => {
         if (ast?.type === 'create' && ast?.keyword === 'table') {
-            const tableData = extractTable(ast);
+            const tableData = extractTable(ast, tableIndex++);
             tables[tableData.name] = tableData;
         }
     });

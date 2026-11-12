@@ -44,11 +44,13 @@
         <!-- Tabelas -->
         <g class="tables-layer">
           <DiagramTableNode
-            v-for="table in renderedTablesList"
-            :key="table.name"
+            v-for="(table, index) in renderedTablesList"
+            :key="table.id || index"
             :table="table"
-            :x="positions[table.name]?.x || 0"
-            :y="positions[table.name]?.y || 0"
+            :display-name="getTableDisplayName(table.name)"
+            :error-message="getTableErrorMessage(table.name)"
+            :x="positions[table.name]?.x ?? 0"
+            :y="positions[table.name]?.y ?? 0"
             :is-selected="selectedTableNames.has(table.name)"
             :is-pan-mode="diagramStore.isPanMode"
             :header-height="headerHeight"
@@ -59,6 +61,9 @@
             :highlighted-columns="highlightedColumns"
             :detail-level="detailLevel"
             @start-drag="startDrag"
+            @rename="handleTableRename"
+            @rename-column="handleColumnRename"
+            @change-column-type="handleColumnTypeChange"
             @column-hover="handleColumnHover"
           />
         </g>
@@ -115,8 +120,32 @@ initCanvasTheme();
 const { 
   tables, relationships, positions, edgeOffsets, 
   selectedTableNames, hoveredColumn, tableOrder,
-  commitStampPlacement 
+  commitStampPlacement, draftTableNames, tableErrors,
+  renameTable, renameColumn, changeColumnType
 } = useDiagram();
+
+const handleTableRename = (previousName, newName, originalName) => {
+  renameTable(previousName, newName, originalName);
+};
+
+const handleColumnRename = (tableName, oldColName, newColName) => {
+  renameColumn(tableName, oldColName, newColName);
+};
+
+const handleColumnTypeChange = (tableName, colName, oldType, newType) => {
+  changeColumnType(tableName, colName, oldType, newType);
+};
+
+const getTableDisplayName = (tableName) => {
+  if (draftTableNames.value && tableName in draftTableNames.value) {
+    return draftTableNames.value[tableName];
+  }
+  return tableName;
+};
+
+const getTableErrorMessage = (tableName) => {
+  return tableErrors.value?.[tableName] || null;
+};
 
 const handleStampPlaced = (pos) => {
   commitStampPlacement(pos);
@@ -145,9 +174,13 @@ const tableDimensionsMap = computed(() => {
   if (!tables.value) return map;
   for (const tableName in tables.value) {
     const table = tables.value[tableName];
+    const effectiveDisplayName = getTableDisplayName(tableName);
+    const tableWithDisplayName = effectiveDisplayName && effectiveDisplayName !== table.name 
+      ? { ...table, name: effectiveDisplayName } 
+      : table;
     map[tableName] = {
-      width: calculateTableWidth(table),
-      height: calculateTableHeight(table),
+      width: calculateTableWidth(tableWithDisplayName),
+      height: calculateTableHeight(tableWithDisplayName),
     };
   }
   return map;

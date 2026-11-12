@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick } from "vue";
 import { 
-  Database, Plus, Search, ChevronRight, ChevronDown, 
-  Key, Link2, Sun, Moon, X, TableProperties 
+  Database, Plus, Search, ChevronRight, 
+  Key, Link2, Sun, Moon, TableProperties 
 } from "lucide-vue-next";
+import IconButton from "@/components/shared/IconButton.vue";
 import type { Table } from "@/domain/models/databaseSchema";
 import { useGeneratorTheme } from "@/composables/useGeneratorTheme";
 import { useDiagram } from "@/composables/useDiagram";
@@ -20,7 +21,174 @@ const emit = defineEmits<{
 }>();
 
 const { isModelingDark, toggleModelingTheme } = useGeneratorTheme();
-const { isStampActive, toggleStampMode, selectedTableNames, selectTable } = useDiagram();
+const { 
+  isStampActive, 
+  toggleStampMode, 
+  selectedTableNames, 
+  selectTable, 
+  renameTable, 
+  renameColumn, 
+  changeColumnType, 
+  draftTableNames, 
+  tableErrors 
+} = useDiagram();
+
+const getCardErrorMessage = (tableName: string) => {
+  return tableErrors.value?.[tableName] || null;
+};
+
+const localTableNames = ref<Record<string, string>>({});
+const activeInputKey = ref<string | null>(null);
+
+const getTableKey = (table: Table) => table.id || table.name;
+
+watch(
+  () => props.tables,
+  (newTables) => {
+    if (!newTables) return;
+    for (const name in newTables) {
+      const table = newTables[name];
+      const key = getTableKey(table);
+      if (activeInputKey.value !== key) {
+        localTableNames.value[key] = table.name;
+      }
+    }
+  },
+  { immediate: true, deep: true }
+);
+
+const getTableNameValue = (table: Table) => {
+  const key = getTableKey(table);
+  if (activeInputKey.value === key) {
+    return localTableNames.value[key] ?? table.name;
+  }
+  if (draftTableNames.value && table.name in draftTableNames.value) {
+    return draftTableNames.value[table.name];
+  }
+  return localTableNames.value[key] ?? table.name;
+};
+
+const handleTableNameInput = (table: Table, event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const key = getTableKey(table);
+  const previousSqlName = getTableNameValue(table);
+  const cleanValue = target.value.replace(/\s+/g, '');
+
+  if (target.value !== cleanValue) {
+    const cursor = Math.max(0, (target.selectionStart || 1) - 1);
+    target.value = cleanValue;
+    target.setSelectionRange(cursor, cursor);
+  }
+
+  const newSqlName = cleanValue;
+
+  localTableNames.value[key] = newSqlName;
+  activeInputKey.value = key;
+
+  if (previousSqlName !== newSqlName) {
+    if (expandedTables.value.has(table.name) || expandedTables.value.has(previousSqlName)) {
+      if (newSqlName) {
+        expandedTables.value.add(newSqlName);
+      }
+    }
+
+    renameTable(previousSqlName, newSqlName, table.name);
+
+    const cursorPosition = target.selectionStart;
+    nextTick(() => {
+      if (document.activeElement === target && cursorPosition !== null) {
+        target.setSelectionRange(cursorPosition, cursorPosition);
+      }
+    });
+  }
+};
+
+const handleTableNameBlur = () => {
+  activeInputKey.value = null;
+};
+
+const activeColKey = ref<string | null>(null);
+const localColValues = ref<Record<string, { name: string; type: string }>>({});
+
+const getColKey = (table: Table, colIndex: number) => `${getTableKey(table)}_col_${colIndex}`;
+
+const getColNameValue = (table: Table, col: any, colIndex: number) => {
+  const key = getColKey(table, colIndex);
+  if (activeColKey.value === key && localColValues.value[key]) {
+    return localColValues.value[key].name;
+  }
+  return col.name;
+};
+
+const getColTypeValue = (table: Table, col: any, colIndex: number) => {
+  const key = getColKey(table, colIndex);
+  if (activeColKey.value === key && localColValues.value[key]) {
+    return localColValues.value[key].type;
+  }
+  return col.type;
+};
+
+const handleColumnNameInput = (table: Table, col: any, colIndex: number, event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const key = getColKey(table, colIndex);
+  const previousColName = getColNameValue(table, col, colIndex);
+  const currentColType = getColTypeValue(table, col, colIndex);
+  const cleanValue = target.value.replace(/\s+/g, '');
+
+  if (target.value !== cleanValue) {
+    const cursor = Math.max(0, (target.selectionStart || 1) - 1);
+    target.value = cleanValue;
+    target.setSelectionRange(cursor, cursor);
+  }
+
+  const newColName = cleanValue;
+  activeColKey.value = key;
+  localColValues.value[key] = {
+    name: newColName,
+    type: currentColType,
+  };
+
+  if (previousColName !== newColName) {
+    const effectiveTableName = getTableNameValue(table) || table.name;
+    renameColumn(effectiveTableName, previousColName, newColName);
+    const cursorPosition = target.selectionStart;
+    nextTick(() => {
+      if (document.activeElement === target && cursorPosition !== null) {
+        target.setSelectionRange(cursorPosition, cursorPosition);
+      }
+    });
+  }
+};
+
+const handleColumnTypeInput = (table: Table, col: any, colIndex: number, event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const key = getColKey(table, colIndex);
+  const currentColName = getColNameValue(table, col, colIndex);
+  const previousColType = getColTypeValue(table, col, colIndex);
+  const newType = target.value;
+
+  activeColKey.value = key;
+  localColValues.value[key] = {
+    name: currentColName,
+    type: newType,
+  };
+
+  if (previousColType !== newType) {
+    const effectiveTableName = getTableNameValue(table) || table.name;
+    changeColumnType(effectiveTableName, currentColName, previousColType, newType);
+    const cursorPosition = target.selectionStart;
+    nextTick(() => {
+      if (document.activeElement === target && cursorPosition !== null) {
+        target.setSelectionRange(cursorPosition, cursorPosition);
+      }
+    });
+  }
+};
+
+const handleColumnBlur = () => {
+  activeColKey.value = null;
+  localColValues.value = {};
+};
 
 const searchQuery = ref("");
 const expandedTables = ref<Set<string>>(new Set());
@@ -165,49 +333,27 @@ watch(
 
       <nav class="header-actions" aria-label="Ações de modelagem">
         <!-- Alternar Tema -->
-        <v-tooltip 
-          :text="isModelingDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'" 
-          location="bottom" 
+        <IconButton
+          :tooltip="isModelingDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'"
           :theme="isModelingDark ? 'dark' : 'light'"
+          size="small"
+          @click="(e: MouseEvent) => toggleModelingTheme(e)"
         >
-          <template #activator="{ props: tooltipProps }">
-            <v-btn
-              v-bind="tooltipProps"
-              icon
-              variant="text"
-              size="small"
-              class="action-btn"
-              :aria-label="isModelingDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'"
-              @click="(e: MouseEvent) => toggleModelingTheme(e)"
-            >
-              <Sun v-if="isModelingDark" :size="18" />
-              <Moon v-else :size="18" />
-            </v-btn>
-          </template>
-        </v-tooltip>
+          <Sun v-if="isModelingDark" :size="18" />
+          <Moon v-else :size="18" />
+        </IconButton>
 
         <div class="header-divider" aria-hidden="true"></div>
 
         <!-- Recolher Painel -->
-        <v-tooltip 
-          text="Ocultar modelagem" 
-          location="bottom" 
+        <IconButton
+          tooltip="Ocultar modelagem"
           :theme="isModelingDark ? 'dark' : 'light'"
+          size="small"
+          @click="emit('collapse')"
         >
-          <template #activator="{ props: tooltipProps }">
-            <v-btn
-              v-bind="tooltipProps"
-              icon
-              variant="text"
-              size="small"
-              class="action-btn"
-              aria-label="Ocultar painel de modelagem"
-              @click="emit('collapse')"
-            >
-              <ChevronRight :size="20" />
-            </v-btn>
-          </template>
-        </v-tooltip>
+          <ChevronRight :size="20" />
+        </IconButton>
       </nav>
     </header>
 
@@ -280,18 +426,20 @@ watch(
 
       <div v-else class="table-items-container">
         <div 
-          v-for="table in tableList" 
-          :key="table.name"
+          v-for="(table, index) in tableList" 
+          :key="table.id || index"
           :data-table-name="table.name"
           class="table-accordion-card"
           :class="{ 
             'is-expanded': isTableExpanded(table.name),
-            'is-selected': selectedTableNames.has(table.name)
+            'is-selected': selectedTableNames.has(table.name),
+            'is-error': !!getCardErrorMessage(table.name)
           }"
         >
           <!-- Cabeçalho do Card da Tabela -->
           <div 
             class="card-header"
+            :title="getCardErrorMessage(table.name) || undefined"
             @click="toggleExpandTable(table.name)"
             role="button"
             :aria-expanded="isTableExpanded(table.name)"
@@ -304,7 +452,23 @@ watch(
                 <ChevronRight :size="15" class="chevron-icon" />
               </span>
               <TableProperties :size="14" class="table-entity-icon" aria-hidden="true" />
-              <span class="table-name">{{ table.name }}</span>
+
+              <!-- Input Direto e Reativo em Tempo Real -->
+              <span class="table-name-input-sizer" :data-value="getTableNameValue(table)">
+                <input
+                  :value="getTableNameValue(table)"
+                  type="text"
+                  class="table-name-input"
+                  @click.stop
+                  @pointerdown.stop
+                  @mousedown.stop
+                  @input="handleTableNameInput(table, $event)"
+                  @blur="handleTableNameBlur"
+                  @keydown.space.prevent.stop
+                  @keydown.enter.stop="(e) => (e.target as HTMLElement)?.blur()"
+                  aria-label="Nome da tabela"
+                />
+              </span>
             </div>
 
             <div class="card-meta">
@@ -320,8 +484,8 @@ watch(
               <div class="card-body">
                 <div class="columns-table-view">
                   <div 
-                    v-for="col in table.columns" 
-                    :key="col.name"
+                    v-for="(col, colIndex) in table.columns" 
+                    :key="`${table.name}_col_${colIndex}`"
                     class="column-row"
                   >
                     <div class="column-name-cell">
@@ -331,11 +495,38 @@ watch(
                       <span v-else-if="col.isForeignKey" class="badge-fk" title="Foreign Key">
                         <Link2 :size="11" />
                       </span>
-                      <span class="column-name-text">{{ col.name }}</span>
+                      <span class="column-name-input-sizer" :data-value="getColNameValue(table, col, colIndex)">
+                        <input
+                          :value="getColNameValue(table, col, colIndex)"
+                          type="text"
+                          class="column-name-input"
+                          @click.stop
+                          @pointerdown.stop
+                          @mousedown.stop
+                          @input="handleColumnNameInput(table, col, colIndex, $event)"
+                          @blur="handleColumnBlur"
+                          @keydown.space.prevent.stop
+                          @keydown.enter.stop="(e) => (e.target as HTMLElement)?.blur()"
+                          aria-label="Nome da coluna"
+                        />
+                      </span>
                     </div>
 
                     <div class="column-type-cell">
-                      <span class="column-type-text">{{ col.type }}</span>
+                      <span class="column-type-input-sizer" :data-value="getColTypeValue(table, col, colIndex)">
+                        <input
+                          :value="getColTypeValue(table, col, colIndex)"
+                          type="text"
+                          class="column-type-input"
+                          @click.stop
+                          @pointerdown.stop
+                          @mousedown.stop
+                          @input="handleColumnTypeInput(table, col, colIndex, $event)"
+                          @blur="handleColumnBlur"
+                          @keydown.enter.stop="(e) => (e.target as HTMLElement)?.blur()"
+                          aria-label="Tipo da coluna"
+                        />
+                      </span>
                     </div>
 
                     <div 
@@ -769,7 +960,7 @@ watch(
 .table-accordion-card {
   border-radius: 10px;
   background-color: var(--panel-surface);
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
   overflow: hidden;
   contain: paint;
 }
@@ -780,6 +971,14 @@ watch(
 
 .table-accordion-card.is-selected {
   background-color: var(--panel-surface-elevated);
+}
+
+.table-accordion-card.is-error {
+  box-shadow: inset 0 0 0 1.5px #ef4444;
+}
+
+.table-accordion-card.is-error .table-name-input {
+  color: #ef4444;
 }
 
 .card-header {
@@ -795,6 +994,9 @@ watch(
   align-items: center;
   gap: 8px;
   min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  line-height: 1;
 }
 
 .chevron-indicator {
@@ -803,6 +1005,7 @@ watch(
   justify-content: center;
   color: var(--panel-text-muted);
   transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1);
+  line-height: 1;
 }
 
 .table-accordion-card.is-expanded .chevron-indicator {
@@ -813,6 +1016,9 @@ watch(
   color: var(--panel-text-muted);
   opacity: 0.7;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: opacity 0.2s ease, color 0.2s ease;
 }
 
@@ -826,13 +1032,67 @@ watch(
   opacity: 1;
 }
 
-.table-name {
+.table-name-input-sizer {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  min-width: 10px;
+  max-width: 100%;
+  flex-shrink: 1;
+  margin-left: -3px;
+  border-radius: 4px;
+  background-color: transparent;
+  transition: background-color 0.15s ease;
+}
+
+.table-accordion-card:hover .table-name-input-sizer,
+.table-name-input-sizer:focus-within {
+  background-color: var(--panel-input-bg);
+}
+
+.panel-dark .table-accordion-card:hover .table-name-input-sizer,
+.panel-dark .table-name-input-sizer:focus-within {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.panel-light .table-accordion-card:hover .table-name-input-sizer,
+.panel-light .table-name-input-sizer:focus-within {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+.table-name-input-sizer::after,
+.table-name-input {
   font-size: 13px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  white-space: nowrap;
+  font-family: inherit;
+  line-height: 1.2;
+  padding: 2px 3px;
+  box-sizing: border-box;
+  white-space: pre;
+}
+
+.table-name-input-sizer::after {
+  content: attr(data-value) "\200B";
+  visibility: hidden;
+  pointer-events: none;
   overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+.table-name-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--panel-text);
+  border: none;
+  outline: none;
+  box-shadow: none;
+  border-radius: 4px;
+  text-align: left;
+  background-color: transparent;
+  cursor: text;
 }
 
 .card-meta {
@@ -904,23 +1164,89 @@ watch(
   flex-shrink: 0;
 }
 
-.column-name-text {
+.column-name-input-sizer,
+.column-type-input-sizer {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  min-width: 8px;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.column-row:hover .column-name-input-sizer,
+.column-name-input-sizer:focus-within,
+.column-row:hover .column-type-input-sizer,
+.column-type-input-sizer:focus-within {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.panel-light .column-row:hover .column-name-input-sizer,
+.panel-light .column-name-input-sizer:focus-within,
+.panel-light .column-row:hover .column-type-input-sizer,
+.panel-light .column-type-input-sizer:focus-within {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+.column-name-input-sizer::after,
+.column-name-input {
+  font-size: 12px;
   font-weight: 500;
-  white-space: nowrap;
+  letter-spacing: -0.01em;
+  font-family: inherit;
+  line-height: 1.2;
+  padding: 1px 3px;
+  box-sizing: border-box;
+  white-space: pre;
+}
+
+.column-name-input-sizer::after,
+.column-type-input-sizer::after {
+  content: attr(data-value) "\200B";
+  visibility: hidden;
+  pointer-events: none;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.column-type-cell {
-  flex-shrink: 0;
-  text-align: right;
-  margin-left: auto;
+.column-name-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--panel-text);
+  border: none;
+  outline: none;
+  box-shadow: none;
+  border-radius: 4px;
+  text-align: left;
+  background-color: transparent;
+  cursor: text;
 }
 
-.column-type-text {
+.column-type-input-sizer::after,
+.column-type-input {
   font-family: "JetBrains Mono", "Fira Code", monospace;
   font-size: 11px;
+  line-height: 1.2;
+  padding: 1px 3px;
+  box-sizing: border-box;
+  white-space: pre;
+}
+
+.column-type-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   color: var(--panel-text-muted);
+  border: none;
+  outline: none;
+  box-shadow: none;
+  border-radius: 4px;
+  text-align: right;
+  background-color: transparent;
+  cursor: text;
 }
 
 .column-flags-cell {

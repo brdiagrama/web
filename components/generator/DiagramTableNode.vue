@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import { ref, watch, nextTick } from "vue";
 import { Key, Link } from "lucide-vue-next";
 import type { Table, Column } from "@/domain/models/databaseSchema";
 
 const props = withDefaults(
   defineProps<{
     table: Table;
+    displayName?: string;
+    errorMessage?: string | null;
     x: number;
     y: number;
     isSelected: boolean;
@@ -24,6 +27,9 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: 'startDrag', event: PointerEvent | MouseEvent, tableName: string): void;
+  (e: 'rename', previousName: string, newName: string, originalName: string): void;
+  (e: 'renameColumn', tableName: string, oldColName: string, newColName: string): void;
+  (e: 'changeColumnType', tableName: string, colName: string, oldType: string, newType: string): void;
   (e: 'columnHover', data: {
     tableName?: string;
     columnName?: string;
@@ -52,16 +58,142 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
     emit('startDrag', event, props.table.name);
   }
 };
+
+const isEditing = ref(false);
+const localInput = ref(props.displayName !== undefined ? props.displayName : props.table.name);
+
+watch(
+  () => [props.displayName, props.table.name],
+  () => {
+    if (!isEditing.value) {
+      localInput.value = props.displayName !== undefined ? props.displayName : props.table.name;
+    }
+  }
+);
+
+const handleTitleInput = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const previousSqlName = localInput.value;
+  const cleanValue = target.value.replace(/\s+/g, '');
+  
+  if (target.value !== cleanValue) {
+    const cursor = Math.max(0, (target.selectionStart || 1) - 1);
+    target.value = cleanValue;
+    target.setSelectionRange(cursor, cursor);
+  }
+
+  const newSqlName = cleanValue;
+  localInput.value = newSqlName;
+
+  if (previousSqlName !== newSqlName) {
+    emit('rename', previousSqlName, newSqlName, props.table.name);
+    const cursor = target.selectionStart;
+    nextTick(() => {
+      if (document.activeElement === target && cursor !== null) {
+        target.setSelectionRange(cursor, cursor);
+      }
+    });
+  }
+};
+
+const hoveredRowIndex = ref<number | null>(null);
+const editingColIndex = ref<number | null>(null);
+const editingColValues = ref<Record<number, { name: string; type: string }>>({});
+
+const getColNameValue = (col: Column, colIndex: number) => {
+  if (editingColIndex.value === colIndex && editingColValues.value[colIndex]) {
+    return editingColValues.value[colIndex].name;
+  }
+  return col.name;
+};
+
+const getColTypeValue = (col: Column, colIndex: number) => {
+  if (editingColIndex.value === colIndex && editingColValues.value[colIndex]) {
+    return editingColValues.value[colIndex].type;
+  }
+  return col.type;
+};
+
+const handleTitleFocus = () => {
+  isEditing.value = true;
+};
+
+const handleTitleBlur = () => {
+  isEditing.value = false;
+  localInput.value = props.displayName !== undefined ? props.displayName : props.table.name;
+};
+
+const handleColumnNameInput = (col: Column, colIndex: number, event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const previousColName = getColNameValue(col, colIndex);
+  const cleanValue = target.value.replace(/\s+/g, '');
+
+  if (target.value !== cleanValue) {
+    const cursor = Math.max(0, (target.selectionStart || 1) - 1);
+    target.value = cleanValue;
+    target.setSelectionRange(cursor, cursor);
+  }
+
+  const newColName = cleanValue;
+  editingColIndex.value = colIndex;
+  editingColValues.value[colIndex] = {
+    name: newColName,
+    type: editingColValues.value[colIndex]?.type ?? col.type,
+  };
+
+  if (previousColName !== newColName) {
+    emit('renameColumn', localInput.value || props.table.name, previousColName, newColName);
+    const cursorPosition = target.selectionStart;
+    nextTick(() => {
+      if (document.activeElement === target && cursorPosition !== null) {
+        target.setSelectionRange(cursorPosition, cursorPosition);
+      }
+    });
+  }
+};
+
+const handleColumnTypeInput = (col: Column, colIndex: number, event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const previousType = getColTypeValue(col, colIndex);
+  const currentColName = getColNameValue(col, colIndex);
+  const newType = target.value;
+
+  editingColIndex.value = colIndex;
+  editingColValues.value[colIndex] = {
+    name: currentColName,
+    type: newType,
+  };
+
+  if (previousType !== newType) {
+    emit('changeColumnType', localInput.value || props.table.name, currentColName, previousType, newType);
+    const cursorPosition = target.selectionStart;
+    nextTick(() => {
+      if (document.activeElement === target && cursorPosition !== null) {
+        target.setSelectionRange(cursorPosition, cursorPosition);
+      }
+    });
+  }
+};
+
+const handleColumnBlur = () => {
+  editingColIndex.value = null;
+  editingColValues.value = {};
+};
 </script>
 
 <template>
   <g
     :transform="`translate(${x}, ${y})`"
     class="table-group"
-    :class="{ selected: isSelected, 'is-simplified': detailLevel === 'simplified' }"
+    :class="{ 
+      selected: isSelected, 
+      'is-error': !!errorMessage,
+      'is-simplified': detailLevel === 'simplified' 
+    }"
     :style="{ cursor: isPanMode ? 'grab' : 'move' }"
     @pointerdown="handleDragStart"
   >
+    <title v-if="errorMessage">{{ errorMessage }}</title>
     <rect
       :width="tableWidth"
       :height="tableHeight"
@@ -74,12 +206,39 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
       :d="`M0 6 Q0 0 6 0 L${tableWidth - 6} 0 Q${tableWidth} 0 ${tableWidth} 6 L${tableWidth} ${headerHeight} L0 ${headerHeight} Z`"
       class="table-header-rect"
     />
-    <text v-if="detailLevel === 'full'" :x="15" :y="22" class="table-title">{{ table.name }}</text>
+    <foreignObject
+      v-if="detailLevel === 'full'"
+      :x="11"
+      :y="3.5"
+      :width="tableWidth - 22"
+      :height="headerHeight - 8"
+      class="table-title-foreign"
+    >
+      <div class="table-title-wrapper" xmlns="http://www.w3.org/1999/xhtml">
+        <span class="table-title-input-sizer" :data-value="localInput">
+          <input
+            :value="localInput"
+            type="text"
+            class="table-title-input"
+            :class="{ 'is-title-error': !!errorMessage }"
+            @click.stop
+            @pointerdown.stop
+            @mousedown.stop
+            @focus="handleTitleFocus"
+            @blur="handleTitleBlur"
+            @input="handleTitleInput"
+            @keydown.space.prevent.stop
+            @keydown.enter.stop="(e) => (e.target as HTMLElement)?.blur()"
+            aria-label="Nome da tabela no diagrama"
+          />
+        </span>
+      </div>
+    </foreignObject>
     <rect
       v-else
       :x="15"
       :y="12"
-      :width="Math.min(tableWidth - 30, Math.max(50, table.name.length * 7.5))"
+      :width="Math.min(tableWidth - 30, Math.max(50, (displayName !== undefined ? displayName : table.name).length * 7.5))"
       height="11"
       rx="3"
       class="table-header-skeleton"
@@ -87,14 +246,19 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
 
     <!-- Modo Completo (Zoom Normal ou Exportação) -->
     <template v-if="detailLevel === 'full'">
-      <g v-for="(col, colIndex) in table.columns" :key="colIndex">
+      <g 
+        v-for="(col, colIndex) in table.columns" 
+        :key="colIndex"
+        @mouseenter="hoveredRowIndex = colIndex"
+        @mouseleave="hoveredRowIndex === colIndex ? hoveredRowIndex = null : null"
+      >
         <rect
           v-if="!col.isPk && !col.isFk"
           :x="0"
           :y="headerHeight + colIndex * rowHeight"
           :width="tableWidth"
           :height="rowHeight"
-          fill="transparent"
+          :fill="hoveredRowIndex === colIndex ? 'var(--clr-hover)' : 'transparent'"
           class="column-neutral-hover"
         />
 
@@ -144,27 +308,60 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
           </g>
         </g>
 
-        <text
-          :x="isInheritanceColumn(col) ? 64 : (col.isPk || col.isFk ? 40 : 15)"
-          :y="headerHeight + 20 + colIndex * rowHeight"
-          class="col-text"
-          :font-weight="col.isPk ? '600' : '400'"
-          style="pointer-events: none"
+        <foreignObject
+          :x="isInheritanceColumn(col) ? 60 : (col.isPk || col.isFk ? 36 : 11)"
+          :y="headerHeight + colIndex * rowHeight + 4"
+          :width="Math.max(120, tableWidth - (isInheritanceColumn(col) ? 75 : (col.isPk || col.isFk ? 50 : 25)))"
+          :height="rowHeight - 8"
+          class="col-name-foreign"
+          @mouseenter="col.isPk || col.isFk ? emit('columnHover', { tableName: table.name, columnName: col.name, isPk: col.isPk, isFk: col.isFk, refTable: col.refTable, isHovering: true }) : null"
         >
-          {{ col.name }}
-        </text>
+          <div class="col-input-wrapper" xmlns="http://www.w3.org/1999/xhtml">
+            <span class="col-name-input-sizer" :data-value="getColNameValue(col, colIndex)">
+              <input
+                :value="getColNameValue(col, colIndex)"
+                type="text"
+                class="col-name-input"
+                :style="{ fontWeight: col.isPk ? '600' : '500' }"
+                @click.stop
+                @pointerdown.stop
+                @mousedown.stop
+                @input="handleColumnNameInput(col, colIndex, $event)"
+                @blur="handleColumnBlur"
+                @keydown.space.prevent.stop
+                @keydown.enter.stop="(e) => (e.target as HTMLElement)?.blur()"
+                aria-label="Nome da coluna"
+              />
+            </span>
+          </div>
+        </foreignObject>
 
-        <text
-          :x="tableWidth - 15"
-          :y="headerHeight + 20 + colIndex * rowHeight"
-          text-anchor="end"
-          class="col-type"
-          :class="{ 'pk-type': col.isPk }"
-          :font-weight="col.isPk ? '600' : '400'"
-          style="pointer-events: none"
+        <foreignObject
+          :x="15"
+          :y="headerHeight + colIndex * rowHeight + 4"
+          :width="tableWidth - 30"
+          :height="rowHeight - 8"
+          class="col-type-foreign"
+          @mouseenter="col.isPk || col.isFk ? emit('columnHover', { tableName: table.name, columnName: col.name, isPk: col.isPk, isFk: col.isFk, refTable: col.refTable, isHovering: true }) : null"
         >
-          {{ col.type }}
-        </text>
+          <div class="col-input-wrapper is-end" xmlns="http://www.w3.org/1999/xhtml">
+            <span class="col-type-input-sizer" :data-value="getColTypeValue(col, colIndex)">
+              <input
+                :value="getColTypeValue(col, colIndex)"
+                type="text"
+                class="col-type-input"
+                :class="{ 'pk-type': col.isPk }"
+                @click.stop
+                @pointerdown.stop
+                @mousedown.stop
+                @input="handleColumnTypeInput(col, colIndex, $event)"
+                @blur="handleColumnBlur"
+                @keydown.enter.stop="(e) => (e.target as HTMLElement)?.blur()"
+                aria-label="Tipo da coluna"
+              />
+            </span>
+          </div>
+        </foreignObject>
 
         <g
           v-if="col.isPk || col.isFk"
@@ -278,6 +475,19 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
   stroke-width: 2.5px;
 }
 
+/* Tabela com erro de sintaxe SQL: prioridade visual de alerta vermelho */
+.table-group.is-error .table-rect,
+.table-group.is-error:hover .table-rect,
+.table-group.is-error.selected .table-rect {
+  stroke: #ef4444 !important;
+  stroke-width: 2px !important;
+}
+
+.table-group.is-error .table-bg,
+.table-group.is-error:hover .table-bg {
+  filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.35)) !important;
+}
+
 .table-group.is-simplified .table-bg,
 .table-group.is-simplified:hover .table-bg {
   filter: none;
@@ -288,13 +498,86 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
   transition: fill 0.16s ease-out;
 }
 
+.table-title-foreign {
+  overflow: visible;
+  pointer-events: auto;
+  opacity: 0.999;
+}
+
+.table-title-wrapper {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.table-title-input-sizer {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  min-width: 10px;
+  max-width: 100%;
+  flex-shrink: 1;
+  border-radius: 4px;
+  background-color: transparent;
+  transition: background-color 0.15s ease;
+}
+
+.table-title-input-sizer:hover,
+.table-title-input-sizer:focus-within {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.table-title-input-sizer::after,
+.table-title-input {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-family: var(--diagram-font, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif);
+  line-height: 1;
+  padding: 3px 4px 4px 4px;
+  box-sizing: border-box;
+  white-space: pre;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
+}
+
+.table-title-input-sizer::after {
+  content: attr(data-value) "\200B";
+  visibility: hidden;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.table-title-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--diagram-table-title, #ffffff);
+  border: none;
+  outline: none;
+  box-shadow: none;
+  border-radius: 4px;
+  text-align: left;
+  background-color: transparent;
+  cursor: text;
+}
+
+.table-title-input.is-title-error {
+  color: #f87171 !important;
+}
+
 .table-title {
   font-size: 14px;
   font-weight: 700;
   fill: var(--diagram-table-title, #ffffff);
   font-family: var(--diagram-font, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif);
   user-select: none;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: text;
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
   /* Mantém suavização grayscale constante, evitando alternância ClearType durante animações/transições do SVG */
@@ -305,6 +588,110 @@ const handleDragStart = (event: PointerEvent | MouseEvent) => {
   fill: var(--diagram-table-title);
   opacity: 0.55;
   pointer-events: none;
+}
+
+.col-name-foreign,
+.col-type-foreign {
+  overflow: visible;
+  pointer-events: none;
+  opacity: 0.999;
+}
+
+.col-input-wrapper {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  min-width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.col-input-wrapper.is-end {
+  justify-content: flex-end;
+}
+
+.col-name-input-sizer,
+.col-type-input-sizer {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  min-width: 6px;
+  border-radius: 4px;
+  background-color: transparent;
+  pointer-events: auto;
+}
+
+.col-name-input-sizer:hover,
+.col-name-input-sizer:focus-within,
+.col-type-input-sizer:hover,
+.col-type-input-sizer:focus-within {
+  background-color: var(--clr-hover, rgba(0, 0, 0, 0.06));
+}
+
+.col-name-input-sizer::after,
+.col-name-input {
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--diagram-font, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif);
+  line-height: 1.2;
+  padding: 1px 3px;
+  box-sizing: border-box;
+  white-space: pre;
+}
+
+.col-name-input-sizer::after,
+.col-type-input-sizer::after {
+  content: attr(data-value) "\200B";
+  visibility: hidden;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.col-name-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--diagram-table-text, #2c3e50);
+  border: none;
+  outline: none;
+  box-shadow: none;
+  border-radius: 4px;
+  text-align: left;
+  background-color: transparent;
+  cursor: text;
+}
+
+.col-type-input-sizer::after,
+.col-type-input {
+  font-family: "Fira Code", "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.1px;
+  line-height: 1.2;
+  padding: 1px 3px;
+  box-sizing: border-box;
+  white-space: pre;
+}
+
+.col-type-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--diagram-table-text-type, #7f8c8d);
+  border: none;
+  outline: none;
+  box-shadow: none;
+  border-radius: 4px;
+  text-align: right;
+  background-color: transparent;
+  cursor: text;
+}
+
+.col-type-input.pk-type {
+  color: var(--diagram-table-text-pk, #475569);
+  font-weight: 600;
 }
 
 .col-text {
