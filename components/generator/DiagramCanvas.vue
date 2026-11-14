@@ -21,13 +21,6 @@
 
       <slot />
 
-      <!-- Silhueta Fantasma do Modo Carimbo (Stamp Tool) -->
-      <DiagramTableGhost
-        v-if="store.isStampActive && store.stampGhostPosition"
-        :x="store.stampGhostPosition.x"
-        :y="store.stampGhostPosition.y"
-      />
-
       <rect v-if="selectionBox.visible" :x="-50000" :y="-50000" width="100000" height="100000" fill="transparent"
         style="pointer-events: all; cursor: crosshair" />
       <rect v-if="selectionBox.visible" :x="Math.min(selectionBox.startX, selectionBox.endX)"
@@ -43,7 +36,6 @@ import { onMounted, onUnmounted, ref, watch } from "vue";
 import svgPanZoom from "svg-pan-zoom";
 import { useDiagramStore } from "@/stores/diagram";
 import DiagramMarkers from "./DiagramMarkers.vue";
-import DiagramTableGhost from "./DiagramTableGhost.vue";
 
 const emit = defineEmits(["selectionArea", "selectionSelecting", "canvasPointerDown", "stampPlaced"]);
 

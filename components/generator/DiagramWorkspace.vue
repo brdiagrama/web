@@ -135,13 +135,77 @@
       @toggle-pan="diagramStore.togglePanMode()"
       @toggle-grid="diagramStore.toggleGrid()"
     />
+
+    <Teleport to="body">
+      <Transition name="stamp-preview-fade">
+        <div
+          v-if="diagramStore.isStampActive && stampScreenPos"
+          class="global-stamp-preview-host"
+          :style="{
+            left: `${stampScreenPos.x}px`,
+            top: `${stampScreenPos.y}px`,
+          }"
+        >
+          <!-- Camada Claro -->
+          <div
+            v-if="showLightLayer"
+            class="global-stamp-preview canvas-light"
+            :style="{ clipPath: lightClipPath }"
+          >
+            <svg
+              width="240"
+              height="140"
+              viewBox="0 0 240 140"
+              style="overflow: visible"
+              :style="{
+                transform: `scale(${diagramStore.zoom})`,
+                transformOrigin: 'top left',
+              }"
+            >
+              <DiagramTableGhost
+                :x="0"
+                :y="0"
+                :is-outside-canvas="!isStampInsideCanvas"
+                :detail-level="detailLevel"
+              />
+            </svg>
+          </div>
+
+          <!-- Camada Escuro -->
+          <div
+            v-if="showDarkLayer"
+            class="global-stamp-preview canvas-dark"
+            :style="{ clipPath: darkClipPath }"
+          >
+            <svg
+              width="240"
+              height="140"
+              viewBox="0 0 240 140"
+              style="overflow: visible"
+              :style="{
+                transform: `scale(${diagramStore.zoom})`,
+                transformOrigin: 'top left',
+              }"
+            >
+              <DiagramTableGhost
+                :x="0"
+                :y="0"
+                :is-outside-canvas="!isStampInsideCanvas"
+                :detail-level="detailLevel"
+              />
+            </svg>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </section>
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from "vue";
+import { ref, computed, nextTick, watch, onMounted, onUnmounted } from "vue";
 import DiagramCanvas from "~/components/generator/DiagramCanvas.vue";
 import DiagramTableNode from "~/components/generator/DiagramTableNode.vue";
+import DiagramTableGhost from "~/components/generator/DiagramTableGhost.vue";
 import RelationshipLine from "~/components/generator/RelationshipLine.vue";
 import DiagramToolbar from "~/components/generator/DiagramToolbar.vue";
 import DiagramProgressLoader from "~/components/generator/DiagramProgressLoader.vue";
@@ -155,7 +219,7 @@ import { useGeneratorTheme } from "@/composables/useGeneratorTheme";
 
 const diagramStore = useDiagramStore();
 const diagramCanvasRef = ref(null);
-const { isCanvasDark, initCanvasTheme } = useGeneratorTheme();
+const { isCanvasDark, isModelingDark, isEditorDark, initCanvasTheme } = useGeneratorTheme();
 initCanvasTheme();
 const { 
   tables, relationships, positions, edgeOffsets, 
@@ -190,6 +254,110 @@ const getTableErrorMessage = (tableName) => {
 const handleStampPlaced = (pos) => {
   commitStampPlacement(pos);
 };
+
+const stampScreenPos = ref(null);
+const isStampInsideCanvas = ref(false);
+const canvasBounds = ref(null);
+const lastKnownPointer = ref({ x: 0, y: 0 });
+
+const updateStampPosition = (clientX, clientY, target) => {
+  stampScreenPos.value = { x: clientX, y: clientY };
+  const el = target || document.elementFromPoint(clientX, clientY);
+  isStampInsideCanvas.value = !!el?.closest?.('.diagram-canvas');
+
+  const canvasEl = diagramCanvasRef.value?.$el || document.querySelector('.diagram-canvas');
+  if (canvasEl) {
+    canvasBounds.value = canvasEl.getBoundingClientRect();
+  }
+};
+
+const showLightLayer = computed(() => !isCanvasDark.value || !isModelingDark.value || !isEditorDark.value);
+const showDarkLayer = computed(() => isCanvasDark.value || isModelingDark.value || isEditorDark.value);
+
+const buildThemeClipPath = (targetDark) => {
+  if (!stampScreenPos.value || !canvasBounds.value) return 'none';
+  if (isCanvasDark.value === targetDark && isModelingDark.value === targetDark && isEditorDark.value === targetDark) {
+    return 'none';
+  }
+
+  const x = stampScreenPos.value.x;
+  const relLeft = canvasBounds.value.left - x;
+  const relRight = canvasBounds.value.right - x;
+
+  const editorMatch = isEditorDark.value === targetDark;
+  const canvasMatch = isCanvasDark.value === targetDark;
+  const modelingMatch = isModelingDark.value === targetDark;
+
+  // Caso 1: apenas o centro (canvas)
+  if (!editorMatch && canvasMatch && !modelingMatch) {
+    return `polygon(${relLeft}px -1000px, ${relRight}px -1000px, ${relRight}px 1000px, ${relLeft}px 1000px)`;
+  }
+  // Caso 2: as duas laterais (buraco no centro usando evenodd)
+  if (editorMatch && !canvasMatch && modelingMatch) {
+    return `polygon(evenodd, -1000px -1000px, 2000px -1000px, 2000px 1000px, -1000px 1000px, ${relLeft}px -1000px, ${relLeft}px 1000px, ${relRight}px 1000px, ${relRight}px -1000px)`;
+  }
+  // Caso 3: esquerda + centro
+  if (editorMatch && canvasMatch && !modelingMatch) {
+    return `polygon(-1000px -1000px, ${relRight}px -1000px, ${relRight}px 1000px, -1000px 1000px)`;
+  }
+  // Caso 4: centro + direita
+  if (!editorMatch && canvasMatch && modelingMatch) {
+    return `polygon(${relLeft}px -1000px, 2000px -1000px, 2000px 1000px, ${relLeft}px 1000px)`;
+  }
+  // Caso 5: apenas esquerda
+  if (editorMatch && !canvasMatch && !modelingMatch) {
+    return `polygon(-1000px -1000px, ${relLeft}px -1000px, ${relLeft}px 1000px, -1000px 1000px)`;
+  }
+  // Caso 6: apenas direita
+  if (!editorMatch && !canvasMatch && modelingMatch) {
+    return `polygon(${relRight}px -1000px, 2000px -1000px, 2000px 1000px, ${relRight}px 1000px)`;
+  }
+
+  return 'inset(100%)';
+};
+
+const lightClipPath = computed(() => buildThemeClipPath(false));
+const darkClipPath = computed(() => buildThemeClipPath(true));
+
+const handleGlobalStampPointerMove = (e) => {
+  lastKnownPointer.value = { x: e.clientX, y: e.clientY };
+  if (!diagramStore.isStampActive) return;
+  updateStampPosition(e.clientX, e.clientY, e.target);
+};
+
+const handleGlobalStampPointerDown = (e) => {
+  lastKnownPointer.value = { x: e.clientX, y: e.clientY };
+  if (!diagramStore.isStampActive) return;
+
+  const target = e.target;
+  if (target?.closest?.('.diagram-canvas') || target?.closest?.('.create-table-btn')) {
+    return;
+  }
+
+  diagramStore.cancelStampMode();
+};
+
+watch(
+  () => diagramStore.isStampActive,
+  (active) => {
+    if (active && lastKnownPointer.value.x > 0) {
+      updateStampPosition(lastKnownPointer.value.x, lastKnownPointer.value.y, null);
+    } else if (!active) {
+      stampScreenPos.value = null;
+      isStampInsideCanvas.value = false;
+    }
+  }
+);
+
+onMounted(() => {
+  window.addEventListener('pointermove', handleGlobalStampPointerMove, { passive: true });
+  window.addEventListener('pointerdown', handleGlobalStampPointerDown, { capture: true });
+});
+
+onUnmounted(() => {
+  window.removeEventListener('pointermove', handleGlobalStampPointerMove);
+  window.removeEventListener('pointerdown', handleGlobalStampPointerDown, { capture: true });
+});
 
 const blurActiveInput = () => {
   const activeEl = document.activeElement;
@@ -590,5 +758,29 @@ defineExpose({
 .empty-state-fade-leave-to {
   opacity: 0;
   transform: scale(0.98);
+}
+
+.global-stamp-preview-host {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.global-stamp-preview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.stamp-preview-fade-enter-active,
+.stamp-preview-fade-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.stamp-preview-fade-enter-from,
+.stamp-preview-fade-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
 }
 </style>
