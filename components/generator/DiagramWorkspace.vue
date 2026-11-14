@@ -70,20 +70,60 @@
       </g>
     </DiagramCanvas>
 
-    <div v-if="(!tables || Object.keys(tables).length === 0) && !diagramStore.loadingProgress.isLoading" class="canvas-empty-overlay">
-      <div class="canvas-empty-content">
-        <div class="canvas-empty-icon" aria-hidden="true">
-          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <rect x="2" y="3" width="7" height="6" rx="1.5" stroke="#2dd4bf" stroke-width="1.6" fill="#f8fffd"/>
-            <rect x="15" y="3" width="7" height="6" rx="1.5" stroke="#2dd4bf" stroke-width="1.6" fill="#f8fffd"/>
-            <rect x="2" y="15" width="7" height="6" rx="1.5" stroke="#2dd4bf" stroke-width="1.6" fill="#f8fffd"/>
-            <path d="M9 6h6M5.5 9v6M18.5 9v6" stroke="#0d9488" stroke-width="1.4" stroke-linecap="round"/>
-          </svg>
+    <Transition name="empty-state-fade">
+      <div v-if="(!tables || Object.keys(tables).length === 0) && !diagramStore.loadingProgress.isLoading && !diagramStore.isStampActive" class="canvas-empty-overlay">
+        <div class="canvas-empty-content">
+          <div class="canvas-empty-icon" aria-hidden="true">
+            <svg
+              width="280"
+              height="57"
+              viewBox="0 0 1153 233"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <g>
+                <path
+                  d="M92 77C138.944 77 177 61.33 177 42C177 22.67 138.944 7 92 7C45.0558 7 7 22.67 7 42C7 61.33 45.0558 77 92 77Z"
+                  stroke="rgba(140, 140, 140, 0.45)"
+                  stroke-width="10"
+                />
+                <path
+                  d="M7 42V192C7.39283 196.603 9.98041 201.161 14.615 205.414C19.2496 209.667 25.8404 213.531 34.0112 216.786C42.1819 220.041 51.7726 222.622 62.2356 224.384C72.6986 226.146 83.829 227.052 94.9914 227.052C106.154 227.052 117.129 226.146 127.292 224.384C137.454 222.622 146.604 220.041 154.219 216.786C161.835 213.531 167.766 209.667 171.675 205.414C175.583 201.161 177.393 196.603 177 192V42M7 92C7.39283 96.6031 9.98041 101.161 14.615 105.414C19.2496 109.667 25.8404 113.531 34.0112 116.786C42.1819 120.041 51.7726 122.622 62.2356 124.384C72.6986 126.146 83.829 127.052 94.9914 127.052C106.154 127.052 117.129 126.146 127.292 124.384C137.454 122.622 146.604 120.041 154.219 116.786C161.835 113.531 167.766 109.667 171.675 105.414C175.583 101.161 177.393 96.6031 177 92M7 142C7.39283 146.603 9.98041 151.161 14.615 155.414C19.2496 159.667 25.8404 163.531 34.0112 166.786C42.1819 170.041 51.7726 172.622 62.2356 174.384C72.6986 176.146 83.829 177.052 94.9914 177.052C106.154 177.052 117.129 176.146 127.292 174.384C137.454 172.622 146.604 170.041 154.219 166.786C161.835 163.531 167.766 159.667 171.675 155.414C175.583 151.161 177.393 146.603 177 142"
+                  stroke="rgba(140, 140, 140, 0.45)"
+                  stroke-width="10"
+                />
+              </g>
+              <path
+                d="M178 99.6105C757.573 405.738 375.005 -121.72 970 109.598"
+                stroke="rgba(140, 140, 140, 0.45)"
+                stroke-width="8"
+                stroke-linecap="round"
+                fill="none"
+              />
+              <g>
+                <rect x="969" y="20" width="181" height="207" rx="8" stroke="rgba(140, 140, 140, 0.45)" stroke-width="10" />
+                <rect x="969" y="20" width="181" height="41" stroke="rgba(140, 140, 140, 0.45)" stroke-width="10" />
+              </g>
+              <circle r="15" fill="#1ABA9C">
+                <animateMotion
+                  dur="5s"
+                  begin="0s"
+                  repeatCount="indefinite"
+                  calcMode="spline"
+                  keyPoints="0;1;0"
+                  keyTimes="0;0.5;1"
+                  keySplines="0.455 0.03 0.515 0.955; 0.455 0.03 0.515 0.955"
+                  path="M178 99.6105C757.573 405.738 375.005 -121.72 970 109.598"
+                />
+              </circle>
+            </svg>
+          </div>
+          <h3 class="canvas-empty-title">Nenhuma tabela no diagrama</h3>
+          <p class="canvas-empty-desc">Escreva ou importe SQL no editor, ou crie tabelas pelo painel de modelagem.</p>
         </div>
-        <h3 class="canvas-empty-title">Nenhuma tabela para exibir</h3>
-        <p class="canvas-empty-desc">Digite ou importe comandos SQL CREATE TABLE para gerar o diagrama.</p>
       </div>
-    </div>
+    </Transition>
 
     <DiagramToolbar
       :zoom-level="diagramStore.zoom"
@@ -508,22 +548,17 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--clr-card-bg);
-  backdrop-filter: blur(4px);
-  pointer-events: auto;
+  background: transparent;
+  pointer-events: none;
   z-index: 20;
 }
 
 .canvas-empty-content {
   text-align: center;
   color: var(--clr-text);
-  background: var(--clr-bg-surface);
   padding: 24px 32px;
-  border-radius: 16px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-  border: 1px solid var(--clr-border);
-  max-width: 520px;
-  width: min(92%, 520px);
+  max-width: 460px;
+  width: min(92%, 460px);
 }
 
 .canvas-empty-icon {
@@ -544,5 +579,16 @@ defineExpose({
   margin: 0;
   color: var(--clr-text-muted);
   font-size: 14px;
+}
+
+.empty-state-fade-enter-active,
+.empty-state-fade-leave-active {
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+.empty-state-fade-enter-from,
+.empty-state-fade-leave-to {
+  opacity: 0;
+  transform: scale(0.98);
 }
 </style>

@@ -52,6 +52,13 @@ function runRegionalTransition(
     Math.max(localY, rect.height - localY)
   );
 
+  const svgs = Array.from(targetElement.querySelectorAll('svg'));
+  svgs.forEach((svg) => {
+    if (typeof svg.pauseAnimations === 'function') {
+      svg.pauseAnimations();
+    }
+  });
+
   targetElement.style.viewTransitionName = transitionName;
   document.documentElement.classList.add('is-theme-transitioning');
 
@@ -79,6 +86,11 @@ function runRegionalTransition(
   transition.finished.finally(() => {
     document.documentElement.classList.remove('is-theme-transitioning');
     targetElement.style.viewTransitionName = '';
+    svgs.forEach((svg) => {
+      if (typeof svg.unpauseAnimations === 'function') {
+        svg.unpauseAnimations();
+      }
+    });
   });
 }
 
