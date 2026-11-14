@@ -908,6 +908,7 @@ watch(
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  scrollbar-gutter: stable;
   padding: 12px 14px;
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) transparent;
@@ -915,6 +916,12 @@ watch(
 
 .table-list-scroll::-webkit-scrollbar {
   width: 6px;
+}
+
+.table-list-scroll::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .table-list-scroll::-webkit-scrollbar-track {
