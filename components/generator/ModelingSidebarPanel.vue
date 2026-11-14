@@ -2,7 +2,7 @@
 import { ref, computed, watch, nextTick } from "vue";
 import { 
   Database, Plus, Search, ChevronRight, 
-  Key, Link2, Sun, Moon, TableProperties 
+  Key, Link, Sun, Moon, TableProperties 
 } from "lucide-vue-next";
 import IconButton from "@/components/shared/IconButton.vue";
 import type { Table } from "@/domain/models/databaseSchema";
@@ -26,6 +26,8 @@ const {
   toggleStampMode, 
   selectedTableNames, 
   selectTable, 
+  hoveredColumn,
+  setHoveredColumn,
   renameTable, 
   renameColumn, 
   changeColumnType, 
@@ -188,6 +190,7 @@ const handleColumnTypeInput = (table: Table, col: any, colIndex: number, event: 
 const handleColumnBlur = () => {
   activeColKey.value = null;
   localColValues.value = {};
+  setHoveredColumn(null);
 };
 
 const searchQuery = ref("");
@@ -487,15 +490,38 @@ watch(
                     v-for="(col, colIndex) in table.columns" 
                     :key="`${table.name}_col_${colIndex}`"
                     class="column-row"
+                    :class="{
+                      'is-pk-row': (col.isPk || col.isPrimaryKey) && !(col.isFk || col.isForeignKey),
+                      'is-fk-row': !(col.isPk || col.isPrimaryKey) && (col.isFk || col.isForeignKey),
+                      'is-pk-fk-row': (col.isPk || col.isPrimaryKey) && (col.isFk || col.isForeignKey),
+                      'is-active-hover': (hoveredColumn?.tableName === table.name && hoveredColumn?.columnName === col.name) || activeColKey === getColKey(table, colIndex)
+                    }"
+                    @mouseenter="setHoveredColumn({ tableName: table.name, columnName: col.name, isPk: !!(col.isPk || col.isPrimaryKey), isFk: !!(col.isFk || col.isForeignKey), refTable: col.refTable, isHovering: true })"
+                    @mouseleave="activeColKey !== getColKey(table, colIndex) ? setHoveredColumn(null) : null"
                   >
                     <div class="column-name-cell">
-                      <span v-if="col.isPrimaryKey" class="badge-pk" title="Primary Key">
-                        <Key :size="11" />
+                      <template v-if="(col.isPk || col.isPrimaryKey) && (col.isFk || col.isForeignKey)">
+                        <span class="badge-pk" title="Primary Key">
+                          <Key :size="13" stroke-width="2" />
+                        </span>
+                        <span class="badge-fk" title="Foreign Key">
+                          <Link :size="12" stroke-width="2" />
+                        </span>
+                      </template>
+                      <span v-else-if="col.isPk || col.isPrimaryKey" class="badge-pk" title="Primary Key">
+                        <Key :size="13" stroke-width="2" />
                       </span>
-                      <span v-else-if="col.isForeignKey" class="badge-fk" title="Foreign Key">
-                        <Link2 :size="11" />
+                      <span v-else-if="col.isFk || col.isForeignKey" class="badge-fk" title="Foreign Key">
+                        <Link :size="12" stroke-width="2" />
                       </span>
-                      <span class="column-name-input-sizer" :data-value="getColNameValue(table, col, colIndex)">
+                      <span
+                        class="column-name-input-sizer"
+                        :class="{
+                          'is-pk': (col.isPk || col.isPrimaryKey) || (col.isFk || col.isForeignKey),
+                          'is-fk': !(col.isPk || col.isPrimaryKey) && (col.isFk || col.isForeignKey)
+                        }"
+                        :data-value="getColNameValue(table, col, colIndex)"
+                      >
                         <input
                           :value="getColNameValue(table, col, colIndex)"
                           type="text"
@@ -503,6 +529,7 @@ watch(
                           @click.stop
                           @pointerdown.stop
                           @mousedown.stop
+                          @focus="activeColKey = getColKey(table, colIndex); setHoveredColumn({ tableName: table.name, columnName: col.name, isPk: !!(col.isPk || col.isPrimaryKey), isFk: !!(col.isFk || col.isForeignKey), refTable: col.refTable, isHovering: true })"
                           @input="handleColumnNameInput(table, col, colIndex, $event)"
                           @blur="handleColumnBlur"
                           @keydown.space.prevent.stop
@@ -513,7 +540,14 @@ watch(
                     </div>
 
                     <div class="column-type-cell">
-                      <span class="column-type-input-sizer" :data-value="getColTypeValue(table, col, colIndex)">
+                      <span
+                        class="column-type-input-sizer"
+                        :class="{
+                          'is-pk': (col.isPk || col.isPrimaryKey) || (col.isFk || col.isForeignKey),
+                          'is-fk': !(col.isPk || col.isPrimaryKey) && (col.isFk || col.isForeignKey)
+                        }"
+                        :data-value="getColTypeValue(table, col, colIndex)"
+                      >
                         <input
                           :value="getColTypeValue(table, col, colIndex)"
                           type="text"
@@ -521,6 +555,7 @@ watch(
                           @click.stop
                           @pointerdown.stop
                           @mousedown.stop
+                          @focus="activeColKey = getColKey(table, colIndex); setHoveredColumn({ tableName: table.name, columnName: col.name, isPk: !!(col.isPk || col.isPrimaryKey), isFk: !!(col.isFk || col.isForeignKey), refTable: col.refTable, isHovering: true })"
                           @input="handleColumnTypeInput(table, col, colIndex, $event)"
                           @blur="handleColumnBlur"
                           @keydown.enter.stop="(e) => (e.target as HTMLElement)?.blur()"
@@ -1046,17 +1081,17 @@ watch(
   transition: background-color 0.15s ease;
 }
 
-.table-accordion-card:hover .table-name-input-sizer,
+.table-name-input-sizer:hover,
 .table-name-input-sizer:focus-within {
   background-color: var(--panel-input-bg);
 }
 
-.panel-dark .table-accordion-card:hover .table-name-input-sizer,
+.panel-dark .table-name-input-sizer:hover,
 .panel-dark .table-name-input-sizer:focus-within {
   background-color: rgba(255, 255, 255, 0.08);
 }
 
-.panel-light .table-accordion-card:hover .table-name-input-sizer,
+.panel-light .table-name-input-sizer:hover,
 .panel-light .table-name-input-sizer:focus-within {
   background-color: rgba(0, 0, 0, 0.06);
 }
@@ -1135,7 +1170,7 @@ watch(
   font-size: 12px;
   gap: 12px;
   transition: background-color 0.15s ease, color 0.15s ease;
-  cursor: pointer;
+  cursor: default;
 }
 
 .column-row:hover {
@@ -1153,15 +1188,44 @@ watch(
 .badge-pk {
   display: inline-flex;
   align-items: center;
-  color: #F59E0B;
+  color: #1abc9c;
   flex-shrink: 0;
 }
 
 .badge-fk {
   display: inline-flex;
   align-items: center;
-  color: #3B82F6;
+  color: #3498db;
   flex-shrink: 0;
+}
+
+.column-row:hover,
+.column-row.is-active-hover {
+  background-color: var(--column-hover-bg);
+}
+
+.panel-light .column-row.is-pk-row:hover,
+.panel-light .column-row.is-pk-row.is-active-hover,
+.panel-light .column-row.is-pk-fk-row:hover,
+.panel-light .column-row.is-pk-fk-row.is-active-hover {
+  background-color: rgba(26, 186, 156, 0.12);
+}
+
+.panel-dark .column-row.is-pk-row:hover,
+.panel-dark .column-row.is-pk-row.is-active-hover,
+.panel-dark .column-row.is-pk-fk-row:hover,
+.panel-dark .column-row.is-pk-fk-row.is-active-hover {
+  background-color: rgba(26, 186, 156, 0.18);
+}
+
+.panel-light .column-row.is-fk-row:hover,
+.panel-light .column-row.is-fk-row.is-active-hover {
+  background-color: rgba(52, 152, 219, 0.12);
+}
+
+.panel-dark .column-row.is-fk-row:hover,
+.panel-dark .column-row.is-fk-row.is-active-hover {
+  background-color: rgba(52, 152, 219, 0.18);
 }
 
 .column-name-input-sizer,
@@ -1173,20 +1237,35 @@ watch(
   min-width: 8px;
   border-radius: 4px;
   background-color: transparent;
+  transition: background-color 0.15s ease;
 }
 
-.column-row:hover .column-name-input-sizer,
+.column-name-input-sizer:hover,
 .column-name-input-sizer:focus-within,
-.column-row:hover .column-type-input-sizer,
+.column-type-input-sizer:hover,
 .column-type-input-sizer:focus-within {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: rgba(255, 255, 255, 0.10);
 }
 
-.panel-light .column-row:hover .column-name-input-sizer,
+.panel-light .column-name-input-sizer:hover,
 .panel-light .column-name-input-sizer:focus-within,
-.panel-light .column-row:hover .column-type-input-sizer,
+.panel-light .column-type-input-sizer:hover,
 .panel-light .column-type-input-sizer:focus-within {
-  background-color: rgba(0, 0, 0, 0.06);
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+.column-name-input-sizer.is-pk:hover,
+.column-name-input-sizer.is-pk:focus-within,
+.column-type-input-sizer.is-pk:hover,
+.column-type-input-sizer.is-pk:focus-within {
+  background-color: rgba(26, 186, 156, 0.22) !important;
+}
+
+.column-name-input-sizer.is-fk:hover,
+.column-name-input-sizer.is-fk:focus-within,
+.column-type-input-sizer.is-fk:hover,
+.column-type-input-sizer.is-fk:focus-within {
+  background-color: rgba(52, 152, 219, 0.22) !important;
 }
 
 .column-name-input-sizer::after,

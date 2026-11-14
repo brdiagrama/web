@@ -69,6 +69,8 @@ export function useDiagram() {
   const commitStampPlacement = (pos: { x: number; y: number }) => store.commitStampPlacement(pos);
   const selectTable = (tableName: string, multiSelect = false) => store.selectTable(tableName, multiSelect);
   const clearSelection = () => store.clearSelection();
+  const setHoveredColumn = (hoverInfo: import('@/stores/diagram').HoveredColumnInfo | null) =>
+    store.setHoveredColumn(hoverInfo);
   const renameTable = (oldSqlName: string, newSqlName: string, schemaTableName?: string) =>
     store.renameTable(oldSqlName, newSqlName, schemaTableName);
   const renameColumn = (tableName: string, oldColName: string, newColName: string) =>
@@ -102,6 +104,7 @@ export function useDiagram() {
     commitStampPlacement,
     selectTable,
     clearSelection,
+    setHoveredColumn,
     renameTable,
     renameColumn,
     changeColumnType,

@@ -20,8 +20,8 @@ export function calculateTableWidth(table: Table | null | undefined): number {
 
   if (table.columns) {
     table.columns.forEach((col) => {
-      const isInheritanceCol = !!(table.isInheritance && col.isPk && col.isFk);
-      const reservedIconWidth = isInheritanceCol ? 64 : (col.isPk || col.isFk ? 40 : 0);
+      const isDualIconCol = !!((table.isInheritance || (col.isPk && col.isFk)) && col.isPk && col.isFk);
+      const reservedIconWidth = isDualIconCol ? 64 : (col.isPk || col.isFk ? 40 : 0);
       const colNameLength = col.name.length * TABLE_DIMENSION_CONSTANTS.COLUMN_NAME_CHAR_WIDTH + reservedIconWidth;
       const colTypeLength = (col.type || '').length * TABLE_DIMENSION_CONSTANTS.COLUMN_TYPE_CHAR_WIDTH;
       const totalRowWidth = colNameLength + colTypeLength + TABLE_DIMENSION_CONSTANTS.HORIZONTAL_PADDING + TABLE_DIMENSION_CONSTANTS.ROW_EXTRA_SPACING;

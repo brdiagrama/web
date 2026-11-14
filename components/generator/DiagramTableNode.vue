@@ -27,6 +27,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: 'startDrag', event: PointerEvent | MouseEvent, tableName: string): void;
+  (e: 'selectTable', tableName: string): void;
   (e: 'rename', previousName: string, newName: string, originalName: string): void;
   (e: 'renameColumn', tableName: string, oldColName: string, newColName: string): void;
   (e: 'changeColumnType', tableName: string, colName: string, oldType: string, newType: string): void;
@@ -116,6 +117,7 @@ const getColTypeValue = (col: Column, colIndex: number) => {
 
 const handleTitleFocus = () => {
   isEditing.value = true;
+  emit('selectTable', props.table.name);
 };
 
 const handleTitleBlur = () => {
@@ -178,6 +180,7 @@ const handleColumnTypeInput = (col: Column, colIndex: number, event: Event) => {
 const handleColumnBlur = () => {
   editingColIndex.value = null;
   editingColValues.value = {};
+  emit('columnHover', { isHovering: false });
 };
 </script>
 
@@ -258,8 +261,10 @@ const handleColumnBlur = () => {
           :y="headerHeight + colIndex * rowHeight"
           :width="tableWidth"
           :height="rowHeight"
-          :fill="hoveredRowIndex === colIndex ? 'var(--clr-hover)' : 'transparent'"
+          :fill="hoveredRowIndex === colIndex || isColumnHovered(col.name) || editingColIndex === colIndex ? 'var(--clr-hover)' : 'transparent'"
           class="column-neutral-hover"
+          @mouseenter="emit('columnHover', { tableName: table.name, columnName: col.name, isPk: false, isFk: false, isHovering: true })"
+          @mouseleave="editingColIndex !== colIndex ? emit('columnHover', { isHovering: false }) : null"
         />
 
         <rect
@@ -271,7 +276,7 @@ const handleColumnBlur = () => {
           fill="transparent"
           class="column-hover-area"
           @mouseenter="emit('columnHover', { tableName: table.name, columnName: col.name, isPk: col.isPk, isFk: col.isFk, refTable: col.refTable, isHovering: true })"
-          @mouseleave="emit('columnHover', { isHovering: false })"
+          @mouseleave="editingColIndex !== colIndex ? emit('columnHover', { isHovering: false }) : null"
         />
 
         <rect
@@ -291,7 +296,7 @@ const handleColumnBlur = () => {
           :transform="`translate(15, ${headerHeight + 20 + colIndex * rowHeight - 12})`"
           style="pointer-events: none; transform-origin: top left;"
         >
-          <template v-if="isInheritanceColumn(col)">
+          <template v-if="isInheritanceColumn(col) || (col.isPk && col.isFk)">
             <g class="pk-icon" style="display:inline-block;">
               <Key :size="18" stroke-width="2" />
             </g>
@@ -309,12 +314,12 @@ const handleColumnBlur = () => {
         </g>
 
         <foreignObject
-          :x="isInheritanceColumn(col) ? 60 : (col.isPk || col.isFk ? 36 : 11)"
+          :x="(isInheritanceColumn(col) || (col.isPk && col.isFk)) ? 60 : (col.isPk || col.isFk ? 36 : 11)"
           :y="headerHeight + colIndex * rowHeight + 4"
-          :width="Math.max(120, tableWidth - (isInheritanceColumn(col) ? 75 : (col.isPk || col.isFk ? 50 : 25)))"
+          :width="Math.max(120, tableWidth - ((isInheritanceColumn(col) || (col.isPk && col.isFk)) ? 75 : (col.isPk || col.isFk ? 50 : 25)))"
           :height="rowHeight - 8"
           class="col-name-foreign"
-          @mouseenter="col.isPk || col.isFk ? emit('columnHover', { tableName: table.name, columnName: col.name, isPk: col.isPk, isFk: col.isFk, refTable: col.refTable, isHovering: true }) : null"
+          @mouseenter="emit('columnHover', { tableName: table.name, columnName: col.name, isPk: col.isPk, isFk: col.isFk, refTable: col.refTable, isHovering: true })"
         >
           <div class="col-input-wrapper" xmlns="http://www.w3.org/1999/xhtml">
             <span
@@ -330,7 +335,7 @@ const handleColumnBlur = () => {
                 @click.stop
                 @pointerdown.stop
                 @mousedown.stop
-                @focus="editingColIndex = colIndex"
+                @focus="editingColIndex = colIndex; emit('selectTable', table.name)"
                 @input="handleColumnNameInput(col, colIndex, $event)"
                 @blur="handleColumnBlur"
                 @keydown.space.prevent.stop
@@ -347,7 +352,7 @@ const handleColumnBlur = () => {
           :width="tableWidth - 30"
           :height="rowHeight - 8"
           class="col-type-foreign"
-          @mouseenter="col.isPk || col.isFk ? emit('columnHover', { tableName: table.name, columnName: col.name, isPk: col.isPk, isFk: col.isFk, refTable: col.refTable, isHovering: true }) : null"
+          @mouseenter="emit('columnHover', { tableName: table.name, columnName: col.name, isPk: col.isPk, isFk: col.isFk, refTable: col.refTable, isHovering: true })"
         >
           <div class="col-input-wrapper is-end" xmlns="http://www.w3.org/1999/xhtml">
             <span
@@ -363,7 +368,7 @@ const handleColumnBlur = () => {
                 @click.stop
                 @pointerdown.stop
                 @mousedown.stop
-                @focus="editingColIndex = colIndex"
+                @focus="editingColIndex = colIndex; emit('selectTable', table.name)"
                 @input="handleColumnTypeInput(col, colIndex, $event)"
                 @blur="handleColumnBlur"
                 @keydown.enter.stop="(e) => (e.target as HTMLElement)?.blur()"
@@ -461,7 +466,6 @@ const handleColumnBlur = () => {
   transition: stroke 0.16s ease-out, stroke-width 0.16s ease-out;
 }
 
-/* Hover na tabela não selecionada: restaura o azul característico (#0041d826) */
 .table-group:not(.selected):hover .table-bg {
   filter: drop-shadow(0 6px 12px rgba(0, 65, 216, 0.15)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.08));
 }
@@ -471,7 +475,6 @@ const handleColumnBlur = () => {
   stroke-width: 1px;
 }
 
-/* Tabela selecionada: preserva permanentemente o box-shadow azul mesmo ao passar hover nas colunas */
 .table-group.selected .table-bg,
 .table-bg.selected,
 .table-group.selected:hover .table-bg {
@@ -590,7 +593,6 @@ const handleColumnBlur = () => {
   cursor: text;
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
-  /* Mantém suavização grayscale constante, evitando alternância ClearType durante animações/transições do SVG */
   opacity: 0.999;
 }
 

@@ -61,6 +61,7 @@
             :highlighted-columns="highlightedColumns"
             :detail-level="detailLevel"
             @start-drag="startDrag"
+            @select-table="(tableName) => diagramStore.selectTable(tableName, false)"
             @rename="handleTableRename"
             @rename-column="handleColumnRename"
             @change-column-type="handleColumnTypeChange"
