@@ -283,7 +283,7 @@ const handleColumnBlur = () => {
           :fill="col.isPk ? 'var(--diagram-col-highlight-pk)' : 'var(--diagram-col-highlight-fk)'"
           :rx="colIndex === table.columns.length - 1 ? 6 : 0"
           class="column-highlight-bg"
-          :class="{ 'is-active': isColumnHovered(col.name) || isTableColumnHighlighted(col) }"
+          :class="{ 'is-active': isColumnHovered(col.name) || isTableColumnHighlighted(col) || editingColIndex === colIndex }"
           style="pointer-events: none"
         />
 
@@ -317,7 +317,11 @@ const handleColumnBlur = () => {
           @mouseenter="col.isPk || col.isFk ? emit('columnHover', { tableName: table.name, columnName: col.name, isPk: col.isPk, isFk: col.isFk, refTable: col.refTable, isHovering: true }) : null"
         >
           <div class="col-input-wrapper" xmlns="http://www.w3.org/1999/xhtml">
-            <span class="col-name-input-sizer" :data-value="getColNameValue(col, colIndex)">
+            <span
+              class="col-name-input-sizer"
+              :class="{ 'is-pk': col.isPk, 'is-fk': !col.isPk && col.isFk }"
+              :data-value="getColNameValue(col, colIndex)"
+            >
               <input
                 :value="getColNameValue(col, colIndex)"
                 type="text"
@@ -326,6 +330,7 @@ const handleColumnBlur = () => {
                 @click.stop
                 @pointerdown.stop
                 @mousedown.stop
+                @focus="editingColIndex = colIndex"
                 @input="handleColumnNameInput(col, colIndex, $event)"
                 @blur="handleColumnBlur"
                 @keydown.space.prevent.stop
@@ -345,7 +350,11 @@ const handleColumnBlur = () => {
           @mouseenter="col.isPk || col.isFk ? emit('columnHover', { tableName: table.name, columnName: col.name, isPk: col.isPk, isFk: col.isFk, refTable: col.refTable, isHovering: true }) : null"
         >
           <div class="col-input-wrapper is-end" xmlns="http://www.w3.org/1999/xhtml">
-            <span class="col-type-input-sizer" :data-value="getColTypeValue(col, colIndex)">
+            <span
+              class="col-type-input-sizer"
+              :class="{ 'is-pk': col.isPk, 'is-fk': !col.isPk && col.isFk }"
+              :data-value="getColTypeValue(col, colIndex)"
+            >
               <input
                 :value="getColTypeValue(col, colIndex)"
                 type="text"
@@ -354,6 +363,7 @@ const handleColumnBlur = () => {
                 @click.stop
                 @pointerdown.stop
                 @mousedown.stop
+                @focus="editingColIndex = colIndex"
                 @input="handleColumnTypeInput(col, colIndex, $event)"
                 @blur="handleColumnBlur"
                 @keydown.enter.stop="(e) => (e.target as HTMLElement)?.blur()"
@@ -366,7 +376,7 @@ const handleColumnBlur = () => {
         <g
           v-if="col.isPk || col.isFk"
           class="column-highlight-borders"
-          :class="{ 'is-active': isColumnHovered(col.name) || isTableColumnHighlighted(col) }"
+          :class="{ 'is-active': isColumnHovered(col.name) || isTableColumnHighlighted(col) || editingColIndex === colIndex }"
           style="pointer-events: none"
         >
           <line
@@ -620,13 +630,28 @@ const handleColumnBlur = () => {
   border-radius: 4px;
   background-color: transparent;
   pointer-events: auto;
+  transition: background-color 0.15s ease;
 }
 
 .col-name-input-sizer:hover,
 .col-name-input-sizer:focus-within,
 .col-type-input-sizer:hover,
 .col-type-input-sizer:focus-within {
-  background-color: var(--clr-hover, rgba(0, 0, 0, 0.06));
+  background-color: var(--diagram-col-input-hover, rgba(0, 0, 0, 0.08));
+}
+
+.col-name-input-sizer.is-pk:hover,
+.col-name-input-sizer.is-pk:focus-within,
+.col-type-input-sizer.is-pk:hover,
+.col-type-input-sizer.is-pk:focus-within {
+  background-color: var(--diagram-col-input-pk-hover, rgba(26, 188, 156, 0.22));
+}
+
+.col-name-input-sizer.is-fk:hover,
+.col-name-input-sizer.is-fk:focus-within,
+.col-type-input-sizer.is-fk:hover,
+.col-type-input-sizer.is-fk:focus-within {
+  background-color: var(--diagram-col-input-fk-hover, rgba(52, 152, 219, 0.22));
 }
 
 .col-name-input-sizer::after,

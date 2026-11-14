@@ -37,6 +37,9 @@
   --diagram-col-highlight-fk: #eff6ff;
   --diagram-col-border-pk: rgba(26, 186, 156, 0.55);
   --diagram-col-border-fk: rgba(59, 130, 246, 0.55);
+  --diagram-col-input-hover: rgba(0, 0, 0, 0.08);
+  --diagram-col-input-pk-hover: rgba(26, 188, 156, 0.22);
+  --diagram-col-input-fk-hover: rgba(52, 152, 219, 0.22);
   --diagram-selection-box-bg: rgba(59, 130, 246, 0.1);
   --diagram-selection-box-stroke: #3b82f6;
   --clr-shadow-floating: 0 8px 32px rgba(0, 0, 0, 0.08);
@@ -117,6 +120,9 @@
   --diagram-col-highlight-fk: #eff6ff;
   --diagram-col-border-pk: rgba(26, 186, 156, 0.55);
   --diagram-col-border-fk: rgba(59, 130, 246, 0.55);
+  --diagram-col-input-hover: rgba(0, 0, 0, 0.08);
+  --diagram-col-input-pk-hover: rgba(26, 188, 156, 0.22);
+  --diagram-col-input-fk-hover: rgba(52, 152, 219, 0.22);
   --diagram-selection-box-bg: rgba(59, 130, 246, 0.1);
   --diagram-selection-box-stroke: #3b82f6;
   --clr-shadow-floating: 0 8px 32px rgba(0, 0, 0, 0.08);
@@ -155,6 +161,9 @@
   --diagram-col-highlight-fk: rgba(59, 130, 246, 0.10);
   --diagram-col-border-pk: rgba(45, 212, 191, 0.6);
   --diagram-col-border-fk: rgba(59, 130, 246, 0.55);
+  --diagram-col-input-hover: rgba(255, 255, 255, 0.16);
+  --diagram-col-input-pk-hover: rgba(45, 212, 191, 0.28);
+  --diagram-col-input-fk-hover: rgba(96, 165, 250, 0.28);
   --diagram-selection-box-bg: rgba(37, 84, 154, 0.15);
   --diagram-selection-box-stroke: #25549A;
   --clr-shadow-floating: 0 8px 32px rgba(0, 0, 0, 0.40);
