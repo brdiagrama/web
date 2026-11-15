@@ -103,9 +103,11 @@ function applyTableConstraint(def: any, tableData: Table): void {
             });
             break;
         case 'unique':
-            const uniqueColName = extractColumnName(def.definition?.[0]);
-            const col = tableData.columns.find(c => c.name === uniqueColName);
-            if (col) col.unique = true;
+            if (Array.isArray(def.definition) && def.definition.length === 1) {
+                const uniqueColName = extractColumnName(def.definition[0]);
+                const col = tableData.columns.find(c => c.name === uniqueColName);
+                if (col) col.unique = true;
+            }
             break;
     }
 }

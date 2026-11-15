@@ -1223,6 +1223,40 @@ console.log('--- Iniciando Bateria 23: Undo / Redo no Monaco e Erro Cruzado ---'
   assertEqual(sim.getCanvasColType('usuarios', 1), 'NUMERIC(', '[Erro Cruzado] Tipo rascunho preservado');
 }
 
+// ----------------------------------------------------------------------------
+// 24. TESTE DE UNIQUE COMPOSTO VS UNIQUE SIMPLES NA CARDINALIDADE (1:1 VS 1:N)
+// ----------------------------------------------------------------------------
+console.log('--- Iniciando Bateria 24: Unique Composto vs Simples na Cardinalidade ---');
+{
+  const sqlUnique = `CREATE TABLE pedidos (
+    id INT AUTO_INCREMENT PRIMARY KEY
+  );
+
+  CREATE TABLE pagamentos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    pedido_id INT NOT NULL UNIQUE,
+    FOREIGN KEY (pedido_id) REFERENCES pedidos(id)
+  );
+
+  CREATE TABLE itens_pedido (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    pedido_id INT NOT NULL,
+    produto_id INT NOT NULL,
+    FOREIGN KEY (pedido_id) REFERENCES pedidos(id),
+    CONSTRAINT uk_pedido_produto UNIQUE (pedido_id, produto_id)
+  );`;
+
+  const sim = new TridirectionalSimulator(sqlUnique, 'MariaDB');
+  const relPagamentos = sim.schema.relationships.find(r => r.fromTable === 'pagamentos' && r.fromCol === 'pedido_id');
+  const relItens = sim.schema.relationships.find(r => r.fromTable === 'itens_pedido' && r.fromCol === 'pedido_id');
+
+  // pagamentos.pedido_id é UNIQUE simples -> 1:1 ('one-to-one')
+  assertEqual(relPagamentos?.cardinality, 'one-to-one', '[Cardinalidade 1:1] pagamentos -> pedidos é 1:1 devido a UNIQUE simples');
+
+  // itens_pedido.pedido_id faz parte de UNIQUE composto -> 1:N ('zero-to-many') com pé-de-galinha
+  assertEqual(relItens?.cardinality, 'zero-to-many', '[Cardinalidade 1:N] itens_pedido -> pedidos é 1:N (pé-de-galinha) com UNIQUE composto');
+}
+
 // ============================================================================
 // RELATÓRIO FINAL
 // ============================================================================
