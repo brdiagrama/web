@@ -391,7 +391,8 @@ export const useDiagramStore = defineStore('diagram', {
         counter++;
       }
       const newTableName = `nova_tabela_${counter}`;
-      const tableDdl = `\n\nCREATE TABLE ${newTableName} (\n  id INT PRIMARY KEY AUTO_INCREMENT,\n  nome VARCHAR(100) NOT NULL\n);`;
+      const prefix = this.sqlCode && this.sqlCode.trim() ? '\n\n' : '';
+      const tableDdl = `${prefix}CREATE TABLE ${newTableName} (\n  id INT PRIMARY KEY AUTO_INCREMENT,\n  nome VARCHAR(100) NOT NULL\n);`;
 
       this.positions[newTableName] = {
         x: Math.round(pos.x),
