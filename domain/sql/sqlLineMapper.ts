@@ -53,14 +53,124 @@ function splitTableDefinitions(
 
     if (ch === '(') depth++;
     else if (ch === ')') depth--;
-    else if (ch === ',' && depth === 0) {
-      defs.push({ text: body.substring(start, i), start, end: i });
-      start = i + 1;
+    else if (ch === ',') {
+      const rest = body.slice(i + 1);
+      const isLineEndComma = rest.search(/[\r\n]/) !== -1 &&
+        (rest.search(/[\r\n]/) < rest.search(/\S/) || rest.search(/\S/) === -1);
+
+      if (depth === 0 || isLineEndComma) {
+        defs.push({ text: body.substring(start, i), start, end: i });
+        start = i + 1;
+        depth = 0;
+      }
     }
   }
 
   defs.push({ text: body.substring(start), start, end: body.length });
   return defs;
+}
+
+export function extractColumnRawTypesFromSql(
+  sql: string,
+  tables: Record<string, Table>
+): Record<string, string> {
+  const result: Record<string, string> = {};
+  if (!sql || !tables) return result;
+
+  const ranges = extractTableLineRanges(sql);
+  const tableValues = Object.values(tables);
+  const isConstraint = (text: string) =>
+    /^(?:PRIMARY\s+KEY|FOREIGN\s+KEY|UNIQUE|CHECK|CONSTRAINT|INDEX|KEY)\b/i.test(
+      text.trim().replace(/^--.*$/gm, '').trim()
+    );
+  const constraintRegex = /\b(primary|key|not|null|unique|default|check|references|constraint|collate|auto_increment|autoincrement|identity|generated|masked|encrypted)\b/i;
+
+  ranges.forEach((range, index) => {
+    const matched =
+      tableValues.find((t) => t.id === `table_idx_${index}`) ||
+      tables[range.tableName];
+    if (!matched || !matched.columns) return;
+
+    const bodyStart = range.bodyStart ?? (sql.indexOf('(', range.startOffset ?? 0) + 1);
+    const bodyEnd = range.bodyEnd ?? -1;
+    if (bodyEnd === -1 || bodyStart >= bodyEnd) return;
+
+    const body = sql.substring(bodyStart, bodyEnd);
+    const defs = splitTableDefinitions(body);
+    const columnDefsOnly = defs.filter((d) => !isConstraint(d.text));
+
+    columnDefsOnly.forEach((colDef, colOrdinalIndex) => {
+      const cleanDef = colDef.text.trim().replace(/^--.*$/gm, '').trim();
+      if (isConstraint(cleanDef)) return;
+
+      const nameMatch = cleanDef.match(/^[`"']?([^\s,;()]+)[`"']?/);
+      const rawColName = nameMatch ? nameMatch[1] : '';
+      const remainder = nameMatch ? cleanDef.slice(nameMatch[0].length).trimStart() : cleanDef;
+
+      let rawColType = '';
+      let depth = 0;
+      let inString = false;
+      let stringChar = '';
+
+      for (let i = 0; i < remainder.length; i++) {
+        const ch = remainder[i];
+        if (inString) {
+          if (ch === '\n') {
+            inString = false;
+          } else if (ch === stringChar && remainder[i - 1] !== '\\') {
+            inString = false;
+            rawColType += ch;
+            continue;
+          } else {
+            if (/\s/.test(ch)) {
+              const rest = remainder.slice(i).trimStart();
+              const firstWord = rest.split(/[\s,;()]/)[0].toLowerCase();
+              if (constraintRegex.test(firstWord)) break;
+            }
+            rawColType += ch;
+            continue;
+          }
+        }
+        if (ch === "'" || ch === '"' || ch === '`') {
+          inString = true;
+          stringChar = ch;
+          rawColType += ch;
+          continue;
+        }
+        if (ch === '(') {
+          depth++;
+          rawColType += ch;
+          continue;
+        }
+        if (ch === ')') {
+          if (depth > 0) depth--;
+          rawColType += ch;
+          continue;
+        }
+        if (ch === ';' || ch === '\n') break;
+        if (depth === 0 && ch === ',') break;
+        if (i === 0 || /\s/.test(ch)) {
+          const rest = remainder.slice(i).trimStart();
+          const firstWord = rest.split(/[\s,;()]/)[0].toLowerCase();
+          if (constraintRegex.test(firstWord)) break;
+        }
+        rawColType += ch;
+      }
+
+      rawColType = rawColType.trim();
+      const matchedCol =
+        (rawColName
+          ? matched.columns.find((c) => c.name.toLowerCase() === rawColName.toLowerCase())
+          : null) ||
+        (colOrdinalIndex < matched.columns.length ? matched.columns[colOrdinalIndex] : null);
+
+      if (matchedCol && rawColType) {
+        result[`${matched.name}.${matchedCol.name}`] = rawColType;
+      }
+    });
+  });
+
+  return result;
 }
 
 /**
@@ -109,93 +219,124 @@ export function mapSqlErrorsToTables(
     const body = sql.substring(bodyStart, bodyEnd);
     const defs = splitTableDefinitions(body);
 
-    // Identificar a definição com erro pelo offset ou pela linha
-    let targetDef: { text: string; start: number; end: number } | undefined;
-
-    if (errorOffset !== undefined && errorOffset !== null) {
-      targetDef = defs.find((d) => {
-        const absStart = bodyStart + d.start;
-        const absEnd = bodyStart + d.end;
-        return errorOffset >= absStart && errorOffset <= absEnd;
-      });
-    }
-
-    if (!targetDef) {
-      targetDef = defs.find((d) => {
-        const absStart = bodyStart + d.start;
-        const absEnd = bodyStart + d.end;
-        const dStartLine = sql.substring(0, absStart).split('\n').length;
-        const dEndLine = sql.substring(0, absEnd).split('\n').length;
-        return errorLine >= dStartLine && errorLine <= dEndLine;
-      });
-    }
-
-    if (!targetDef) {
-      // Fallback por inclusão de texto de linha quando não localizado por limites exatos
-      const lines = sql.split('\n');
-      const errLineText = (lines[errorLine - 1] || '').trim();
-      if (errLineText) {
-        targetDef = defs.find((d) => d.text.includes(errLineText) || errLineText.includes(d.text.trim()));
-      }
-    }
-
-    if (!targetDef) return;
-
-    // Filtrar apenas as definições que são colunas (excluindo constraints de tabela como PRIMARY KEY, FOREIGN KEY)
+    // Identificar todas as definições que são colunas (excluindo constraints de tabela como PRIMARY KEY, FOREIGN KEY)
     const isConstraint = (text: string) =>
       /^(?:PRIMARY\s+KEY|FOREIGN\s+KEY|UNIQUE|CHECK|CONSTRAINT|INDEX|KEY)\b/i.test(
         text.trim().replace(/^--.*$/gm, '').trim()
       );
 
     const columnDefsOnly = defs.filter((d) => !isConstraint(d.text));
-    const targetColIndex = columnDefsOnly.indexOf(targetDef);
-
-    const cleanDef = targetDef.text.trim().replace(/^--.*$/gm, '').trim();
-    if (isConstraint(cleanDef)) {
-      return;
-    }
-
-    const tokens = cleanDef.split(/\s+/).filter(Boolean);
-    const rawColName = tokens[0] ? tokens[0].replace(/[`"']/g, '') : '';
-    const fullTypeStr = tokens.slice(1).join(' ');
     const constraintRegex = /\b(primary|key|not|null|unique|default|check|references|constraint|collate|auto_increment|autoincrement|identity|generated|masked|encrypted)\b/i;
-    const constraintMatch = fullTypeStr.search(constraintRegex);
-    const rawColType = constraintMatch !== -1
-      ? fullTypeStr.substring(0, constraintMatch).trim()
-      : fullTypeStr.trim();
 
-    // Localizar a coluna correspondente no esquema:
-    // 1. Por igualdade ou prefixo do nome
-    // 2. Se o nome foi substituído por caracteres inválidos ou apagado, pelo índice ordinal da coluna na tabela
-    let matchedCol =
-      (rawColName
-        ? matched.columns.find((c) => c.name.toLowerCase() === rawColName.toLowerCase()) ||
-          matched.columns.find((c) =>
-            rawColName.toLowerCase().startsWith(c.name.toLowerCase()) ||
-            c.name.toLowerCase().startsWith(rawColName.toLowerCase())
-          )
-        : null) ||
-      (targetColIndex !== -1 && targetColIndex < matched.columns.length
-        ? matched.columns[targetColIndex]
-        : null);
-
-    if (!matchedCol) return;
-
-    const draftKey = `${matched.name}.${matchedCol.name}`;
-
-    // Determinar rascunhos de nome e tipagem de forma independente
-    if (!cleanDef) {
-      draftColumnNames[draftKey] = '';
-    } else {
-      if (rawColName !== matchedCol.name) {
-        draftColumnNames[draftKey] = rawColName;
+    columnDefsOnly.forEach((colDef, colOrdinalIndex) => {
+      const cleanDef = colDef.text.trim().replace(/^--.*$/gm, '').trim();
+      if (isConstraint(cleanDef)) {
+        return;
       }
-      if (rawColType && rawColType.replace(/\s+/g, '') !== matchedCol.type.replace(/\s+/g, '')) {
-        draftColumnTypes[draftKey] = rawColType;
-      } else if (!rawColType && matchedCol.type) {
-        draftColumnTypes[draftKey] = '';
+
+      // Extrai o nome da coluna e o tipo respeitando parênteses aninhados e aspas
+      const nameMatch = cleanDef.match(/^[`"']?([^\s,;()]+)[`"']?/);
+      const rawColName = nameMatch ? nameMatch[1] : '';
+      const remainder = nameMatch ? cleanDef.slice(nameMatch[0].length).trimStart() : cleanDef;
+
+      let rawColType = '';
+      let depth = 0;
+      let inString = false;
+      let stringChar = '';
+
+      for (let i = 0; i < remainder.length; i++) {
+        const ch = remainder[i];
+
+        if (inString) {
+          if (ch === '\n') {
+            inString = false;
+          } else if (ch === stringChar && remainder[i - 1] !== '\\') {
+            inString = false;
+            rawColType += ch;
+            continue;
+          } else {
+            // Se houver aspa ainda não fechada durante digitação transitória (ex: ENUM(' NOT NULL),
+            // não engolir constraints subsequentes da coluna
+            if (/\s/.test(ch)) {
+              const rest = remainder.slice(i).trimStart();
+              const firstWord = rest.split(/[\s,;()]/)[0].toLowerCase();
+              if (constraintRegex.test(firstWord)) {
+                break;
+              }
+            }
+            rawColType += ch;
+            continue;
+          }
+        }
+
+        if (ch === "'" || ch === '"' || ch === '`') {
+          inString = true;
+          stringChar = ch;
+          rawColType += ch;
+          continue;
+        }
+
+        if (ch === '(') {
+          depth++;
+          rawColType += ch;
+          continue;
+        }
+
+        if (ch === ')') {
+          if (depth > 0) depth--;
+          rawColType += ch;
+          continue;
+        }
+
+        if (ch === ';' || ch === '\n') {
+          break;
+        }
+
+        if (depth === 0 && ch === ',') {
+          break;
+        }
+
+        // Mesmo com parêntese ainda aberto durante digitação transitória, constraints delimitam o fim do tipo
+        if (i === 0 || /\s/.test(ch)) {
+          const rest = remainder.slice(i).trimStart();
+          const firstWord = rest.split(/[\s,;()]/)[0].toLowerCase();
+          if (constraintRegex.test(firstWord)) {
+            break;
+          }
+        }
+
+        rawColType += ch;
       }
-    }
+
+      rawColType = rawColType.trim();
+
+      let matchedCol =
+        (rawColName
+          ? matched.columns.find((c) => c.name.toLowerCase() === rawColName.toLowerCase()) ||
+            matched.columns.find((c) =>
+              rawColName.toLowerCase().startsWith(c.name.toLowerCase()) ||
+              c.name.toLowerCase().startsWith(rawColName.toLowerCase())
+            )
+          : null) ||
+        (colOrdinalIndex < matched.columns.length ? matched.columns[colOrdinalIndex] : null);
+
+      if (!matchedCol) return;
+
+      const draftKey = `${matched.name}.${matchedCol.name}`;
+
+      if (!cleanDef) {
+        draftColumnNames[draftKey] = '';
+      } else {
+        if (rawColName !== matchedCol.name) {
+          draftColumnNames[draftKey] = rawColName;
+        }
+        if (rawColType && rawColType.replace(/\s+/g, '') !== matchedCol.type.replace(/\s+/g, '')) {
+          draftColumnTypes[draftKey] = rawColType;
+        } else if (!rawColType && matchedCol.type) {
+          draftColumnTypes[draftKey] = '';
+        }
+      }
+    });
   });
 
   return { tableErrors, draftNames, draftColumnNames, draftColumnTypes };
@@ -223,28 +364,55 @@ export function getTableAtLine(sql: string, lineNumber?: number, offset?: number
 export function extractTableLineRanges(sql: string): TableBlockRange[] {
   if (!sql) return [];
   const ranges: TableBlockRange[] = [];
-  const createRegex = /\bCREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+[`"']?([^\s(`"']+)[\`"']?\s*\(/gi;
+  const createRegex = /\bCREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+(?:[`"\[]?([^\s(`"'\].]+)[`"\]]?\.)?[`"\[]?([^\s(`"'\].]+)[`"\]]?\s*\(/gi;
 
   let match: RegExpExecArray | null;
   while ((match = createRegex.exec(sql)) !== null) {
-    const tableName = match[1];
+    const tableName = match[2] || match[1];
     const startOffset = match.index;
     const bodyStart = match.index + match[0].length;
 
     let depth = 1;
     let inString = false;
     let stringChar = '';
+    let inLineComment = false;
+    let inBlockComment = false;
     let endOffset = sql.length;
     let bodyEnd = sql.length;
 
     for (let i = bodyStart; i < sql.length; i++) {
       const ch = sql[i];
+      const nextCh = sql[i + 1] || '';
+
+      if (inLineComment) {
+        if (ch === '\n') inLineComment = false;
+        continue;
+      }
+      if (inBlockComment) {
+        if (ch === '*' && nextCh === '/') {
+          inBlockComment = false;
+          i++;
+        }
+        continue;
+      }
+
       if (inString) {
         if (ch === '\n') {
           inString = false;
         } else if (ch === stringChar && sql[i - 1] !== '\\') {
           inString = false;
         }
+        continue;
+      }
+
+      if (ch === '-' && nextCh === '-') {
+        inLineComment = true;
+        i++;
+        continue;
+      }
+      if (ch === '/' && nextCh === '*') {
+        inBlockComment = true;
+        i++;
         continue;
       }
 

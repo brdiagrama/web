@@ -95,7 +95,7 @@ const handleTitleInput = (event: Event) => {
 
 const hoveredRowIndex = ref<number | null>(null);
 const editingColIndex = ref<number | null>(null);
-const editingColValues = ref<Record<number, { name: string; type: string }>>({});
+const editingColValues = ref<Record<number, { name: string; type: string; initialName: string; initialType: string }>>({});
 
 const getColNameValue = (col: Column, colIndex: number) => {
   if (editingColIndex.value === colIndex && editingColValues.value[colIndex]) {
@@ -145,13 +145,17 @@ const handleTitleBlur = () => {
 const handleColumnNameInput = (col: Column, colIndex: number, event: Event) => {
   const target = event.target as HTMLInputElement;
   const previousColName = getColNameValue(col, colIndex);
+  const currentColType = getColTypeValue(col, colIndex);
   const cleanValue = sanitizeInlineInput(event);
 
   const newColName = cleanValue;
+  const existing = editingColValues.value[colIndex];
   editingColIndex.value = colIndex;
   editingColValues.value[colIndex] = {
     name: newColName,
-    type: editingColValues.value[colIndex]?.type ?? col.type,
+    type: existing?.type ?? currentColType,
+    initialName: existing?.initialName ?? (previousColName || col.name),
+    initialType: existing?.initialType ?? (currentColType || col.type),
   };
 
   if (previousColName !== newColName) {
@@ -166,10 +170,13 @@ const handleColumnTypeInput = (col: Column, colIndex: number, event: Event) => {
   const currentColName = getColNameValue(col, colIndex);
   const newType = sanitizeInlineInput(event, { allowSpaces: true });
 
+  const existing = editingColValues.value[colIndex];
   editingColIndex.value = colIndex;
   editingColValues.value[colIndex] = {
     name: currentColName,
     type: newType,
+    initialName: existing?.initialName ?? (currentColName || col.name),
+    initialType: existing?.initialType ?? (previousType || col.type),
   };
 
   if (previousType !== newType) {
@@ -182,10 +189,10 @@ const handleColumnBlur = (col: Column, colIndex: number) => {
   const currentVal = editingColValues.value[colIndex];
   if (currentVal) {
     if (!currentVal.name.trim()) {
-      emit('renameColumn', localInput.value || props.table.name, '', col.name, col.name);
+      emit('renameColumn', localInput.value || props.table.name, '', currentVal.initialName || col.name, col.name);
     }
     if (!currentVal.type.trim()) {
-      emit('changeColumnType', localInput.value || props.table.name, col.name, '', col.type);
+      emit('changeColumnType', localInput.value || props.table.name, currentVal.name || currentVal.initialName || col.name, '', currentVal.initialType || col.type);
     }
   }
 

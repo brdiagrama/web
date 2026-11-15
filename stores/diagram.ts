@@ -109,10 +109,16 @@ export const useDiagramStore = defineStore('diagram', {
   },
 
   actions: {
-    async setSql(sql: string) {
+    async setSql(sql: string, preserveInlineDrafts = false) {
       this.sqlCode = sql;
       const { saveSql, saveTablePositions, saveTableOrder, loadTableOrder } = useDiagramStorage();
       saveSql(sql);
+
+      if (!preserveInlineDrafts) {
+        this.draftTableNames = {};
+        this.draftColumnNames = {};
+        this.draftColumnTypes = {};
+      }
 
       if (!sql || !sql.trim()) {
         this.schema = { tables: {}, relationships: [] };
@@ -148,7 +154,7 @@ export const useDiagramStore = defineStore('diagram', {
         this.positions = layoutResult.positions;
         this.edgeOffsets = layoutResult.edgeOffsets;
         this.errors = [];
-        this.warnings = [];
+        this.warnings = newSchema.warnings || [];
         this.tableErrors = {};
 
         const allTableSet = new Set(allTableNames);
@@ -248,9 +254,9 @@ export const useDiagramStore = defineStore('diagram', {
             errorOffset
           );
           this.tableErrors = tableErrors;
-          this.draftTableNames = draftNames;
-          this.draftColumnNames = draftColumnNames;
-          this.draftColumnTypes = draftColumnTypes;
+          this.draftTableNames = { ...draftNames, ...this.draftTableNames };
+          this.draftColumnNames = { ...draftColumnNames, ...this.draftColumnNames };
+          this.draftColumnTypes = { ...draftColumnTypes, ...this.draftColumnTypes };
         }
       }
     },
@@ -470,7 +476,7 @@ export const useDiagramStore = defineStore('diagram', {
       }
 
       const updatedSql = replaceTableNameInSql(this.sqlCode, oldSqlName, newSqlName, targetTableIndex);
-      this.setSql(updatedSql);
+      this.setSql(updatedSql, true);
       return true;
     },
 
@@ -481,8 +487,19 @@ export const useDiagramStore = defineStore('diagram', {
         ...this.draftColumnNames,
         [colDraftKey]: newColName,
       };
-      const updatedSql = replaceColumnNameInSql(this.sqlCode, tableName, oldColName, newColName, originalColName);
-      this.setSql(updatedSql);
+      const table = this.schema.tables[tableName];
+      const targetColIndex = table && originalColName
+        ? table.columns.findIndex((c) => c.name === originalColName)
+        : undefined;
+      const updatedSql = replaceColumnNameInSql(
+        this.sqlCode,
+        tableName,
+        oldColName,
+        newColName,
+        originalColName,
+        targetColIndex !== undefined && targetColIndex >= 0 ? targetColIndex : undefined
+      );
+      this.setSql(updatedSql, true);
       return true;
     },
 
@@ -494,7 +511,7 @@ export const useDiagramStore = defineStore('diagram', {
         [typeDraftKey]: newType,
       };
       const updatedSql = replaceColumnTypeInSql(this.sqlCode, tableName, colName, oldType, newType);
-      this.setSql(updatedSql);
+      this.setSql(updatedSql, true);
       return true;
     },
 

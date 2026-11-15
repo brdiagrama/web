@@ -2,6 +2,8 @@ import { Parser } from 'node-sql-parser';
 import type { DatabaseSchema, Table, Relationship } from '../models/databaseSchema';
 import { extractTable, extractColumnName, extractTableName, generateId } from './extractors';
 import { detectCardinality, updateInheritanceTables, updateJunctionRelationships } from './relationshipDetector';
+import { extractColumnRawTypesFromSql } from './sqlLineMapper';
+import { validateSchemaSemantics } from './semanticValidator';
 
 export type SqlDialect = 'MySQL' | 'MariaDB' | 'PostgreSQL' | 'SQLite' | 'TransactSQL';
 
@@ -112,7 +114,21 @@ export function parseSqlSchema(sql: string, dialect: SqlDialect = 'MySQL'): Data
         }
     });
 
+    // Preservar a formatação exata do tipo escrito no SQL (maiúsculas/minúsculas e espaçamento interno)
+    const rawTypesMap = extractColumnRawTypesFromSql(sql, tables);
+    for (const table of Object.values(tables)) {
+        for (const col of table.columns) {
+            const rawKey = `${table.name}.${col.name}`;
+            if (rawTypesMap[rawKey]) {
+                col.type = rawTypesMap[rawKey];
+            }
+        }
+    }
+
     updateInheritanceTables(tables);
     updateJunctionRelationships(tables, relationships);
-    return { tables, relationships };
+
+    const warnings = validateSchemaSemantics(sql, astList, { tables, relationships });
+
+    return { tables, relationships, warnings };
 }

@@ -26,7 +26,14 @@ export interface Relationship {
   cardinality: string;
 }
 
+export interface DatabaseProblem {
+  line: number;
+  message: string;
+  type?: 'error' | 'warning';
+}
+
 export interface DatabaseSchema {
   tables: Record<string, Table>;
   relationships: Relationship[];
+  warnings?: DatabaseProblem[];
 }

@@ -136,7 +136,7 @@ const handleTableNameBlur = (table: Table) => {
 };
 
 const activeColKey = ref<string | null>(null);
-const localColValues = ref<Record<string, { name: string; type: string }>>({});
+const localColValues = ref<Record<string, { name: string; type: string; initialName: string; initialType: string }>>({});
 
 const getColKey = (table: Table, colIndex: number) => `${getTableKey(table)}_col_${colIndex}`;
 
@@ -182,10 +182,13 @@ const handleColumnNameInput = (table: Table, col: any, colIndex: number, event: 
   const cleanValue = sanitizeInlineInput(event);
 
   const newColName = cleanValue;
+  const existing = localColValues.value[key];
   activeColKey.value = key;
   localColValues.value[key] = {
     name: newColName,
     type: currentColType,
+    initialName: existing?.initialName ?? (previousColName || col.name),
+    initialType: existing?.initialType ?? (currentColType || col.type),
   };
 
   if (previousColName !== newColName) {
@@ -202,10 +205,13 @@ const handleColumnTypeInput = (table: Table, col: any, colIndex: number, event: 
   const previousColType = getColTypeValue(table, col, colIndex);
   const newType = sanitizeInlineInput(event, { allowSpaces: true });
 
+  const existing = localColValues.value[key];
   activeColKey.value = key;
   localColValues.value[key] = {
     name: currentColName,
     type: newType,
+    initialName: existing?.initialName ?? (currentColName || col.name),
+    initialType: existing?.initialType ?? (previousColType || col.type),
   };
 
   if (previousColType !== newType) {
@@ -221,10 +227,10 @@ const handleColumnBlur = (table: Table, col: Column, colIndex: number) => {
   if (currentVal) {
     const effectiveTableName = getTableNameValue(table) || table.name;
     if (!currentVal.name.trim()) {
-      renameColumn(effectiveTableName, '', col.name, col.name);
+      renameColumn(effectiveTableName, '', currentVal.initialName || col.name, col.name);
     }
     if (!currentVal.type.trim()) {
-      changeColumnType(effectiveTableName, col.name, '', col.type);
+      changeColumnType(effectiveTableName, currentVal.name || currentVal.initialName || col.name, '', currentVal.initialType || col.type);
     }
   }
 
