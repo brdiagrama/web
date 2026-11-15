@@ -53,7 +53,7 @@ withDefaults(
       <text :x="width - 15" :y="55" text-anchor="end" class="col-type pk-type" font-weight="600">INT</text>
 
       <text :x="15" :y="87" class="col-text" font-weight="400">nome</text>
-      <text :x="width - 15" :y="87" text-anchor="end" class="col-type" font-weight="400">VARCHAR</text>
+      <text :x="width - 15" :y="87" text-anchor="end" class="col-type" font-weight="400">VARCHAR(100)</text>
     </template>
 
     <template v-else>
