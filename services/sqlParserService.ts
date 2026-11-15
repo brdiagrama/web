@@ -60,7 +60,11 @@ export function parseSqlAsync(sql: string, dialect: SqlDialect = 'MySQL'): Promi
   const worker = getWorker();
 
   if (!worker) {
-    return Promise.resolve().then(() => parseSqlSchema(sql, dialect));
+    try {
+      return Promise.resolve(parseSqlSchema(sql, dialect));
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   return new Promise<DatabaseSchema>((resolve, reject) => {

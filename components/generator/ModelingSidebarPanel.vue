@@ -193,7 +193,7 @@ const handleColumnNameInput = (table: Table, col: any, colIndex: number, event: 
 
   if (previousColName !== newColName) {
     const effectiveTableName = getTableNameValue(table) || table.name;
-    renameColumn(effectiveTableName, previousColName, newColName, col.name);
+    renameColumn(effectiveTableName, previousColName, newColName, col.name, colIndex);
     restoreCursorPosition(target, target.selectionStart);
   }
 };
@@ -227,7 +227,7 @@ const handleColumnBlur = (table: Table, col: Column, colIndex: number) => {
   if (currentVal) {
     const effectiveTableName = getTableNameValue(table) || table.name;
     if (!currentVal.name.trim()) {
-      renameColumn(effectiveTableName, '', currentVal.initialName || col.name, col.name);
+      renameColumn(effectiveTableName, '', currentVal.initialName || col.name, col.name, colIndex);
     }
     if (!currentVal.type.trim()) {
       changeColumnType(effectiveTableName, currentVal.name || currentVal.initialName || col.name, '', currentVal.initialType || col.type);

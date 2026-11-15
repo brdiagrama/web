@@ -237,8 +237,8 @@ const handleTableRename = (previousName, newName, originalName) => {
   renameTable(previousName, newName, originalName);
 };
 
-const handleColumnRename = (tableName, oldColName, newColName, originalColName) => {
-  renameColumn(tableName, oldColName, newColName, originalColName);
+const handleColumnRename = (tableName, oldColName, newColName, originalColName, targetColIndex) => {
+  renameColumn(tableName, oldColName, newColName, originalColName, targetColIndex);
 };
 
 const handleColumnTypeChange = (tableName, colName, oldType, newType) => {

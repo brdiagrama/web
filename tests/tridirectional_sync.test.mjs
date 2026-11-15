@@ -9,6 +9,12 @@ const WORKSPACE = resolve(__dirname, '..');
 
 registerHooks({
   resolve(specifier, context, nextResolve) {
+    if (specifier.startsWith('@/')) {
+      const targetTs = resolve(WORKSPACE, specifier.slice(2) + '.ts');
+      if (existsSync(targetTs)) {
+        return nextResolve(pathToFileURL(targetTs).href, context);
+      }
+    }
     if (specifier.startsWith('./') || specifier.startsWith('../')) {
       const parentPath = context.parentURL ? dirname(fileURLToPath(context.parentURL)) : WORKSPACE;
       const candidateTs = resolve(parentPath, specifier + '.ts');
@@ -31,6 +37,10 @@ registerHooks({
   }
 });
 
+const piniaMod = await import('pinia');
+const { createPinia, setActivePinia } = piniaMod;
+const { useDiagram } = await import(pathToFileURL(resolve(WORKSPACE, 'composables/useDiagram.ts')).href);
+const { useDiagramStore } = await import(pathToFileURL(resolve(WORKSPACE, 'stores/diagram.ts')).href);
 const { parseSqlSchema } = await import(pathToFileURL(resolve(WORKSPACE, 'domain/sql/parser.ts')).href);
 const { mapSqlErrorsToTables, extractTableLineRanges, getColumnAtLine, getTableAtLine } = await import(pathToFileURL(resolve(WORKSPACE, 'domain/sql/sqlLineMapper.ts')).href);
 const { replaceTableNameInSql, replaceColumnNameInSql, replaceColumnTypeInSql } = await import(pathToFileURL(resolve(WORKSPACE, 'domain/sql/schemaModifier.ts')).href);
@@ -41,14 +51,14 @@ const { replaceTableNameInSql, replaceColumnNameInSql, replaceColumnTypeInSql } 
 
 class TridirectionalSimulator {
   constructor(initialSql, dialect = 'MySQL') {
-    this.dialect = dialect;
-    this.sqlCode = '';
-    this.schema = { tables: {}, relationships: [] };
-    this.errors = [];
-    this.tableErrors = {};
-    this.draftTableNames = {};
-    this.draftColumnNames = {};
-    this.draftColumnTypes = {};
+    this.pinia = createPinia();
+    setActivePinia(this.pinia);
+    this.store = useDiagramStore(this.pinia);
+    this.diagram = useDiagram(this.pinia);
+
+    if (dialect) {
+      this.store.setDialect(dialect);
+    }
 
     // Estado local do Canvas (DiagramTableNode.vue)
     this.canvasState = {
@@ -69,66 +79,67 @@ class TridirectionalSimulator {
     this.setSql(initialSql);
   }
 
+  get sqlCode() {
+    return this.store.sqlCode;
+  }
+  set sqlCode(val) {
+    this.store.sqlCode = val;
+  }
+
+  get schema() {
+    return {
+      tables: this.store.tables,
+      relationships: this.store.relationships,
+    };
+  }
+
+  get errors() {
+    return this.store.errors;
+  }
+
+  get tableErrors() {
+    return this.store.tableErrors;
+  }
+
+  get draftTableNames() {
+    return this.store.draftTableNames;
+  }
+
+  get draftColumnNames() {
+    return this.store.draftColumnNames;
+  }
+
+  get draftColumnTypes() {
+    return this.store.draftColumnTypes;
+  }
+
+  get dialect() {
+    return this.store.sqlDialect;
+  }
+  set dialect(d) {
+    this.store.setSqlDialect(d);
+  }
+
   setSql(sql, preserveInlineDrafts = false) {
-    this.sqlCode = sql;
     if (!preserveInlineDrafts) {
-      this.draftTableNames = {};
-      this.draftColumnNames = {};
-      this.draftColumnTypes = {};
+      this.canvasState.editingColKey = null;
+      this.canvasState.editingColValues = {};
+      this.sidebarState.activeColKey = null;
+      this.sidebarState.localColValues = {};
+      this.sidebarState.activeInputKey = null;
+      this.canvasState.editingTable = null;
     }
-    if (!sql || !sql.trim()) {
-      this.schema = { tables: {}, relationships: [] };
-      this.errors = [];
-      this.draftTableNames = {};
-      this.draftColumnNames = {};
-      this.draftColumnTypes = {};
-      this.tableErrors = {};
-      return;
-    }
+    this.diagram.parseSql(sql);
 
-    try {
-      const newSchema = parseSqlSchema(sql, this.dialect);
-      this.schema = newSchema;
-      this.errors = [];
-      this.tableErrors = {};
-      this.draftTableNames = {};
-      this.draftColumnNames = {};
-      this.draftColumnTypes = {};
-
-      // Sincroniza watches do Canvas e Sidebar quando schema muda
-      for (const tName in newSchema.tables) {
-        const table = newSchema.tables[tName];
-        if (this.canvasState.editingTable !== tName) {
-          this.canvasState.localTableInput[tName] = table.name;
-        }
-        const tKey = table.id || table.name;
-        if (this.sidebarState.activeInputKey !== tKey) {
-          this.sidebarState.localTableNames[tKey] = table.name;
-        }
+    // Sincroniza watches do Canvas e Sidebar quando schema é carregado
+    for (const tName in this.store.tables) {
+      const table = this.store.tables[tName];
+      if (this.canvasState.editingTable !== tName) {
+        this.canvasState.localTableInput[tName] = table.name;
       }
-    } catch (e) {
-      const errorLine = e.line || e.location?.start?.line || 1;
-      const errorOffset = e.location?.start?.offset;
-      const errorMessage = e.message || 'Erro de sintaxe no SQL';
-      this.errors = [{ line: errorLine, message: errorMessage, type: 'error' }];
-
-      const mapped = mapSqlErrorsToTables(
-        sql,
-        errorLine,
-        errorMessage,
-        this.schema.tables,
-        errorOffset
-      );
-      this.tableErrors = mapped.tableErrors;
-      this.draftTableNames = { ...mapped.draftNames, ...this.draftTableNames };
-      this.draftColumnNames = { ...(mapped.draftColumnNames || {}), ...this.draftColumnNames };
-      this.draftColumnTypes = { ...(mapped.draftColumnTypes || {}), ...this.draftColumnTypes };
-
-      for (const tName in this.schema.tables) {
-        if (this.canvasState.editingTable !== tName) {
-          this.canvasState.localTableInput[tName] =
-            tName in this.draftTableNames ? this.draftTableNames[tName] : tName;
-        }
+      const tKey = table.id || table.name;
+      if (this.sidebarState.activeInputKey !== tKey) {
+        this.sidebarState.localTableNames[tKey] = table.name;
       }
     }
   }
@@ -220,47 +231,36 @@ class TridirectionalSimulator {
     return col.type;
   }
 
-  // ---- AÇÕES DA STORE ----
-  storeRenameTable(oldSqlName, newSqlName, schemaTableName) {
-    if (oldSqlName === newSqlName) return false;
-    const baseName = schemaTableName || oldSqlName;
-    this.draftTableNames = { ...this.draftTableNames, [baseName]: newSqlName };
-    const sourceTable = this.schema.tables[baseName];
-    const targetTableIndex = sourceTable?.id?.startsWith('table_idx_')
-      ? parseInt(sourceTable.id.replace('table_idx_', ''), 10)
-      : undefined;
-    const updatedSql = replaceTableNameInSql(this.sqlCode, oldSqlName, newSqlName, targetTableIndex);
-    this.setSql(updatedSql, true);
-    return true;
+  syncUiWatches() {
+    for (const tName in this.store.tables) {
+      const table = this.store.tables[tName];
+      if (this.canvasState.editingTable !== tName) {
+        this.canvasState.localTableInput[tName] = table.name;
+      }
+      const tKey = table.id || table.name;
+      if (this.sidebarState.activeInputKey !== tKey) {
+        this.sidebarState.localTableNames[tKey] = table.name;
+      }
+    }
   }
 
-  storeRenameColumn(tableName, oldColName, newColName, originalColName) {
-    if (oldColName === newColName || !tableName) return false;
-    const colDraftKey = `${tableName}.${originalColName || oldColName}`;
-    this.draftColumnNames = { ...this.draftColumnNames, [colDraftKey]: newColName };
-    const table = this.schema.tables[tableName];
-    const targetColIndex = table && originalColName
-      ? table.columns.findIndex((c) => c.name === originalColName)
-      : undefined;
-    const updatedSql = replaceColumnNameInSql(
-      this.sqlCode,
-      tableName,
-      oldColName,
-      newColName,
-      originalColName,
-      targetColIndex !== undefined && targetColIndex >= 0 ? targetColIndex : undefined
-    );
-    this.setSql(updatedSql, true);
-    return true;
+  // ---- AÇÕES DA STORE / COMPOSABLE (useDiagram) ----
+  storeRenameTable(oldSqlName, newSqlName, schemaTableName) {
+    const res = this.diagram.renameTable(oldSqlName, newSqlName, schemaTableName);
+    this.syncUiWatches();
+    return res;
+  }
+
+  storeRenameColumn(tableName, oldColName, newColName, originalColName, targetColIndex) {
+    const res = this.diagram.renameColumn(tableName, oldColName, newColName, originalColName, targetColIndex);
+    this.syncUiWatches();
+    return res;
   }
 
   storeChangeColumnType(tableName, colName, oldType, newType) {
-    if (!tableName || !colName || oldType === newType) return false;
-    const typeDraftKey = `${tableName}.${colName}`;
-    this.draftColumnTypes = { ...this.draftColumnTypes, [typeDraftKey]: newType };
-    const updatedSql = replaceColumnTypeInSql(this.sqlCode, tableName, colName, oldType, newType);
-    this.setSql(updatedSql, true);
-    return true;
+    const res = this.diagram.changeColumnType(tableName, colName, oldType, newType);
+    this.syncUiWatches();
+    return res;
   }
 
   // ---- SIMULAÇÃO DE INPUTS NO CANVAS (DiagramTableNode.vue) ----
@@ -281,7 +281,7 @@ class TridirectionalSimulator {
     };
     if (previousColName !== cleanValue) {
       const effTableName = this.getCanvasTableName(schemaTableName) || table.name;
-      this.storeRenameColumn(effTableName, previousColName, cleanValue, col.name);
+      this.storeRenameColumn(effTableName, previousColName, cleanValue, col.name, colIndex);
     }
   }
 
@@ -342,7 +342,7 @@ class TridirectionalSimulator {
     };
     if (previousColName !== newColName) {
       const effTableName = this.getSidebarTableName(schemaTableName) || table.name;
-      this.storeRenameColumn(effTableName, previousColName, newColName, col.name);
+      this.storeRenameColumn(effTableName, previousColName, newColName, col.name, colIndex);
     }
   }
 
@@ -384,6 +384,28 @@ class TridirectionalSimulator {
     this.sidebarState.activeColKey = null;
     this.sidebarState.localColValues = {};
   }
+
+  sidebarInputTableName(schemaTableName, rawInputVal) {
+    const table = this.schema.tables[schemaTableName];
+    const key = table.id || table.name;
+    const prevName = this.getSidebarTableName(schemaTableName) || table.name;
+    const cleanVal = rawInputVal.replace(/\s+/g, '');
+    this.sidebarState.activeInputKey = key;
+    this.sidebarState.localTableNames[key] = cleanVal;
+    if (prevName !== cleanVal) {
+      this.storeRenameTable(prevName, cleanVal, schemaTableName);
+    }
+  }
+
+  sidebarBlurTable(schemaTableName) {
+    const table = this.schema.tables[schemaTableName];
+    const key = table.id || table.name;
+    const currentVal = this.sidebarState.localTableNames[key];
+    if (currentVal !== undefined && !currentVal.trim()) {
+      this.storeRenameTable('', table.name, schemaTableName);
+    }
+    this.sidebarState.activeInputKey = null;
+  }
 }
 
 // ============================================================================
@@ -396,10 +418,18 @@ let totalTests = 0;
 function assertEqual(actual, expected, contextMsg) {
   totalTests++;
   if (actual !== expected) {
+    const stack = new Error().stack;
+    console.error('--- FALHA IMEDIATA ---');
+    console.error('Contexto:', contextMsg);
+    console.error('Esperado:', JSON.stringify(expected));
+    console.error('Obtido  :', JSON.stringify(actual));
+    console.error('Stack   :', stack);
+    process.exit(1);
     failures.push({
       context: contextMsg,
       actual,
       expected,
+      stack,
     });
     return false;
   }
@@ -448,9 +478,19 @@ console.log('--- Iniciando Bateria 1: Digitação de Tipos no Canvas (Multilinha
   const sim = new TridirectionalSimulator(BASE_DDL_MULTILINE, 'MySQL');
   for (const seq of TYPE_SEQUENCES) {
     const currentType = sim.getCanvasColType('usuarios', seq.colIdx);
+    console.log(`[Bateria 1] seq.colIdx = ${seq.colIdx}, currentType = "${currentType}", seq.to = "${seq.to}"`);
+    console.log(`[Bateria 1] sim.draftColumnTypes:`, sim.draftColumnTypes);
+    console.log(`[Bateria 1] sim.canvasState.editingColValues:`, sim.canvasState.editingColValues);
+    console.log(`[Bateria 1] sim.schema.tables.usuarios:`, sim.schema.tables.usuarios?.columns.map(c => `${c.name}: ${c.type}`).join(', '));
     const keystrokes = generateKeystrokeSequence(currentType, seq.to);
     for (const stroke of keystrokes) {
+      if (seq.colIdx === 2) {
+        console.log(`[STROKE] colIdx=${seq.colIdx} stroke="${stroke}" before canvasInputColType. SQL:\n${sim.sqlCode}`);
+      }
       sim.canvasInputColType('usuarios', seq.colIdx, stroke);
+      if (seq.colIdx === 2) {
+        console.log(`[STROKE] after canvasInputColType. SQL:\n${sim.sqlCode}`);
+      }
 
       const canvasVal = sim.getCanvasColType('usuarios', seq.colIdx);
       const sidebarVal = sim.getSidebarColType('usuarios', seq.colIdx);
@@ -1078,6 +1118,111 @@ console.log('--- Iniciando Bateria 19: Validação Semântica (Avisos de Integri
   );
 }
 
+// ----------------------------------------------------------------------------
+// 20. TESTE DE COLISÃO TEMPORÁRIA DE NOMES DURANTE DIGITAÇÃO (id e id2 -> apaga 2)
+// ----------------------------------------------------------------------------
+console.log('--- Iniciando Bateria 20: Colisão Temporária de Nomes (id e id2 -> id) ---');
+{
+  const sqlColDuplicate = `CREATE TABLE teste (\n  id INT PRIMARY KEY,\n  id2 INT\n);`;
+  const sim = new TridirectionalSimulator(sqlColDuplicate, 'MySQL');
+
+  // Usuário começa a renomear id2 para id_externo. Primeiro apaga o '2':
+  sim.canvasInputColName('teste', 1, 'id');
+  // Por um instante ambas as colunas se chamam 'id'.
+  // A coluna 0 DEVE continuar sendo a coluna 0, e a coluna 1 DEVE ser a editada!
+  assertEqual(sim.getCanvasColName('teste', 0), 'id', '[Colisão id / id2] Coluna 0 permanece id');
+  assertEqual(sim.getCanvasColName('teste', 1), 'id', '[Colisão id / id2] Coluna 1 recebe temporariamente id');
+
+  // Continua digitando para 'id_externo'
+  sim.canvasInputColName('teste', 1, 'id_externo');
+  sim.canvasBlurCol('teste', 1);
+
+  assertEqual(sim.getCanvasColName('teste', 0), 'id', '[Colisão Resolvida] Coluna 0 permanece id');
+  assertEqual(sim.getCanvasColName('teste', 1), 'id_externo', '[Colisão Resolvida] Coluna 1 vira id_externo');
+  assertEqual(sim.sqlCode.includes('id INT PRIMARY KEY'), true, '[Colisão Resolvida SQL] Coluna 0 id preservada');
+  assertEqual(sim.sqlCode.includes('id_externo INT'), true, '[Colisão Resolvida SQL] Coluna 1 id_externo atualizada');
+}
+
+// ----------------------------------------------------------------------------
+// 21. TESTE DE RENOMEAÇÃO DE TABELA PELA SIDEBAR + BLUR COM NOME VAZIO
+// ----------------------------------------------------------------------------
+console.log('--- Iniciando Bateria 21: Renomeação de Tabela pela Sidebar e Blur Vazio ---');
+{
+  const sqlSidebarTable = `CREATE TABLE produtos (\n  id INT PRIMARY KEY,\n  nome VARCHAR(100)\n);\n\nCREATE TABLE itens (\n  id INT PRIMARY KEY,\n  produto_id INT,\n  FOREIGN KEY (produto_id) REFERENCES produtos(id)\n);`;
+  const sim = new TridirectionalSimulator(sqlSidebarTable, 'MySQL');
+
+  // Renomeia produtos -> mercadorias via Sidebar
+  sim.sidebarInputTableName('produtos', 'mercadorias');
+  assertEqual(sim.getSidebarTableName('mercadorias'), 'mercadorias', '[Sidebar Rename Table] Sidebar atualizada');
+  assertEqual(sim.getCanvasTableName('mercadorias'), 'mercadorias', '[Sidebar Rename Table] Canvas atualizado');
+  assertEqual(sim.sqlCode.includes('CREATE TABLE mercadorias'), true, '[Sidebar Rename Table SQL] CREATE TABLE mercadorias');
+  assertEqual(sim.sqlCode.includes('REFERENCES mercadorias(id)'), true, '[Sidebar Rename Table SQL] FK atualizada');
+
+  // Apaga o nome inteiro da tabela e dá blur (deve restaurar)
+  sim.sidebarInputTableName('mercadorias', '');
+  assertEqual(sim.getSidebarTableName('mercadorias'), '', '[Sidebar Table Empty] Focado em vazio');
+  sim.sidebarBlurTable('mercadorias');
+  assertEqual(sim.sqlCode.includes('CREATE TABLE mercadorias'), true, '[Sidebar Table Blur] Restaurou nome da tabela');
+}
+
+// ----------------------------------------------------------------------------
+// 22. TESTE DE VARIAÇÕES DE FOREIGN KEY (SELF-FK E FK INLINE)
+// ----------------------------------------------------------------------------
+console.log('--- Iniciando Bateria 22: Self-FK e FK Inline ---');
+{
+  // 1. Self-FK (autorreferência: funcionarios com gerente_id REFERENCES funcionarios(id))
+  const sqlSelfFk = `CREATE TABLE funcionarios (\n  id INT PRIMARY KEY,\n  nome VARCHAR(100),\n  gerente_id INT,\n  FOREIGN KEY (gerente_id) REFERENCES funcionarios(id)\n);`;
+  const simSelf = new TridirectionalSimulator(sqlSelfFk, 'MySQL');
+
+  // Renomeia funcionarios -> colaboradores
+  const tName = Object.keys(simSelf.schema.tables)[0];
+  simSelf.storeRenameTable('funcionarios', 'colaboradores', tName);
+  assertEqual(simSelf.sqlCode.includes('CREATE TABLE colaboradores'), true, '[Self-FK] CREATE TABLE colaboradores');
+  assertEqual(simSelf.sqlCode.includes('REFERENCES colaboradores(id)'), true, '[Self-FK] REFERENCES colaboradores(id) atualizado');
+
+  // Renomeia id -> cod_func
+  simSelf.storeRenameColumn('colaboradores', 'id', 'cod_func', 'id');
+  assertEqual(simSelf.sqlCode.includes('cod_func INT PRIMARY KEY'), true, '[Self-FK] id -> cod_func');
+  assertEqual(simSelf.sqlCode.includes('REFERENCES colaboradores(cod_func)'), true, '[Self-FK] REFERENCES colaboradores(cod_func)');
+
+  // 2. FK Inline (PostgreSQL / SQLite style)
+  const sqlInlineFk = `CREATE TABLE autores (\n  id SERIAL PRIMARY KEY,\n  nome TEXT\n);\n\nCREATE TABLE livros (\n  id SERIAL PRIMARY KEY,\n  titulo TEXT,\n  autor_id INT REFERENCES autores(id)\n);`;
+  const simInline = new TridirectionalSimulator(sqlInlineFk, 'PostgreSQL');
+  assertEqual(simInline.errors.length, 0, '[FK Inline] Parse válido');
+  assertEqual(simInline.schema.relationships.length, 1, '[FK Inline] Detectou relacionamento');
+  assertEqual(simInline.schema.relationships[0].fromTable, 'livros', '[FK Inline] fromTable livros');
+  assertEqual(simInline.schema.relationships[0].toTable, 'autores', '[FK Inline] toTable autores');
+}
+
+// ----------------------------------------------------------------------------
+// 23. TESTE DE CONFLITO ENTRE MONACO E UI (UNDO / REDO E ERRO CRUZADO)
+// ----------------------------------------------------------------------------
+console.log('--- Iniciando Bateria 23: Undo / Redo no Monaco e Erro Cruzado ---');
+{
+  const originalSql = `CREATE TABLE usuarios (\n  id INT PRIMARY KEY,\n  nome VARCHAR(100)\n);`;
+  const sim = new TridirectionalSimulator(originalSql, 'MySQL');
+
+  // 1. Usuário digita algo na Sidebar que gera rascunho inválido
+  sim.sidebarInputColType('usuarios', 1, 'VARCHAR(');
+  assertEqual(sim.getCanvasColType('usuarios', 1), 'VARCHAR(', '[Undo Passo 1] Canvas com rascunho');
+  assertEqual(sim.getSidebarColType('usuarios', 1), 'VARCHAR(', '[Undo Passo 1] Sidebar com rascunho');
+
+  // 2. Usuário vai no Monaco e aperta Ctrl+Z (restaura o SQL original perfeito sem passar pelo blur da Sidebar)
+  sim.setSql(originalSql, false); // preserveInlineDrafts = false
+  assertEqual(sim.errors.length, 0, '[Undo Monaco] Erros limpos');
+  assertEqual(sim.getCanvasColType('usuarios', 1), 'VARCHAR(100)', '[Undo Monaco] Canvas restaurado limpo sem draft residual');
+  assertEqual(sim.getSidebarColType('usuarios', 1), 'VARCHAR(100)', '[Undo Monaco] Sidebar restaurada limpa sem draft residual');
+
+  // 3. Erro cruzado: coluna com erro de tipo enquanto renomeia a tabela
+  sim.canvasInputColType('usuarios', 1, 'NUMERIC(');
+  assertEqual(sim.getCanvasColType('usuarios', 1), 'NUMERIC(', '[Erro Cruzado] Tipo com erro');
+  // Agora renomeia a tabela
+  sim.canvasState.editingTable = 'usuarios';
+  sim.storeRenameTable('usuarios', 'usuarios_novos', 'usuarios');
+  assertEqual(sim.sqlCode.includes('CREATE TABLE usuarios_novos'), true, '[Erro Cruzado] Tabela renomeada');
+  assertEqual(sim.getCanvasColType('usuarios', 1), 'NUMERIC(', '[Erro Cruzado] Tipo rascunho preservado');
+}
+
 // ============================================================================
 // RELATÓRIO FINAL
 // ============================================================================
@@ -1092,6 +1237,7 @@ if (failures.length > 0) {
     console.log(`\n#${idx + 1}: ${f.context}`);
     console.log(`  Esperado : ${JSON.stringify(f.expected)}`);
     console.log(`  Obtido   : ${JSON.stringify(f.actual)}`);
+    console.log(`  Stack    : ${f.stack?.split('\n').slice(1, 3).join('\n')}`);
   });
   process.exit(1);
 } else {

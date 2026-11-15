@@ -38,30 +38,31 @@ function splitTableDefinitions(
   for (let i = 0; i < body.length; i++) {
     const ch = body[i];
     if (inString) {
-      if (ch === '\n') {
+      if (ch === '\n' || ch === '\r') {
         inString = false;
+        depth = 0;
       } else if (ch === stringChar && body[i - 1] !== '\\') {
         inString = false;
       }
-      continue;
-    }
-    if (ch === "'" || ch === '"' || ch === '`') {
+    } else if (ch === "'" || ch === '"' || ch === '`') {
       inString = true;
       stringChar = ch;
-      continue;
+    } else if (ch === '(') {
+      depth++;
+    } else if (ch === ')') {
+      if (depth > 0) depth--;
     }
 
-    if (ch === '(') depth++;
-    else if (ch === ')') depth--;
-    else if (ch === ',') {
+    if (ch === ',') {
       const rest = body.slice(i + 1);
       const isLineEndComma = rest.search(/[\r\n]/) !== -1 &&
         (rest.search(/[\r\n]/) < rest.search(/\S/) || rest.search(/\S/) === -1);
 
-      if (depth === 0 || isLineEndComma) {
+      if ((!inString && depth === 0) || isLineEndComma) {
         defs.push({ text: body.substring(start, i), start, end: i });
         start = i + 1;
         depth = 0;
+        inString = false;
       }
     }
   }
@@ -311,14 +312,14 @@ export function mapSqlErrorsToTables(
       rawColType = rawColType.trim();
 
       let matchedCol =
+        (colOrdinalIndex < matched.columns.length ? matched.columns[colOrdinalIndex] : null) ||
         (rawColName
           ? matched.columns.find((c) => c.name.toLowerCase() === rawColName.toLowerCase()) ||
             matched.columns.find((c) =>
               rawColName.toLowerCase().startsWith(c.name.toLowerCase()) ||
               c.name.toLowerCase().startsWith(rawColName.toLowerCase())
             )
-          : null) ||
-        (colOrdinalIndex < matched.columns.length ? matched.columns[colOrdinalIndex] : null);
+          : null);
 
       if (!matchedCol) return;
 

@@ -1,3 +1,4 @@
+import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useDiagramStore } from '@/stores/diagram';
 
@@ -39,8 +40,8 @@ CREATE TABLE itens_pedido (
   FOREIGN KEY (produto_id) REFERENCES produtos(id)
 );`;
 
-export function useDiagram() {
-  const store = useDiagramStore();
+export function useDiagram(piniaInstance?: any) {
+  const store = useDiagramStore(piniaInstance);
   const { 
     sqlCode, errors, warnings, positions, edgeOffsets, 
     selectedTableNames, hoveredColumn, tableOrder, loadingProgress,
@@ -52,7 +53,7 @@ export function useDiagram() {
   const relationships = computed(() => store.relationships);
 
   const parseSql = (sql: string) => {
-    store.setSql(sql);
+    return store.setSql(sql);
   };
 
   const bringTableToFront = (tableName: string) => {
@@ -74,8 +75,8 @@ export function useDiagram() {
     store.setHoveredColumn(hoverInfo);
   const renameTable = (oldSqlName: string, newSqlName: string, schemaTableName?: string) =>
     store.renameTable(oldSqlName, newSqlName, schemaTableName);
-  const renameColumn = (tableName: string, oldColName: string, newColName: string, originalColName?: string) =>
-    store.renameColumn(tableName, oldColName, newColName, originalColName);
+  const renameColumn = (tableName: string, oldColName: string, newColName: string, originalColName?: string, targetColIndex?: number) =>
+    store.renameColumn(tableName, oldColName, newColName, originalColName, targetColIndex);
   const changeColumnType = (tableName: string, colName: string, oldType: string, newType: string) =>
     store.changeColumnType(tableName, colName, oldType, newType);
 

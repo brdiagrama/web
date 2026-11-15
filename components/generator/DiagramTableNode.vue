@@ -32,7 +32,7 @@ const emit = defineEmits<{
   (e: 'startDrag', event: PointerEvent | MouseEvent, tableName: string): void;
   (e: 'selectTable', tableName: string): void;
   (e: 'rename', previousName: string, newName: string, originalName: string): void;
-  (e: 'renameColumn', tableName: string, oldColName: string, newColName: string, originalColName?: string): void;
+  (e: 'renameColumn', tableName: string, oldColName: string, newColName: string, originalColName?: string, targetColIndex?: number): void;
   (e: 'changeColumnType', tableName: string, colName: string, oldType: string, newType: string): void;
   (e: 'columnHover', data: {
     tableName?: string;
@@ -159,7 +159,7 @@ const handleColumnNameInput = (col: Column, colIndex: number, event: Event) => {
   };
 
   if (previousColName !== newColName) {
-    emit('renameColumn', localInput.value || props.table.name, previousColName, newColName, col.name);
+    emit('renameColumn', localInput.value || props.table.name, previousColName, newColName, col.name, colIndex);
     restoreCursorPosition(target, target.selectionStart);
   }
 };
@@ -189,7 +189,7 @@ const handleColumnBlur = (col: Column, colIndex: number) => {
   const currentVal = editingColValues.value[colIndex];
   if (currentVal) {
     if (!currentVal.name.trim()) {
-      emit('renameColumn', localInput.value || props.table.name, '', currentVal.initialName || col.name, col.name);
+      emit('renameColumn', localInput.value || props.table.name, '', currentVal.initialName || col.name, col.name, colIndex);
     }
     if (!currentVal.type.trim()) {
       emit('changeColumnType', localInput.value || props.table.name, currentVal.name || currentVal.initialName || col.name, '', currentVal.initialType || col.type);

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import type { DatabaseSchema, Table, Relationship } from '@/domain/models/databaseSchema';
 import { parseSqlAsync } from '@/services/sqlParserService';
-import type { SqlDialect } from '@/domain/sql/parser';
+import { parseSqlSchema, type SqlDialect } from '@/domain/sql/parser';
 import { generateLayout, type EdgeOffset } from '@/domain/diagram/layout2d';
 import { useDiagramStorage } from '@/composables/useDiagramStorage';
 import { 
@@ -143,7 +143,10 @@ export const useDiagramStore = defineStore('diagram', {
       }, 200);
 
       try {
-        const newSchema = await parseSqlAsync(sql, this.sqlDialect);
+        const isClientWorkerAvailable = typeof window !== 'undefined' && typeof Worker !== 'undefined';
+        const newSchema = isClientWorkerAvailable
+          ? await parseSqlAsync(sql, this.sqlDialect)
+          : parseSqlSchema(sql, this.sqlDialect);
         clearTimeout(parseTimer);
         if (currentLoadId !== loadId) return;
 
@@ -177,9 +180,11 @@ export const useDiagramStore = defineStore('diagram', {
         if (totalTables <= 200) {
           this.schema = newSchema;
           this.tableOrder = targetOrder;
-          this.draftTableNames = {};
-          this.draftColumnNames = {};
-          this.draftColumnTypes = {};
+          if (!preserveInlineDrafts) {
+            this.draftTableNames = {};
+            this.draftColumnNames = {};
+            this.draftColumnTypes = {};
+          }
           this.tableErrors = {};
           this.loadingProgress = { isLoading: false, phase: 'rendering', current: totalTables, total: totalTables };
           saveTablePositions(this.positions);
@@ -226,9 +231,11 @@ export const useDiagramStore = defineStore('diagram', {
         if (currentLoadId === loadId) {
           this.schema = newSchema;
           this.tableOrder = targetOrder;
-          this.draftTableNames = {};
-          this.draftColumnNames = {};
-          this.draftColumnTypes = {};
+          if (!preserveInlineDrafts) {
+            this.draftTableNames = {};
+            this.draftColumnNames = {};
+            this.draftColumnTypes = {};
+          }
           this.tableErrors = {};
           this.loadingProgress = { isLoading: false, phase: 'rendering', current: totalTables, total: totalTables };
           saveTablePositions(this.positions);
@@ -436,10 +443,16 @@ export const useDiagramStore = defineStore('diagram', {
       if (oldSqlName === newSqlName) return false;
 
       const baseName = schemaTableName || oldSqlName;
-      this.draftTableNames = {
-        ...this.draftTableNames,
-        [baseName]: newSqlName
-      };
+      const nextTableDrafts = { ...this.draftTableNames };
+      if (oldSqlName) {
+        delete nextTableDrafts[oldSqlName];
+      }
+      if (schemaTableName) {
+        delete nextTableDrafts[schemaTableName];
+      }
+      const activeTableKey = newSqlName || baseName;
+      nextTableDrafts[activeTableKey] = newSqlName;
+      this.draftTableNames = nextTableDrafts;
 
       const sourceTable = this.schema.tables[baseName];
       const targetTableIndex = sourceTable?.id?.startsWith('table_idx_')
@@ -480,24 +493,30 @@ export const useDiagramStore = defineStore('diagram', {
       return true;
     },
 
-    renameColumn(tableName: string, oldColName: string, newColName: string, originalColName?: string): boolean {
+    renameColumn(tableName: string, oldColName: string, newColName: string, originalColName?: string, targetColIndex?: number): boolean {
       if (oldColName === newColName || !tableName) return false;
-      const colDraftKey = `${tableName}.${originalColName || oldColName}`;
-      this.draftColumnNames = {
-        ...this.draftColumnNames,
-        [colDraftKey]: newColName,
-      };
+      const nextDrafts = { ...this.draftColumnNames };
+      if (oldColName) {
+        delete nextDrafts[`${tableName}.${oldColName}`];
+      }
+      if (originalColName) {
+        delete nextDrafts[`${tableName}.${originalColName}`];
+      }
+      const activeKey = `${tableName}.${newColName || originalColName || oldColName}`;
+      nextDrafts[activeKey] = newColName;
+      this.draftColumnNames = nextDrafts;
+
       const table = this.schema.tables[tableName];
-      const targetColIndex = table && originalColName
-        ? table.columns.findIndex((c) => c.name === originalColName)
-        : undefined;
+      const resolvedIndex = targetColIndex !== undefined
+        ? targetColIndex
+        : (table && originalColName ? table.columns.findIndex((c) => c.name === originalColName) : undefined);
       const updatedSql = replaceColumnNameInSql(
         this.sqlCode,
         tableName,
         oldColName,
         newColName,
         originalColName,
-        targetColIndex !== undefined && targetColIndex >= 0 ? targetColIndex : undefined
+        resolvedIndex !== undefined && resolvedIndex >= 0 ? resolvedIndex : undefined
       );
       this.setSql(updatedSql, true);
       return true;

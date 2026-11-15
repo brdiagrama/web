@@ -249,20 +249,69 @@ export function replaceColumnNameInSql(
       }
     }
   } else {
-    const escapedCol = escapeRegExp(oldColName);
-    const colDefRegex = new RegExp(
-      `(^|[\\n,(;]\\s*)([\`"']?)(${escapedCol})\\2(?=\\s|$|[,;)])`,
-      'i'
-    );
-    if (!newColName) {
-      // Remove tanto o nome quanto eventuais aspas/backticks ao redor quando o campo fica vazio
-      updatedBody = updatedBody.replace(colDefRegex, `$1`);
-    } else {
-      updatedBody = updatedBody.replace(colDefRegex, (_m, p1, quote, _col, offset, fullStr) => {
-        const nextCh = fullStr[offset + _m.length] || '';
-        const needsSpace = Boolean(nextCh && !/[\s,;)]/.test(nextCh));
-        return `${p1}${quote}${newColName}${quote}${needsSpace ? ' ' : ''}`;
+    const TABLE_CONSTRAINTS = /^(?:PRIMARY\s+KEY|FOREIGN\s+KEY|UNIQUE|CHECK|CONSTRAINT|INDEX|KEY)\b/i;
+    const defs: Array<{ text: string; start: number; end: number }> = [];
+    let depth = 0;
+    let start = 0;
+    let inString = false;
+    let stringChar = '';
+    for (let i = 0; i < body.length; i++) {
+      const ch = body[i];
+      if (inString) {
+        if (ch === '\n') inString = false;
+        else if (ch === stringChar && body[i - 1] !== '\\') inString = false;
+        continue;
+      }
+      if (ch === "'" || ch === '"' || ch === '`') {
+        inString = true;
+        stringChar = ch;
+        continue;
+      }
+      if (ch === '(') depth++;
+      else if (ch === ')') { if (depth > 0) depth--; }
+      else if (ch === ',') {
+        const rest = body.slice(i + 1);
+        const isLineEndComma = rest.search(/[\r\n]/) !== -1 &&
+          (rest.search(/[\r\n]/) < rest.search(/\S/) || rest.search(/\S/) === -1);
+        if (depth === 0 || isLineEndComma) {
+          defs.push({ text: body.substring(start, i), start, end: i });
+          start = i + 1;
+          depth = 0;
+        }
+      }
+    }
+    defs.push({ text: body.substring(start), start, end: body.length });
+    const colDefs = defs.filter((d) => !TABLE_CONSTRAINTS.test(d.text.trim().replace(/^--.*$/gm, '').trim()));
+    const targetDef =
+      targetColIndex !== undefined && colDefs[targetColIndex]
+        ? colDefs[targetColIndex]
+        : null;
+
+    if (targetDef) {
+      // Substitui exclusivamente o nome da coluna alvo no início de targetDef
+      const defText = targetDef.text;
+      const leadingColRegex = /^(\s*)([`"']?)[^\s,;()]+(\2)(\s*)/;
+      const newDefText = defText.replace(leadingColRegex, (_m, p1, quote, _p3, p4) => {
+        const afterSpace = p4 || ' ';
+        return `${p1}${quote}${newColName}${quote}${newColName ? afterSpace : ''}`;
       });
+      updatedBody = body.substring(0, targetDef.start) + newDefText + body.substring(targetDef.end);
+    } else {
+      const escapedCol = escapeRegExp(oldColName);
+      const colDefRegex = new RegExp(
+        `(^|[\\n,(;]\\s*)([\`"']?)(${escapedCol})\\2(?=\\s|$|[,;)])`,
+        'i'
+      );
+      if (!newColName) {
+        // Remove tanto o nome quanto eventuais aspas/backticks ao redor quando o campo fica vazio
+        updatedBody = updatedBody.replace(colDefRegex, `$1`);
+      } else {
+        updatedBody = updatedBody.replace(colDefRegex, (_m, p1, quote, _col, offset, fullStr) => {
+          const nextCh = fullStr[offset + _m.length] || '';
+          const needsSpace = Boolean(nextCh && !/[\s,;)]/.test(nextCh));
+          return `${p1}${quote}${newColName}${quote}${needsSpace ? ' ' : ''}`;
+        });
+      }
     }
   }
 
@@ -285,6 +334,7 @@ export function replaceColumnNameInSql(
       'gi'
     );
     updatedPrefix = updatedPrefix.replace(foreignRefRegex, `$1${newColName}$3`);
+    updatedBody = updatedBody.replace(foreignRefRegex, `$1${newColName}$3`);
     updatedSuffix = updatedSuffix.replace(foreignRefRegex, `$1${newColName}$3`);
   }
 
