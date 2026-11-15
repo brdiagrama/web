@@ -4,11 +4,11 @@
     :text="tooltip" 
     :location="tooltipLocation" 
     :theme="theme"
-    :disabled="disabled"
+    :disabled="disabled || active"
   >
     <template #activator="{ props: tooltipProps }">
       <v-btn
-        v-bind="tooltipProps"
+        v-bind="{ ...tooltipProps, ...$attrs }"
         icon
         variant="text"
         :size="size"
@@ -19,7 +19,7 @@
         ]"
         :disabled="disabled"
         :aria-label="ariaLabel || tooltip"
-        @click.stop="handleClick"
+        @click="handleClick"
       >
         <slot />
       </v-btn>
@@ -28,6 +28,7 @@
 
   <v-btn
     v-else
+    v-bind="$attrs"
     icon
     variant="text"
     :size="size"
@@ -38,11 +39,17 @@
     ]"
     :disabled="disabled"
     :aria-label="ariaLabel"
-    @click.stop="handleClick"
+    @click="handleClick"
   >
     <slot />
   </v-btn>
 </template>
+
+<script lang="ts">
+export default {
+  inheritAttrs: false,
+};
+</script>
 
 <script setup lang="ts">
 withDefaults(

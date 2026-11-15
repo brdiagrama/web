@@ -43,6 +43,7 @@ const localCode = ref(props.modelValue);
 const editorRef = shallowRef();
 const monacoRef = shallowRef();
 const editorMounted = ref(false);
+let completionDisposable = null;
 
 defineExpose({
   gotoLine: (lineNumber) => {
@@ -173,7 +174,11 @@ const handleMount = (editor, monaco) => {
   });
 
   // Autocomplete
-  monaco.languages.registerCompletionItemProvider("br-sql", {
+  if (completionDisposable) {
+    completionDisposable.dispose();
+    completionDisposable = null;
+  }
+  completionDisposable = monaco.languages.registerCompletionItemProvider("br-sql", {
     provideCompletionItems: (model, position) => {
       const word = model.getWordUntilPosition(position);
       const range = {
@@ -421,6 +426,13 @@ const handleMount = (editor, monaco) => {
 const handleChange = (value) => {
   emit("update:modelValue", value);
 };
+
+onUnmounted(() => {
+  if (completionDisposable) {
+    completionDisposable.dispose();
+    completionDisposable = null;
+  }
+});
 </script>
 
 <style scoped>

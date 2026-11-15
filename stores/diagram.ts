@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import type { DatabaseSchema, Table, Relationship } from '@/domain/models/databaseSchema';
 import { parseSqlAsync } from '@/services/sqlParserService';
+import type { SqlDialect } from '@/domain/sql/parser';
 import { generateLayout, type EdgeOffset } from '@/domain/diagram/layout2d';
 import { useDiagramStorage } from '@/composables/useDiagramStorage';
 import { 
@@ -57,6 +58,7 @@ export interface DiagramState {
   draftColumnNames: Record<string, string>;
   draftColumnTypes: Record<string, string>;
   tableErrors: Record<string, string>;
+  sqlDialect: SqlDialect;
 }
 
 let currentLoadId = 0;
@@ -94,6 +96,7 @@ export const useDiagramStore = defineStore('diagram', {
     draftColumnNames: {},
     draftColumnTypes: {},
     tableErrors: {},
+    sqlDialect: (typeof window !== 'undefined' ? (useDiagramStorage().loadDialect() as SqlDialect) : null) || 'MySQL',
   }),
 
   getters: {
@@ -134,7 +137,7 @@ export const useDiagramStore = defineStore('diagram', {
       }, 200);
 
       try {
-        const newSchema = await parseSqlAsync(sql);
+        const newSchema = await parseSqlAsync(sql, this.sqlDialect);
         clearTimeout(parseTimer);
         if (currentLoadId !== loadId) return;
 
@@ -495,6 +498,15 @@ export const useDiagramStore = defineStore('diagram', {
       clearSql();
       clearTablePositions();
       clearTableOrder();
+    },
+
+    setDialect(dialect: SqlDialect) {
+      this.sqlDialect = dialect;
+      const { saveDialect } = useDiagramStorage();
+      saveDialect(dialect);
+      if (this.sqlCode) {
+        this.setSql(this.sqlCode);
+      }
     },
   },
 });

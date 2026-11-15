@@ -1,93 +1,79 @@
 <template>
     <div class="diagram-toolbar" :class="isCanvasDark ? 'toolbar-dark' : 'toolbar-light'">
         <!-- Reset Zoom -->
-        <v-tooltip text="Ajustar zoom (100%)" location="top" :theme="isCanvasDark ? 'dark' : 'light'">
-            <template #activator="{ props: tooltipProps }">
-                <button 
-                    v-bind="tooltipProps"
-                    @click="resetZoom" 
-                    class="toolbar-btn reset-zoom-btn" 
-                    aria-label="Ajustar zoom para 100%"
-                >
-                    <Maximize2 :size="18" />
-                </button>
-            </template>
-        </v-tooltip>
+        <IconButton
+            tooltip="Ajustar zoom (100%)"
+            tooltip-location="top"
+            :theme="isCanvasDark ? 'dark' : 'light'"
+            aria-label="Ajustar zoom para 100%"
+            @click="resetZoom"
+        >
+            <Maximize2 :size="18" />
+        </IconButton>
         
         <!-- Botão de Pan Mode -->
-        <v-tooltip text="Modo de navegação (arrastar tela)" location="top" :theme="isCanvasDark ? 'dark' : 'light'">
-            <template #activator="{ props: tooltipProps }">
-                <button 
-                    v-bind="tooltipProps"
-                    @click="togglePanMode" 
-                    :class="['toolbar-btn', 'pan-mode-btn', { active: store.isPanMode }]" 
-                    aria-label="Modo de navegação"
-                >
-                    <Hand :size="18" />
-                </button>
-            </template>
-        </v-tooltip>
+        <IconButton
+            tooltip="Modo de navegação (arrastar tela)"
+            tooltip-location="top"
+            :theme="isCanvasDark ? 'dark' : 'light'"
+            :active="store.isPanMode"
+            aria-label="Modo de navegação"
+            @click="togglePanMode"
+        >
+            <Hand :size="18" />
+        </IconButton>
 
         <!-- Botão do Grid -->
-        <v-tooltip text="Mostrar ou ocultar grade" location="top" :theme="isCanvasDark ? 'dark' : 'light'">
-            <template #activator="{ props: tooltipProps }">
-                <button 
-                    v-bind="tooltipProps"
-                    @click="toggleGrid" 
-                    :class="['toolbar-btn', 'grid-btn', { active: store.isGridVisible }]"
-                    aria-label="Mostrar ou ocultar grade"
-                >
-                    <Grid :size="18" />
-                </button>
-            </template>
-        </v-tooltip>
+        <IconButton
+            tooltip="Mostrar ou ocultar grade"
+            tooltip-location="top"
+            :theme="isCanvasDark ? 'dark' : 'light'"
+            :active="store.isGridVisible"
+            aria-label="Mostrar ou ocultar grade"
+            @click="toggleGrid"
+        >
+            <Grid :size="18" />
+        </IconButton>
            
         <div class="zoom-control">
-            <v-tooltip text="Diminuir zoom" location="top" :theme="isCanvasDark ? 'dark' : 'light'">
-                <template #activator="{ props: tooltipProps }">
-                    <button 
-                        v-bind="tooltipProps"
-                        @click="decreaseZoom" 
-                        class="toolbar-btn zoom-btn" 
-                        aria-label="Diminuir zoom"
-                    >
-                        <Minus :size="16" />
-                    </button>
-                </template>
-            </v-tooltip>
+            <IconButton
+                tooltip="Diminuir zoom"
+                tooltip-location="top"
+                :theme="isCanvasDark ? 'dark' : 'light'"
+                aria-label="Diminuir zoom"
+                size="small"
+                @click="decreaseZoom"
+            >
+                <Minus :size="16" />
+            </IconButton>
 
             <span class="zoom-label">{{ Math.round(zoomScale) }}%</span>
 
-            <v-tooltip text="Aumentar zoom" location="top" :theme="isCanvasDark ? 'dark' : 'light'">
-                <template #activator="{ props: tooltipProps }">
-                    <button 
-                        v-bind="tooltipProps"
-                        @click="increaseZoom" 
-                        class="toolbar-btn zoom-btn" 
-                        aria-label="Aumentar zoom"
-                    >
-                        <Plus :size="16" />
-                    </button>
-                </template>
-            </v-tooltip>
+            <IconButton
+                tooltip="Aumentar zoom"
+                tooltip-location="top"
+                :theme="isCanvasDark ? 'dark' : 'light'"
+                aria-label="Aumentar zoom"
+                size="small"
+                @click="increaseZoom"
+            >
+                <Plus :size="16" />
+            </IconButton>
         </div>
 
         <div class="toolbar-divider" aria-hidden="true"></div>
 
         <!-- Botão de Tema do Diagrama -->
-        <v-tooltip :text="isCanvasDark ? 'Mudar diagrama para tema claro' : 'Mudar diagrama para tema escuro'" location="top" :theme="isCanvasDark ? 'dark' : 'light'">
-            <template #activator="{ props: tooltipProps }">
-                <button
-                    v-bind="tooltipProps"
-                    @click="(e) => toggleCanvasTheme(e)"
-                    class="toolbar-btn theme-btn"
-                    :aria-label="isCanvasDark ? 'Mudar diagrama para tema claro' : 'Mudar diagrama para tema escuro'"
-                >
-                    <Sun v-if="isCanvasDark" :size="18" />
-                    <Moon v-else :size="18" />
-                </button>
-            </template>
-        </v-tooltip>
+        <IconButton
+            :tooltip="isCanvasDark ? 'Mudar diagrama para tema claro' : 'Mudar diagrama para tema escuro'"
+            tooltip-location="top"
+            :theme="isCanvasDark ? 'dark' : 'light'"
+            :aria-label="isCanvasDark ? 'Mudar diagrama para tema claro' : 'Mudar diagrama para tema escuro'"
+            @click="(e) => toggleCanvasTheme(e)"
+        >
+            <Sun v-if="isCanvasDark" :size="18" />
+            <Moon v-else :size="18" />
+        </IconButton>
     </div>
 </template>
 
@@ -96,6 +82,7 @@ import { computed } from 'vue';
 import { Maximize2, Hand, Grid, Minus, Plus, Sun, Moon } from 'lucide-vue-next';
 import { useDiagramStore } from '@/stores/diagram';
 import { useGeneratorTheme } from '@/composables/useGeneratorTheme';
+import IconButton from '@/components/shared/IconButton.vue';
 
 const props = defineProps({
     diagramRef: {
@@ -190,40 +177,6 @@ const resetZoom = () => {
     background-color: rgba(255, 255, 255, 0.1);
 }
 
-.toolbar-btn {
-    cursor: pointer;
-    width: 34px;
-    height: 34px;
-    min-width: 34px;
-    min-height: 34px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    border: none;
-    background: transparent;
-    color: var(--clr-text-muted, #5E6368);
-    transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.toolbar-dark .toolbar-btn {
-    color: #9AA0A6;
-}
-
-.toolbar-light .toolbar-btn {
-    color: #5E6368;
-}
-
-.toolbar-dark .toolbar-btn:hover {
-    background-color: rgba(26, 186, 156, 0.15);
-    color: #1aba9c;
-}
-
-.toolbar-light .toolbar-btn:hover {
-    background-color: rgba(26, 186, 156, 0.12);
-    color: #1aba9c;
-}
-
 .zoom-control {
     display: flex;
     align-items: center;
@@ -251,23 +204,11 @@ const resetZoom = () => {
     color: #1F1F1F;
 }
 
-.grid-btn.active,
-.pan-mode-btn.active {
-    background-color: rgba(26, 186, 156, 0.15) !important;
-    color: #1aba9c !important;
-}
-
 @media (max-width: 768px) {
     .diagram-toolbar {
         bottom: calc(80px + env(safe-area-inset-bottom, 20px));
         gap: 4px;
         padding: 6px;
-    }
-    .toolbar-btn {
-        width: 40px;
-        height: 40px;
-        min-width: 40px;
-        min-height: 40px;
     }
     .zoom-label { display: none; }
 }

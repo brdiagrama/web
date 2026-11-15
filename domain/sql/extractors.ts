@@ -4,6 +4,23 @@ export function generateId(): string {
     return Math.random().toString(36).substring(2, 11);
 }
 
+export function extractColumnName(colRef: any): string {
+    if (!colRef) return '';
+    if (typeof colRef === 'string') return colRef.replace(/[`"']/g, '');
+    if (colRef.column) return extractColumnName(colRef.column);
+    if (colRef.expr?.value) return String(colRef.expr.value).replace(/[`"']/g, '');
+    if (colRef.value) return String(colRef.value).replace(/[`"']/g, '');
+    return '';
+}
+
+export function extractTableName(tableRef: any): string {
+    if (!tableRef) return '';
+    if (typeof tableRef === 'string') return tableRef.replace(/[`"']/g, '');
+    if (Array.isArray(tableRef)) return extractTableName(tableRef[0]);
+    if (tableRef.table) return extractTableName(tableRef.table);
+    return '';
+}
+
 // Strategy Pattern for constraints
 const CONSTRAINT_STRATEGIES: Record<string, (col: Column) => void> = {
     'primary key': (col) => { col.isPk = true; },
@@ -59,7 +76,7 @@ function formatColumnType(def: any): string {
 
 export function extractColumnFromDefinition(def: any): Column {
     const column: Column = {
-        name: def.column.column,
+        name: extractColumnName(def.column),
         type: formatColumnType(def),
         isPk: false,
         isFk: false,
@@ -80,12 +97,13 @@ function applyTableConstraint(def: any, tableData: Table): void {
     switch (type) {
         case 'primary key':
             def.definition.forEach((pkDef: any) => {
-                const col = tableData.columns.find(c => c.name === pkDef.column);
+                const pkColName = extractColumnName(pkDef);
+                const col = tableData.columns.find(c => c.name === pkColName);
                 if (col) col.isPk = true;
             });
             break;
         case 'unique':
-            const uniqueColName = def.definition[0].column;
+            const uniqueColName = extractColumnName(def.definition?.[0]);
             const col = tableData.columns.find(c => c.name === uniqueColName);
             if (col) col.unique = true;
             break;
@@ -93,7 +111,7 @@ function applyTableConstraint(def: any, tableData: Table): void {
 }
 
 export function extractTable(ast: any, index = 0): Table {
-    const tableName = ast.table[0].table;
+    const tableName = extractTableName(ast.table);
     const tableData: Table = {
         id: `table_idx_${index}`,
         name: tableName,

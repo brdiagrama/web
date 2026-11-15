@@ -44,7 +44,8 @@ export function useDiagram() {
   const { 
     sqlCode, errors, warnings, positions, edgeOffsets, 
     selectedTableNames, hoveredColumn, tableOrder, loadingProgress,
-    isStampActive, stampGhostPosition, draftTableNames, draftColumnNames, draftColumnTypes, tableErrors 
+    isStampActive, stampGhostPosition, draftTableNames, draftColumnNames, draftColumnTypes, tableErrors,
+    sqlDialect
   } = storeToRefs(store);
 
   const tables = computed(() => store.tables);
@@ -96,6 +97,8 @@ export function useDiagram() {
     draftColumnNames,
     draftColumnTypes,
     tableErrors,
+    sqlDialect,
+    setDialect: (dialect: import('@/domain/sql/parser').SqlDialect) => store.setDialect(dialect),
     parseSql,
     bringTableToFront,
     bringTablesToFront,

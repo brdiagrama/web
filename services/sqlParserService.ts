@@ -1,5 +1,5 @@
 import type { DatabaseSchema } from '@/domain/models/databaseSchema';
-import { parseSqlSchema } from '@/domain/sql/parser';
+import { parseSqlSchema, type SqlDialect } from '@/domain/sql/parser';
 
 export interface SqlParseError {
   line: number;
@@ -56,11 +56,11 @@ function getWorker(): Worker | null {
   return workerInstance;
 }
 
-export function parseSqlAsync(sql: string): Promise<DatabaseSchema> {
+export function parseSqlAsync(sql: string, dialect: SqlDialect = 'MySQL'): Promise<DatabaseSchema> {
   const worker = getWorker();
 
   if (!worker) {
-    return Promise.resolve().then(() => parseSqlSchema(sql));
+    return Promise.resolve().then(() => parseSqlSchema(sql, dialect));
   }
 
   return new Promise<DatabaseSchema>((resolve, reject) => {
@@ -70,6 +70,6 @@ export function parseSqlAsync(sql: string): Promise<DatabaseSchema> {
     pendingRequests.clear();
     pendingRequests.set(id, { resolve, reject });
 
-    worker.postMessage({ id, sql });
+    worker.postMessage({ id, sql, dialect });
   });
 }

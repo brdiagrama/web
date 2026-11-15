@@ -5,6 +5,9 @@ import {
   FileCode, ImageIcon, Code2, ChevronLeft, Sun, Moon 
 } from 'lucide-vue-next';
 import { useGeneratorTheme } from '@/composables/useGeneratorTheme';
+import DatabaseDialectSelector from './DatabaseDialectSelector.vue';
+import IconButton from '@/components/shared/IconButton.vue';
+import DropdownSelect, { type DropdownItem } from '@/components/shared/DropdownSelect.vue';
 
 const props = defineProps<{
   errorCount: number;
@@ -23,9 +26,13 @@ const emit = defineEmits<{
 }>();
 
 const { isEditorDark, toggleEditorTheme } = useGeneratorTheme();
-
-const showExportMenu = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
+
+const exportOptions: DropdownItem[] = [
+  { id: 'sql', label: 'Arquivo SQL', icon: FileCode, iconType: 'component', action: () => emit('exportSql') },
+  { id: 'png', label: 'Imagem PNG', icon: ImageIcon, iconType: 'component', action: () => emit('exportDiagramPNG') },
+  { id: 'svg', label: 'Vetor SVG', icon: Code2, iconType: 'component', action: () => emit('exportDiagramSVG') },
+];
 
 const triggerImportLocal = () => {
   emit('triggerImport');
@@ -51,6 +58,7 @@ const triggerImportLocal = () => {
           height="34"
         />
       </NuxtLink>
+      <DatabaseDialectSelector />
     </div>
 
     <nav class="header-actions" aria-label="Ações do gerador">
@@ -85,125 +93,67 @@ const triggerImportLocal = () => {
       </v-tooltip>
 
       <!-- Limpar / Novo Projeto -->
-      <v-tooltip text="Novo projeto (Limpar)" location="bottom" :theme="isEditorDark ? 'dark' : 'light'">
-        <template #activator="{ props: tooltipProps }">
-          <v-btn
-            v-bind="tooltipProps"
-            icon
-            variant="text"
-            size="small"
-            class="action-btn"
-            aria-label="Novo projeto ou limpar tela"
-            @click="emit('newProject')"
-          >
-            <Eraser :size="18" />
-          </v-btn>
-        </template>
-      </v-tooltip>
+      <IconButton
+        tooltip="Novo projeto (Limpar)"
+        :theme="isEditorDark ? 'dark' : 'light'"
+        aria-label="Novo projeto ou limpar tela"
+        @click="emit('newProject')"
+      >
+        <Eraser :size="18" />
+      </IconButton>
 
       <!-- Importar Arquivo SQL -->
-      <v-tooltip text="Importar arquivo SQL" location="bottom" :theme="isEditorDark ? 'dark' : 'light'">
-        <template #activator="{ props: tooltipProps }">
-          <v-btn
-            v-bind="tooltipProps"
-            icon
-            variant="text"
-            size="small"
-            class="action-btn"
-            aria-label="Importar arquivo SQL do computador"
-            @click="triggerImportLocal"
-          >
-            <Upload :size="18" />
-          </v-btn>
-        </template>
-      </v-tooltip>
+      <IconButton
+        tooltip="Importar arquivo SQL"
+        :theme="isEditorDark ? 'dark' : 'light'"
+        aria-label="Importar arquivo SQL do computador"
+        @click="triggerImportLocal"
+      >
+        <Upload :size="18" />
+      </IconButton>
 
       <!-- Menu de Exportação -->
-      <v-menu v-model="showExportMenu" location="bottom end" :offset="8">
-        <template #activator="{ props: menuProps }">
-          <v-tooltip text="Exportar" location="bottom" :disabled="showExportMenu" :theme="isEditorDark ? 'dark' : 'light'">
-            <template #activator="{ props: tooltipProps }">
-              <v-btn
-                v-bind="{ ...menuProps, ...tooltipProps }"
-                icon
-                variant="text"
-                size="small"
-                class="action-btn"
-                :class="{ 'btn-active': showExportMenu }"
-                aria-label="Menu de exportação"
-              >
-                <Download :size="18" />
-              </v-btn>
-            </template>
-          </v-tooltip>
+      <DropdownSelect
+        :items="exportOptions"
+        :theme="isEditorDark ? 'dark' : 'light'"
+        location="bottom end"
+        :offset="8"
+      >
+        <template #activator="{ props: menuProps, isOpen }">
+          <IconButton
+            v-bind="menuProps"
+            tooltip="Exportar"
+            :theme="isEditorDark ? 'dark' : 'light'"
+            :active="isOpen"
+            aria-label="Menu de exportação"
+          >
+            <Download :size="18" />
+          </IconButton>
         </template>
-
-        <v-list 
-          class="custom-dropdown-list" 
-          :class="isEditorDark ? 'dropdown-dark' : 'dropdown-light'"
-          density="compact" 
-          elevation="4" 
-          rounded="lg"
-        >
-          <v-list-item @click="emit('exportSql')" class="dropdown-list-item" rounded="md">
-            <template #prepend>
-              <FileCode :size="16" class="dropdown-icon" />
-            </template>
-            <v-list-item-title class="dropdown-item-title">Arquivo SQL</v-list-item-title>
-          </v-list-item>
-
-          <v-list-item @click="emit('exportDiagramPNG')" class="dropdown-list-item" rounded="md">
-            <template #prepend>
-              <ImageIcon :size="16" class="dropdown-icon" />
-            </template>
-            <v-list-item-title class="dropdown-item-title">Imagem PNG</v-list-item-title>
-          </v-list-item>
-
-          <v-list-item @click="emit('exportDiagramSVG')" class="dropdown-list-item" rounded="md">
-            <template #prepend>
-              <Code2 :size="16" class="dropdown-icon" />
-            </template>
-            <v-list-item-title class="dropdown-item-title">Vetor SVG</v-list-item-title>
-          </v-list-item>
-        </v-list>
-      </v-menu>
+      </DropdownSelect>
 
       <!-- Alternar Tema do Painel Esquerdo (Editor + Cabeçalho) -->
-      <v-tooltip :text="isEditorDark ? 'Mudar editor para tema claro' : 'Mudar editor para tema escuro'" location="bottom" :theme="isEditorDark ? 'dark' : 'light'">
-        <template #activator="{ props: tooltipProps }">
-          <v-btn
-            v-bind="tooltipProps"
-            icon
-            variant="text"
-            size="small"
-            class="action-btn"
-            :aria-label="isEditorDark ? 'Mudar editor para tema claro' : 'Mudar editor para tema escuro'"
-            @click="(e: MouseEvent) => toggleEditorTheme(e)"
-          >
-            <Sun v-if="isEditorDark" :size="18" />
-            <Moon v-else :size="18" />
-          </v-btn>
-        </template>
-      </v-tooltip>
+      <IconButton
+        :tooltip="isEditorDark ? 'Mudar editor para tema claro' : 'Mudar editor para tema escuro'"
+        :theme="isEditorDark ? 'dark' : 'light'"
+        :aria-label="isEditorDark ? 'Mudar editor para tema claro' : 'Mudar editor para tema escuro'"
+        @click="(e: MouseEvent) => toggleEditorTheme(e)"
+      >
+        <Sun v-if="isEditorDark" :size="18" />
+        <Moon v-else :size="18" />
+      </IconButton>
 
       <div class="header-divider" aria-hidden="true"></div>
 
       <!-- Ocultar / Minimizar Editor -->
-      <v-tooltip text="Ocultar editor" location="bottom" :theme="isEditorDark ? 'dark' : 'light'">
-        <template #activator="{ props: tooltipProps }">
-          <v-btn
-            v-bind="tooltipProps"
-            icon
-            variant="text"
-            size="small"
-            class="action-btn"
-            aria-label="Ocultar painel do editor"
-            @click="emit('toggleEditor')"
-          >
-            <ChevronLeft :size="20" />
-          </v-btn>
-        </template>
-      </v-tooltip>
+      <IconButton
+        tooltip="Ocultar editor"
+        :theme="isEditorDark ? 'dark' : 'light'"
+        aria-label="Ocultar painel do editor"
+        @click="emit('toggleEditor')"
+      >
+        <ChevronLeft :size="20" />
+      </IconButton>
 
       <input
         ref="fileInputRef"
@@ -246,6 +196,8 @@ const triggerImportLocal = () => {
 .brand-area {
   display: flex;
   align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .brand-link {
@@ -266,31 +218,7 @@ const triggerImportLocal = () => {
   display: flex;
   align-items: center;
   gap: 4px;
-}
-
-.action-btn {
-  border-radius: 8px !important;
-  transition: all 0.2s ease;
-}
-
-.editor-header.editor-dark .action-btn {
-  color: #9AA0A6 !important;
-}
-
-.editor-header.editor-dark .action-btn:hover,
-.editor-header.editor-dark .action-btn.btn-active {
-  background-color: rgba(26, 186, 156, 0.15) !important;
-  color: #1ABA9C !important;
-}
-
-.editor-header.editor-light .action-btn {
-  color: #5E6368 !important;
-}
-
-.editor-header.editor-light .action-btn:hover,
-.editor-header.editor-light .action-btn.btn-active {
-  background-color: rgba(26, 186, 156, 0.12) !important;
-  color: #1ABA9C !important;
+  flex-shrink: 0;
 }
 
 .problems-badge {
@@ -328,70 +256,5 @@ const triggerImportLocal = () => {
 
 .editor-header.editor-light .header-divider {
   background-color: rgba(0, 0, 0, 0.08);
-}
-
-/* Dropdown Menu de Exportação */
-.custom-dropdown-list {
-  padding: 6px !important;
-  min-width: 170px;
-}
-
-.custom-dropdown-list.dropdown-dark {
-  background-color: #1F1F1F !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  color: #F0F0F0 !important;
-}
-
-.custom-dropdown-list.dropdown-light {
-  background-color: #FFFFFF !important;
-  border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  color: #1F1F1F !important;
-}
-
-.dropdown-list-item {
-  cursor: pointer;
-  padding: 8px 12px !important;
-  min-height: 36px !important;
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.dropdown-dark .dropdown-list-item {
-  color: #F0F0F0 !important;
-}
-
-.dropdown-light .dropdown-list-item {
-  color: #1F1F1F !important;
-}
-
-.dropdown-dark .dropdown-list-item:hover {
-  background-color: rgba(26, 186, 156, 0.15) !important;
-  color: #1ABA9C !important;
-}
-
-.dropdown-light .dropdown-list-item:hover {
-  background-color: rgba(26, 186, 156, 0.12) !important;
-  color: #1ABA9C !important;
-}
-
-.dropdown-icon {
-  margin-right: 10px;
-}
-
-.dropdown-dark .dropdown-icon {
-  color: #9AA0A6;
-}
-
-.dropdown-light .dropdown-icon {
-  color: #5E6368;
-}
-
-.dropdown-list-item:hover .dropdown-icon {
-  color: #1ABA9C;
-}
-
-.dropdown-item-title {
-  font-size: 13px !important;
-  font-weight: 500 !important;
-  font-family: inherit !important;
 }
 </style>

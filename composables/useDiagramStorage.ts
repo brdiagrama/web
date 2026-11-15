@@ -5,6 +5,7 @@ const STORAGE_KEYS = {
   LAST_DIAGRAM: 'brdiagrama_last_diagram',
   LAST_POSITIONS: 'brdiagrama_table_positions',
   LAST_TABLE_ORDER: 'brdiagrama_table_order',
+  LAST_DIALECT: 'brdiagrama_sql_dialect',
 };
 
 export function useDiagramStorage() {
@@ -67,6 +68,19 @@ export function useDiagramStorage() {
     }
   };
 
+  const saveDialect = (dialect: string) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.LAST_DIALECT, dialect);
+    }
+  };
+
+  const loadDialect = (): string | null => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(STORAGE_KEYS.LAST_DIALECT);
+    }
+    return null;
+  };
+
   return {
     saveSql,
     loadSql,
@@ -77,5 +91,7 @@ export function useDiagramStorage() {
     saveTableOrder,
     loadTableOrder,
     clearTableOrder,
+    saveDialect,
+    loadDialect,
   };
 }
