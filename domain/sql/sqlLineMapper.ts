@@ -157,7 +157,12 @@ export function mapSqlErrorsToTables(
 
     const tokens = cleanDef.split(/\s+/).filter(Boolean);
     const rawColName = tokens[0] ? tokens[0].replace(/[`"']/g, '') : '';
-    const rawColType = tokens.slice(1).join(' ');
+    const fullTypeStr = tokens.slice(1).join(' ');
+    const constraintRegex = /\b(primary|key|not|null|unique|default|check|references|constraint|collate|auto_increment|autoincrement|identity|generated|masked|encrypted)\b/i;
+    const constraintMatch = fullTypeStr.search(constraintRegex);
+    const rawColType = constraintMatch !== -1
+      ? fullTypeStr.substring(0, constraintMatch).trim()
+      : fullTypeStr.trim();
 
     // Localizar a coluna correspondente no esquema:
     // 1. Por igualdade ou prefixo do nome

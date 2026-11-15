@@ -226,9 +226,17 @@ function findColumnTypeRange(body: string, colName: string): { start: number; en
   let typeEnd = body.length;
 
   const CONSTRAINT_WORDS = new Set([
-    'primary', 'not', 'null', 'unique', 'default', 'check', 'references',
-    'auto_increment', 'collate', 'comment', 'unsigned', 'zerofill'
+    'primary', 'key', 'not', 'null', 'unique', 'default', 'check', 'references',
+    'constraint', 'collate', 'auto_increment', 'autoincrement', 'identity',
+    'generated', 'comment', 'masked', 'encrypted'
   ]);
+
+  // Se a primeira palavra logo após o nome da coluna já for uma constraint, o tipo está vazio
+  const initialRemaining = body.slice(typeStart).trimStart();
+  const initialFirstWord = initialRemaining.split(/[\s,;()]/)[0].toLowerCase();
+  if (CONSTRAINT_WORDS.has(initialFirstWord)) {
+    return { start: typeStart, end: typeStart };
+  }
 
   for (let i = typeStart; i < body.length; i++) {
     const ch = body[i];
@@ -307,7 +315,9 @@ export function replaceColumnTypeInSql(
   const range = findColumnTypeRange(body, colName);
   if (!range) return sql;
 
-  const updatedBody = body.substring(0, range.start) + newType + body.substring(range.end);
+  const isRestoringFromEmpty = range.start === range.end;
+  const replacement = isRestoringFromEmpty && newType ? `${newType} ` : newType;
+  const updatedBody = body.substring(0, range.start) + replacement + body.substring(range.end);
   return `${prefix}${updatedBody}${suffix}`;
 }
 
