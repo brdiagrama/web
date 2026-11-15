@@ -170,6 +170,7 @@
                 :y="0"
                 :is-outside-canvas="!isStampInsideCanvas"
                 :detail-level="detailLevel"
+                :dialect="diagramStore.sqlDialect"
               />
             </svg>
           </div>
@@ -195,6 +196,7 @@
                 :y="0"
                 :is-outside-canvas="!isStampInsideCanvas"
                 :detail-level="detailLevel"
+                :dialect="diagramStore.sqlDialect"
               />
             </svg>
           </div>

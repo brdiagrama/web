@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { Key } from 'lucide-vue-next';
+import type { SqlDialect } from '@/domain/sql/parser';
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     x: number;
     y: number;
@@ -9,14 +11,30 @@ withDefaults(
     height?: number;
     isOutsideCanvas?: boolean;
     detailLevel?: 'full' | 'simplified';
+    dialect?: SqlDialect;
   }>(),
   {
     width: 220,
     height: 99,
     isOutsideCanvas: false,
     detailLevel: 'full',
+    dialect: 'MySQL',
   }
 );
+
+const pkTypeLabel = computed(() => {
+  switch (props.dialect) {
+    case 'PostgreSQL':
+      return 'SERIAL';
+    case 'SQLite':
+      return 'INTEGER';
+    case 'MySQL':
+    case 'MariaDB':
+    case 'TransactSQL':
+    default:
+      return 'INT';
+  }
+});
 </script>
 
 <template>
@@ -43,17 +61,14 @@ withDefaults(
         nova_tabela
       </text>
 
-      <line :x1="0" :y1="35" :x2="width" :y2="35" class="ghost-divider" />
-      <line :x1="0" :y1="67" :x2="width" :y2="67" class="ghost-divider" />
-
       <g transform="translate(15, 43)" class="pk-icon">
         <Key :size="18" stroke-width="2" style="display: block;" />
       </g>
-      <text :x="40" :y="55" class="col-text" font-weight="600">id</text>
-      <text :x="width - 15" :y="55" text-anchor="end" class="col-type pk-type" font-weight="600">INT</text>
+      <text :x="39" :y="55" class="col-text" font-weight="600">id</text>
+      <text :x="width - 18" :y="55" text-anchor="end" class="col-type pk-type" font-weight="600">{{ pkTypeLabel }}</text>
 
-      <text :x="15" :y="87" class="col-text" font-weight="400">nome</text>
-      <text :x="width - 15" :y="87" text-anchor="end" class="col-type" font-weight="400">VARCHAR(100)</text>
+      <text :x="14" :y="87" class="col-text" font-weight="500">nome</text>
+      <text :x="width - 18" :y="87" text-anchor="end" class="col-type" font-weight="400">VARCHAR(100)</text>
     </template>
 
     <template v-else>
@@ -143,15 +158,11 @@ withDefaults(
 .table-title {
   font-size: 14px;
   font-weight: 700;
+  letter-spacing: 0.02em;
   fill: var(--clr-primary);
   font-family: var(--diagram-font, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif);
   user-select: none;
   pointer-events: none;
-}
-
-.ghost-divider {
-  stroke: rgba(26, 186, 156, 0.25);
-  stroke-width: 1;
 }
 
 .col-text {
@@ -165,7 +176,7 @@ withDefaults(
 .col-type {
   font-size: 10.5px;
   fill: var(--diagram-table-text-type, #7f8c8d);
-  font-family: "Fira Code", "JetBrains Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-family: "Fira Code", "JetBrains Mono", monospace;
   font-weight: 400;
   letter-spacing: 0.1px;
   user-select: none;
@@ -183,48 +194,44 @@ withDefaults(
   color: #1abc9c;
 }
 
-.ghost-hint-bg {
-  fill: rgba(0, 0, 0, 0.65);
-  stroke: none;
-  backdrop-filter: blur(4px);
-}
-
-.ghost-hint-text {
-  fill: rgba(255, 255, 255, 0.6);
-  font-family: var(--diagram-font, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif);
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  transition: opacity 0.18s ease;
-}
-
-.ghost-hint-text.is-hidden {
-  opacity: 0;
-}
-
-.ghost-hint-pipe {
-  fill: rgba(255, 255, 255, 0.25);
-  font-weight: 300;
-}
-
 .ghost-skeleton-title {
   fill: var(--clr-primary);
-  opacity: 0.55;
+  opacity: 0.4;
 }
 
 .ghost-skeleton-pk {
-  fill: var(--clr-primary);
-  opacity: 0.65;
+  fill: #1abc9c;
+  opacity: 0.55;
 }
 
 .ghost-skeleton-line {
-  fill: var(--diagram-table-text-type, #7f8c8d);
-  opacity: 0.35;
+  fill: var(--diagram-table-text-type);
+  opacity: 0.25;
 }
 
-.table-ghost-group.is-outside .ghost-skeleton-title,
-.table-ghost-group.is-outside .ghost-skeleton-pk {
-  fill: rgba(140, 140, 140, 0.75);
+.ghost-hint-bg {
+  fill: #1e293b;
+  opacity: 0.92;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.25));
+}
+
+.ghost-hint-text {
+  fill: #f8fafc;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--diagram-font, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif);
+  letter-spacing: 0.01em;
+  pointer-events: none;
+  user-select: none;
+}
+
+.ghost-hint-text.is-hidden {
+  display: none;
+}
+
+.ghost-hint-pipe {
+  fill: #64748b;
+  font-weight: 300;
+  margin: 0 4px;
 }
 </style>
-
