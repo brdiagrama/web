@@ -181,11 +181,14 @@ export function replaceColumnNameInSql(
   let updatedBody = body;
 
   if (!oldColName) {
-    // Restaurando nome a partir do estado vazio
-    // Procura por linha de coluna que começa com espaço e tipo SQL (ex: "\n   INT" ou "\n   VARCHAR(100)")
-    const SQL_DATA_TYPES = 'INT|INTEGER|BIGINT|SMALLINT|TINYINT|VARCHAR|CHAR|TEXT|DECIMAL|NUMERIC|FLOAT|DOUBLE|REAL|DATE|DATETIME|TIMESTAMP|TIME|BOOLEAN|BOOL|BLOB|JSON|UUID|SERIAL';
-    const emptyColDefRegex = new RegExp(`(^|[\\n,;][ \\t]*)(?:[ \\t]+)(${SQL_DATA_TYPES})\\b`, 'i');
-    updatedBody = updatedBody.replace(emptyColDefRegex, `$1${newColName} $2`);
+    // Restaurando nome a partir do estado vazio:
+    // Identifica estruturalmente a linha que começa com o tipo (excluindo constraints de tabela como PRIMARY KEY (...), FOREIGN KEY, etc.)
+    const TABLE_CONSTRAINTS = 'PRIMARY\\s+KEY|FOREIGN\\s+KEY|UNIQUE|CHECK|CONSTRAINT|INDEX|KEY';
+    const emptyColDefRegex = new RegExp(
+      '(^[ \\t]*|[\\n,;][ \\t]*)(?![ \\t]*(?:' + TABLE_CONSTRAINTS + ')\\b)([A-Za-z_][\\w$]*)',
+      'i'
+    );
+    updatedBody = updatedBody.replace(emptyColDefRegex, (_match, p1, p2) => `${p1}${newColName} ${p2}`);
   } else {
     const escapedCol = escapeRegExp(oldColName);
     const colDefRegex = new RegExp(

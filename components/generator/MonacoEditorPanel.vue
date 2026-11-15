@@ -23,6 +23,7 @@
 import { ref, computed, watch, shallowRef, toRaw, onUnmounted } from "vue";
 import { VueMonacoEditor } from "@guolao/vue-monaco-editor";
 import { useGeneratorTheme } from "@/composables/useGeneratorTheme";
+import { useDiagramStore } from "@/stores/diagram";
 import { getTableAtLine, getColumnAtLine } from "@/domain/sql/sqlLineMapper";
 
 const props = defineProps({
@@ -34,6 +35,7 @@ const props = defineProps({
 
 const emit = defineEmits(["update:modelValue", "editor-ready", "table-cursor", "column-cursor"]);
 
+const diagramStore = useDiagramStore();
 const { isEditorDark, initEditorTheme } = useGeneratorTheme();
 initEditorTheme();
 
@@ -150,11 +152,11 @@ const handleMount = (editor, monaco) => {
         [/"[^"]+"/, "identifier.quoted"],
 
         [
-          /\b(create|table|primary|foreign|key|references|not|null|insert|update|delete|select|from|where|join|on|order|by|group|limit|distinct|as|values|set|drop|alter|add|constraint|unique|default|check|index|view)\b/,
+          /\b(create|table|primary|foreign|key|references|not|null|insert|update|delete|select|from|where|join|on|order|by|group|limit|distinct|as|values|set|drop|alter|add|constraint|unique|default|check|index|view|identity|auto_increment|autoincrement|generated|always)\b/,
           "keyword",
         ],
         [
-          /\b(int|integer|varchar|text|date|timestamp|boolean|float|double|decimal|char|serial|bigint|json|uuid|money|time)\b/,
+          /\b(int|integer|varchar|nvarchar|text|date|datetime|datetime2|timestamp|timestamptz|boolean|bit|float|double|decimal|numeric|real|char|serial|bigserial|smallserial|bigint|smallint|tinyint|json|jsonb|uuid|uniqueidentifier|money|time|blob|bytea)\b/,
           "dataType",
         ],
         [/\b(count|sum|avg|min|max|now|coalesce|concat|substring)\b/, "function"],
@@ -196,15 +198,63 @@ const handleMount = (editor, monaco) => {
         range,
       }));
 
+      const dialect = diagramStore.sqlDialect || 'MySQL';
+
+      // Snippet de CREATE TABLE adaptado ao dialeto selecionado
+      let createTableSnippet = "CREATE TABLE ${1:nome_tabela} (\n\tid INT PRIMARY KEY AUTO_INCREMENT,\n\t${2:coluna} VARCHAR(100)\n);";
+      if (dialect === 'PostgreSQL') {
+        createTableSnippet = "CREATE TABLE ${1:nome_tabela} (\n\tid SERIAL PRIMARY KEY,\n\t${2:coluna} VARCHAR(100)\n);";
+      } else if (dialect === 'SQLite') {
+        createTableSnippet = "CREATE TABLE ${1:nome_tabela} (\n\tid INTEGER PRIMARY KEY AUTOINCREMENT,\n\t${2:coluna} VARCHAR(100)\n);";
+      } else if (dialect === 'TransactSQL') {
+        createTableSnippet = "CREATE TABLE ${1:nome_tabela} (\n\tid INT IDENTITY(1,1) PRIMARY KEY,\n\t${2:coluna} VARCHAR(100)\n);";
+      }
+
+      // Keywords e Tipos comuns a todos os bancos (ANSI SQL)
+      const commonKeywords = [
+        "CREATE", "TABLE", "PRIMARY KEY", "FOREIGN KEY", "REFERENCES", "NOT NULL",
+        "INSERT INTO", "VALUES", "SELECT", "FROM", "WHERE", "ORDER BY", "GROUP BY",
+        "LIMIT", "JOIN", "LEFT JOIN", "INNER JOIN", "UPDATE", "DELETE", "DROP TABLE",
+        "ALTER TABLE", "CONSTRAINT", "UNIQUE", "DEFAULT", "CHECK", "INDEX", "VIEW", "AS"
+      ];
+
+      const commonTypes = [
+        "INT", "INTEGER", "VARCHAR", "TEXT", "TIMESTAMP", "DATE", "BOOLEAN",
+        "DECIMAL", "NUMERIC", "FLOAT", "DOUBLE", "REAL", "CHAR", "TIME"
+      ];
+
+      // Keywords e Tipos específicos de cada dialeto
+      const dialectSpecificKeywords = [];
+      const dialectSpecificTypes = [];
+
+      switch (dialect) {
+        case 'PostgreSQL':
+          dialectSpecificKeywords.push("GENERATED ALWAYS AS IDENTITY", "CASCADE");
+          dialectSpecificTypes.push("SERIAL", "BIGSERIAL", "SMALLSERIAL", "BIGINT", "SMALLINT", "JSON", "JSONB", "UUID", "TIMESTAMPTZ", "BYTEA");
+          break;
+        case 'MySQL':
+        case 'MariaDB':
+          dialectSpecificKeywords.push("AUTO_INCREMENT", "UNSIGNED", "ZEROFILL");
+          dialectSpecificTypes.push("TINYINT", "SMALLINT", "MEDIUMINT", "BIGINT", "LONGTEXT", "MEDIUMTEXT", "ENUM", "JSON");
+          break;
+        case 'SQLite':
+          dialectSpecificKeywords.push("AUTOINCREMENT");
+          dialectSpecificTypes.push("BLOB");
+          break;
+        case 'TransactSQL':
+          dialectSpecificKeywords.push("IDENTITY", "IDENTITY(1,1)", "CLUSTERED", "NONCLUSTERED");
+          dialectSpecificTypes.push("NVARCHAR", "NCHAR", "BIT", "DATETIME", "DATETIME2", "MONEY", "SMALLMONEY", "UNIQUEIDENTIFIER", "VARBINARY", "TINYINT", "BIGINT");
+          break;
+      }
+
       const suggestions = [
         ...tableSuggestions,
         {
           label: "CREATE TABLE",
           kind: monaco.languages.CompletionItemKind.Snippet,
-          insertText:
-            "CREATE TABLE ${1:nome_tabela} (\n\tid INT PRIMARY KEY,\n\t${2:coluna} VARCHAR(100)\n);",
+          insertText: createTableSnippet,
           insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-          documentation: "Estrutura completa de tabela",
+          documentation: `Estrutura de tabela para ${dialect}`,
           range,
         },
         {
@@ -215,50 +265,13 @@ const handleMount = (editor, monaco) => {
           documentation: "Snippet de Chave Estrangeira",
           range,
         },
-        ...[
-          "CREATE",
-          "TABLE",
-          "PRIMARY KEY",
-          "FOREIGN KEY",
-          "REFERENCES",
-          "NOT NULL",
-          "INSERT INTO",
-          "VALUES",
-          "SELECT",
-          "FROM",
-          "WHERE",
-          "ORDER BY",
-          "GROUP BY",
-          "LIMIT",
-          "JOIN",
-          "LEFT JOIN",
-          "INNER JOIN",
-          "UPDATE",
-          "DELETE",
-          "DROP TABLE",
-          "ALTER TABLE",
-          "CONSTRAINT",
-          "UNIQUE",
-          "DEFAULT",
-        ].map((k) => ({
+        ...[...commonKeywords, ...dialectSpecificKeywords].map((k) => ({
           label: k,
           kind: monaco.languages.CompletionItemKind.Keyword,
           insertText: k,
           range,
         })),
-        ...[
-          "INT",
-          "VARCHAR",
-          "TEXT",
-          "TIMESTAMP",
-          "DATE",
-          "BOOLEAN",
-          "DECIMAL",
-          "FLOAT",
-          "SERIAL",
-          "JSON",
-          "UUID",
-        ].map((t) => ({
+        ...[...commonTypes, ...dialectSpecificTypes].map((t) => ({
           label: t,
           kind: monaco.languages.CompletionItemKind.TypeParameter,
           insertText: t,

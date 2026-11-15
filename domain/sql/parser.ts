@@ -13,6 +13,19 @@ export function parseSqlSchema(sql: string, dialect: SqlDialect = 'MySQL'): Data
         return { tables, relationships };
     }
 
+    // Validação estrita: PostgreSQL não suporta AUTO_INCREMENT (usa SERIAL ou GENERATED ALWAYS AS IDENTITY)
+    if (dialect === 'PostgreSQL') {
+        const autoIncrementRegex = /\bAUTO_INCREMENT\b/i;
+        const match = autoIncrementRegex.exec(sql);
+        if (match) {
+            const errorLine = sql.substring(0, match.index).split('\n').length || 1;
+            const err: any = new Error('AUTO_INCREMENT não é suportado no PostgreSQL. Utilize SERIAL ou GENERATED ALWAYS AS IDENTITY.');
+            err.line = errorLine;
+            err.location = { start: { line: errorLine, offset: match.index } };
+            throw err;
+        }
+    }
+
     const parser = new Parser();
     const parsed = parser.astify(sql, { database: dialect });
     const astList: any[] = Array.isArray(parsed) ? parsed : [parsed];

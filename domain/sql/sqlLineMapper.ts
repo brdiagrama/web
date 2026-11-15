@@ -183,17 +183,18 @@ export function mapSqlErrorsToTables(
 
     const draftKey = `${matched.name}.${matchedCol.name}`;
 
-    // Determinar se o erro foi no nome da coluna ou na tipagem
+    // Determinar rascunhos de nome e tipagem de forma independente
     if (!cleanDef) {
       draftColumnNames[draftKey] = '';
-    } else if (rawColName !== matchedCol.name) {
-      draftColumnNames[draftKey] = rawColName;
-    } else if (rawColType && rawColType.replace(/\s+/g, '') !== matchedCol.type.replace(/\s+/g, '')) {
-      draftColumnTypes[draftKey] = rawColType;
-    } else if (!rawColType && matchedCol.type) {
-      draftColumnTypes[draftKey] = '';
     } else {
-      draftColumnNames[draftKey] = rawColName;
+      if (rawColName !== matchedCol.name) {
+        draftColumnNames[draftKey] = rawColName;
+      }
+      if (rawColType && rawColType.replace(/\s+/g, '') !== matchedCol.type.replace(/\s+/g, '')) {
+        draftColumnTypes[draftKey] = rawColType;
+      } else if (!rawColType && matchedCol.type) {
+        draftColumnTypes[draftKey] = '';
+      }
     }
   });
 

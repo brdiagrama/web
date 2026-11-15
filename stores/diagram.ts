@@ -392,7 +392,26 @@ export const useDiagramStore = defineStore('diagram', {
       }
       const newTableName = `nova_tabela_${counter}`;
       const prefix = this.sqlCode && this.sqlCode.trim() ? '\n\n' : '';
-      const tableDdl = `${prefix}CREATE TABLE ${newTableName} (\n  id INT PRIMARY KEY AUTO_INCREMENT,\n  nome VARCHAR(100) NOT NULL\n);`;
+
+      let pkColumnDdl: string;
+      switch (this.sqlDialect) {
+        case 'PostgreSQL':
+          pkColumnDdl = 'id SERIAL PRIMARY KEY';
+          break;
+        case 'SQLite':
+          pkColumnDdl = 'id INTEGER PRIMARY KEY AUTOINCREMENT';
+          break;
+        case 'TransactSQL':
+          pkColumnDdl = 'id INT IDENTITY(1,1) PRIMARY KEY';
+          break;
+        case 'MySQL':
+        case 'MariaDB':
+        default:
+          pkColumnDdl = 'id INT PRIMARY KEY AUTO_INCREMENT';
+          break;
+      }
+
+      const tableDdl = `${prefix}CREATE TABLE ${newTableName} (\n  ${pkColumnDdl},\n  nome VARCHAR(100) NOT NULL\n);`;
 
       this.positions[newTableName] = {
         x: Math.round(pos.x),
