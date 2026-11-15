@@ -59,6 +59,8 @@
             :table-height="tableDimensionsMap[table.name]?.height || 35"
             :selected-tables-count="selectedTableNames.size"
             :highlighted-columns="highlightedColumns"
+            :draft-columns="draftColumnNames"
+            :draft-column-types="draftColumnTypes"
             :detail-level="detailLevel"
             @start-drag="startDrag"
             @select-table="(tableName) => diagramStore.selectTable(tableName, false)"
@@ -225,7 +227,7 @@ initCanvasTheme();
 const { 
   tables, relationships, positions, edgeOffsets, 
   selectedTableNames, hoveredColumn, tableOrder,
-  commitStampPlacement, draftTableNames, tableErrors,
+  commitStampPlacement, draftTableNames, draftColumnNames, draftColumnTypes, tableErrors,
   renameTable, renameColumn, changeColumnType
 } = useDiagram();
 
@@ -233,8 +235,8 @@ const handleTableRename = (previousName, newName, originalName) => {
   renameTable(previousName, newName, originalName);
 };
 
-const handleColumnRename = (tableName, oldColName, newColName) => {
-  renameColumn(tableName, oldColName, newColName);
+const handleColumnRename = (tableName, oldColName, newColName, originalColName) => {
+  renameColumn(tableName, oldColName, newColName, originalColName);
 };
 
 const handleColumnTypeChange = (tableName, colName, oldType, newType) => {
@@ -403,14 +405,17 @@ const allTablesList = computed(() => {
     return Object.values(tableMap);
   }
   const ordered = [];
+  const seen = new Set();
   for (const name of order) {
-    if (tableMap[name]) {
+    if (tableMap[name] && !seen.has(name)) {
       ordered.push(tableMap[name]);
+      seen.add(name);
     }
   }
   for (const name in tableMap) {
-    if (!order.includes(name)) {
+    if (!seen.has(name)) {
       ordered.push(tableMap[name]);
+      seen.add(name);
     }
   }
   return ordered;

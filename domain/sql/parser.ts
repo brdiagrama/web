@@ -15,11 +15,30 @@ export function parseSqlSchema(sql: string): DatabaseSchema {
     const parsed = parser.astify(sql, { database: 'MySQL' });
     const astList: any[] = Array.isArray(parsed) ? parsed : [parsed];
 
-    // Extração de tabelas
+    // Extração de tabelas e validação de nomes duplicados
     let tableIndex = 0;
+    const seenTableNames = new Set<string>();
     astList.forEach((ast: any) => {
         if (ast?.type === 'create' && ast?.keyword === 'table') {
             const tableData = extractTable(ast, tableIndex++);
+            const normalizedName = tableData.name.toLowerCase();
+            if (seenTableNames.has(normalizedName)) {
+                const duplicateRegex = new RegExp(
+                    `\\bCREATE\\s+TABLE(?:\\s+IF\\s+NOT\\s+EXISTS)?\\s+[\`"']?${tableData.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\`"']?\\s*\\(`,
+                    'gi'
+                );
+                let match: RegExpExecArray | null = null;
+                let lastMatchIndex = 0;
+                while ((match = duplicateRegex.exec(sql)) !== null) {
+                    lastMatchIndex = match.index;
+                }
+                const errorLine = sql.substring(0, lastMatchIndex).split('\n').length || 1;
+                const err: any = new Error(`Tabela duplicada: "${tableData.name}" já existe no esquema.`);
+                err.line = errorLine;
+                err.location = { start: { line: errorLine, offset: lastMatchIndex } };
+                throw err;
+            }
+            seenTableNames.add(normalizedName);
             tables[tableData.name] = tableData;
         }
     });

@@ -23,6 +23,7 @@
 import { ref, computed, watch, shallowRef, toRaw, onUnmounted } from "vue";
 import { VueMonacoEditor } from "@guolao/vue-monaco-editor";
 import { useGeneratorTheme } from "@/composables/useGeneratorTheme";
+import { getTableAtLine } from "@/domain/sql/sqlLineMapper";
 
 const props = defineProps({
   modelValue: { type: String, default: "" },
@@ -30,7 +31,7 @@ const props = defineProps({
   dbTables: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(["update:modelValue", "editor-ready"]);
+const emit = defineEmits(["update:modelValue", "editor-ready", "table-cursor"]);
 
 const { isEditorDark, initEditorTheme } = useGeneratorTheme();
 initEditorTheme();
@@ -362,6 +363,18 @@ const handleMount = (editor, monaco) => {
     const monacoInstance = toRaw(monacoRef.value);
     if (monacoInstance) {
       monacoInstance.editor.setTheme(dark ? "BrDiagramaDarkModern" : "BrDiagramaLightModern");
+    }
+  });
+
+  // Sincroniza a posição do cursor no SQL com a tabela ativa SOMENTE quando o editor estiver focado
+  editor.onDidChangeCursorPosition((e) => {
+    if (!e || !e.position) return;
+    if (!editor.hasTextFocus()) return;
+    const lineNumber = e.position.lineNumber;
+    const currentCode = localCode.value || props.modelValue || "";
+    const tableName = getTableAtLine(currentCode, lineNumber);
+    if (tableName) {
+      emit("table-cursor", tableName);
     }
   });
 

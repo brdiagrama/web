@@ -25,7 +25,7 @@ useHead({
 
 const { 
   sqlCode, tables, tableOrder, errors: domainErrors, warnings: domainWarnings, parseSql,
-  isStampActive, cancelStampMode, toggleStampMode 
+  isStampActive, cancelStampMode, toggleStampMode, selectTable 
 } = useDiagram();
 const { isEditorDark, initEditorTheme, isModelingDark, initModelingTheme } = useGeneratorTheme();
 initEditorTheme();
@@ -202,6 +202,12 @@ const handleFocusTableFromPanel = (tableName) => {
   workspaceRef.value?.focusTable(tableName);
 };
 
+const handleTableCursor = (tableName) => {
+  if (tableName && tables.value[tableName]) {
+    selectTable(tableName, false);
+  }
+};
+
 const toggleEditor = () => {
   if (isMobile.value) {
     if (activeTab.value === 'editor') {
@@ -312,6 +318,7 @@ const exportDiagramSVG = () => {
             :markers="[...domainErrors, ...domainWarnings]"
             :db-tables="availableTableNames"
             @update:model-value="parseSql"
+            @table-cursor="handleTableCursor"
             aria-label="Editor de código SQL"
           />
         </aside>

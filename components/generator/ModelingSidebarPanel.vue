@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from "vue";
+import { ref, computed, watch } from "vue";
 import { 
   Database, Plus, Search, ChevronRight, 
   Key, Link, Sun, Moon, TableProperties 
 } from "lucide-vue-next";
 import IconButton from "@/components/shared/IconButton.vue";
-import type { Table } from "@/domain/models/databaseSchema";
+import type { Table, Column } from "@/domain/models/databaseSchema";
 import { useGeneratorTheme } from "@/composables/useGeneratorTheme";
 import { useDiagram } from "@/composables/useDiagram";
+import { sanitizeInlineInput, restoreCursorPosition } from "@/utils/inlineInputHelper";
 
 const props = defineProps<{
   tables: Record<string, Table>;
@@ -26,12 +27,15 @@ const {
   toggleStampMode, 
   selectedTableNames, 
   selectTable, 
+  bringTableToFront,
   hoveredColumn,
   setHoveredColumn,
   renameTable, 
   renameColumn, 
   changeColumnType, 
   draftTableNames, 
+  draftColumnNames,
+  draftColumnTypes,
   tableErrors 
 } = useDiagram();
 
@@ -39,10 +43,31 @@ const getCardErrorMessage = (tableName: string) => {
   return tableErrors.value?.[tableName] || null;
 };
 
+const isTableNameInError = (table: Table) => {
+  return !!(
+    getCardErrorMessage(table.name) &&
+    draftTableNames.value &&
+    table.name in draftTableNames.value &&
+    draftTableNames.value[table.name] !== table.name
+  );
+};
+
 const localTableNames = ref<Record<string, string>>({});
 const activeInputKey = ref<string | null>(null);
+const frozenTableOrderIds = ref<string[] | null>(null);
+const isRenamingTable = ref(false);
 
 const getTableKey = (table: Table) => table.id || table.name;
+
+const handleTableNameFocus = (table: Table) => {
+  const key = getTableKey(table);
+  activeInputKey.value = key;
+  isRenamingTable.value = true;
+  if (!frozenTableOrderIds.value) {
+    frozenTableOrderIds.value = tableList.value.map((t) => getTableKey(t));
+  }
+  bringTableToFront(table.name);
+};
 
 watch(
   () => props.tables,
@@ -74,16 +99,14 @@ const handleTableNameInput = (table: Table, event: Event) => {
   const target = event.target as HTMLInputElement;
   const key = getTableKey(table);
   const previousSqlName = getTableNameValue(table);
-  const cleanValue = target.value.replace(/\s+/g, '');
-
-  if (target.value !== cleanValue) {
-    const cursor = Math.max(0, (target.selectionStart || 1) - 1);
-    target.value = cleanValue;
-    target.setSelectionRange(cursor, cursor);
-  }
+  const cleanValue = sanitizeInlineInput(event);
 
   const newSqlName = cleanValue;
 
+  isRenamingTable.value = true;
+  if (!frozenTableOrderIds.value) {
+    frozenTableOrderIds.value = tableList.value.map((t) => getTableKey(t));
+  }
   localTableNames.value[key] = newSqlName;
   activeInputKey.value = key;
 
@@ -95,18 +118,21 @@ const handleTableNameInput = (table: Table, event: Event) => {
     }
 
     renameTable(previousSqlName, newSqlName, table.name);
-
-    const cursorPosition = target.selectionStart;
-    nextTick(() => {
-      if (document.activeElement === target && cursorPosition !== null) {
-        target.setSelectionRange(cursorPosition, cursorPosition);
-      }
-    });
+    restoreCursorPosition(target, target.selectionStart);
   }
 };
 
-const handleTableNameBlur = () => {
+const handleTableNameBlur = (table: Table) => {
+  const key = getTableKey(table);
+  const currentVal = localTableNames.value[key];
+  if (currentVal !== undefined && !currentVal.trim()) {
+    renameTable('', table.name, table.name);
+  }
   activeInputKey.value = null;
+  frozenTableOrderIds.value = null;
+  setTimeout(() => {
+    isRenamingTable.value = false;
+  }, 100);
 };
 
 const activeColKey = ref<string | null>(null);
@@ -119,7 +145,16 @@ const getColNameValue = (table: Table, col: any, colIndex: number) => {
   if (activeColKey.value === key && localColValues.value[key]) {
     return localColValues.value[key].name;
   }
+  const draftKey = `${table.name}.${col.name}`;
+  if (draftColumnNames.value && draftKey in draftColumnNames.value) {
+    return draftColumnNames.value[draftKey];
+  }
   return col.name;
+};
+
+const isColInError = (table: Table, col: any) => {
+  const draftKey = `${table.name}.${col.name}`;
+  return !!(getCardErrorMessage(table.name) && draftColumnNames.value && draftKey in draftColumnNames.value);
 };
 
 const getColTypeValue = (table: Table, col: any, colIndex: number) => {
@@ -127,7 +162,16 @@ const getColTypeValue = (table: Table, col: any, colIndex: number) => {
   if (activeColKey.value === key && localColValues.value[key]) {
     return localColValues.value[key].type;
   }
+  const draftKey = `${table.name}.${col.name}`;
+  if (draftColumnTypes.value && draftKey in draftColumnTypes.value) {
+    return draftColumnTypes.value[draftKey];
+  }
   return col.type;
+};
+
+const isColTypeInError = (table: Table, col: any) => {
+  const draftKey = `${table.name}.${col.name}`;
+  return !!(getCardErrorMessage(table.name) && draftColumnTypes.value && draftKey in draftColumnTypes.value);
 };
 
 const handleColumnNameInput = (table: Table, col: any, colIndex: number, event: Event) => {
@@ -135,13 +179,7 @@ const handleColumnNameInput = (table: Table, col: any, colIndex: number, event: 
   const key = getColKey(table, colIndex);
   const previousColName = getColNameValue(table, col, colIndex);
   const currentColType = getColTypeValue(table, col, colIndex);
-  const cleanValue = target.value.replace(/\s+/g, '');
-
-  if (target.value !== cleanValue) {
-    const cursor = Math.max(0, (target.selectionStart || 1) - 1);
-    target.value = cleanValue;
-    target.setSelectionRange(cursor, cursor);
-  }
+  const cleanValue = sanitizeInlineInput(event);
 
   const newColName = cleanValue;
   activeColKey.value = key;
@@ -152,13 +190,8 @@ const handleColumnNameInput = (table: Table, col: any, colIndex: number, event: 
 
   if (previousColName !== newColName) {
     const effectiveTableName = getTableNameValue(table) || table.name;
-    renameColumn(effectiveTableName, previousColName, newColName);
-    const cursorPosition = target.selectionStart;
-    nextTick(() => {
-      if (document.activeElement === target && cursorPosition !== null) {
-        target.setSelectionRange(cursorPosition, cursorPosition);
-      }
-    });
+    renameColumn(effectiveTableName, previousColName, newColName, col.name);
+    restoreCursorPosition(target, target.selectionStart);
   }
 };
 
@@ -167,7 +200,7 @@ const handleColumnTypeInput = (table: Table, col: any, colIndex: number, event: 
   const key = getColKey(table, colIndex);
   const currentColName = getColNameValue(table, col, colIndex);
   const previousColType = getColTypeValue(table, col, colIndex);
-  const newType = target.value;
+  const newType = sanitizeInlineInput(event, { allowSpaces: true });
 
   activeColKey.value = key;
   localColValues.value[key] = {
@@ -178,19 +211,39 @@ const handleColumnTypeInput = (table: Table, col: any, colIndex: number, event: 
   if (previousColType !== newType) {
     const effectiveTableName = getTableNameValue(table) || table.name;
     changeColumnType(effectiveTableName, currentColName, previousColType, newType);
-    const cursorPosition = target.selectionStart;
-    nextTick(() => {
-      if (document.activeElement === target && cursorPosition !== null) {
-        target.setSelectionRange(cursorPosition, cursorPosition);
-      }
-    });
+    restoreCursorPosition(target, target.selectionStart);
   }
 };
 
-const handleColumnBlur = () => {
+const handleColumnBlur = (table: Table, col: Column, colIndex: number) => {
+  const key = getColKey(table, colIndex);
+  const currentVal = localColValues.value[key];
+  if (currentVal) {
+    const effectiveTableName = getTableNameValue(table) || table.name;
+    if (!currentVal.name.trim()) {
+      renameColumn(effectiveTableName, '', col.name, col.name);
+    }
+    if (!currentVal.type.trim()) {
+      changeColumnType(effectiveTableName, col.name, '', col.type);
+    }
+  }
+
   activeColKey.value = null;
   localColValues.value = {};
   setHoveredColumn(null);
+};
+
+const handleColumnFocus = (table: Table, col: Column, colIndex: number) => {
+  activeColKey.value = getColKey(table, colIndex);
+  bringTableToFront(table.name);
+  setHoveredColumn({
+    tableName: table.name,
+    columnName: col.name,
+    isPk: !!col.isPk,
+    isFk: !!col.isFk,
+    refTable: col.refTable,
+    isHovering: true,
+  });
 };
 
 const searchQuery = ref("");
@@ -207,21 +260,39 @@ const naturalCompare = (a: string, b: string) => {
   return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
 };
 
-const tableList = computed(() => {
-  const allNames = Object.keys(props.tables).sort(naturalCompare);
+const tableList = computed<Table[]>(() => {
+  const allTables = Object.values(props.tables || {}).filter((t): t is Table => !!t);
+  let orderedTables: Table[];
+
+  if (frozenTableOrderIds.value && frozenTableOrderIds.value.length > 0) {
+    const mapByKey = new Map<string, Table>();
+    for (const t of allTables) {
+      mapByKey.set(getTableKey(t), t);
+    }
+    orderedTables = frozenTableOrderIds.value
+      .map((id) => mapByKey.get(id))
+      .filter((t): t is Table => !!t);
+
+    const existingKeys = new Set(orderedTables.map((t) => getTableKey(t)));
+    for (const t of allTables) {
+      if (!existingKeys.has(getTableKey(t))) {
+        orderedTables.push(t);
+      }
+    }
+  } else {
+    orderedTables = [...allTables].sort((a, b) => naturalCompare(a.name, b.name));
+  }
 
   const query = (searchQuery.value || "").trim().toLowerCase();
   if (!query) {
-    return allNames.map(name => props.tables[name]);
+    return orderedTables;
   }
 
-  return allNames
-    .map(name => props.tables[name])
-    .filter(table => {
-      const matchTableName = table.name.toLowerCase().includes(query);
-      const matchColumnName = table.columns.some(col => col.name.toLowerCase().includes(query));
-      return matchTableName || matchColumnName;
-    });
+  return orderedTables.filter((table) => {
+    const matchTableName = table.name.toLowerCase().includes(query);
+    const matchColumnName = table.columns.some((col) => col.name.toLowerCase().includes(query));
+    return matchTableName || matchColumnName;
+  });
 });
 
 const isInternalClick = ref(false);
@@ -244,17 +315,33 @@ const isTableExpanded = (tableName: string) => expandedTables.value.has(tableNam
 const isBatchExpanding = ref(false);
 
 const scrollToCard = (tableName: string) => {
-  const cardEl = scrollContainerRef.value?.querySelector(
-    `[data-table-name="${CSS.escape(tableName)}"]`
-  );
-  if (cardEl) {
+  const performScroll = () => {
+    const cardEl = scrollContainerRef.value?.querySelector(
+      `[data-table-name="${CSS.escape(tableName)}"]`
+    ) as HTMLElement | null;
+    const container = scrollContainerRef.value;
+    if (!cardEl || !container) return;
+
+    const names = tableList.value.map((t) => t.name);
+    const idx = names.indexOf(tableName);
+    const isNearEnd = idx !== -1 && idx >= names.length - 2;
+
+    if (isNearEnd) {
+      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+      return;
+    }
+
     cardEl.scrollIntoView({ behavior: "smooth", block: "center" });
-  }
+  };
+
+  performScroll();
+  setTimeout(performScroll, 180);
+  setTimeout(performScroll, 340);
 };
 
 watch(
-  () => Array.from(selectedTableNames.value),
-  async (selectedList, prevList = []) => {
+  [() => Array.from(selectedTableNames.value), () => Object.keys(props.tables || {}).length],
+  async ([selectedList], [prevList = []]) => {
     // Sincroniza acordeão com o estado de seleção:
     // Tabelas que foram desmarcadas fecham o acordeão
     const currentSet = new Set(selectedList);
@@ -265,6 +352,16 @@ watch(
     }
 
     if (selectedList.length === 0) return;
+
+    // Se o usuário estiver no meio da renomeação de uma tabela, mantém os acordeões abertos e não dispara auto-scroll
+    if (isRenamingTable.value || activeInputKey.value !== null) {
+      for (const name of selectedList) {
+        if (props.tables[name]) {
+          expandedTables.value.add(name);
+        }
+      }
+      return;
+    }
 
     // Se mais de 2 tabelas forem selecionadas simultaneamente,
     // desativa a animação temporariamente para expansão instantânea e sem lag
@@ -280,15 +377,18 @@ watch(
       }
     }
 
-    // Rola até a tabela selecionada pelo canvas se estiver fora da vizinhança (mais de 3 de distância)
+    // Rola até a tabela selecionada pelo canvas se estiver fora da vizinhança (mais de 3 de distância),
+    // ou sempre que for uma das últimas tabelas da lista
     const latestSelected = selectedList[selectedList.length - 1];
     if (props.tables[latestSelected]) {
+      const names = tableList.value.map(t => t.name);
+      const newIdx = names.indexOf(latestSelected);
+      const isNearEnd = newIdx !== -1 && newIdx >= names.length - 2;
+
       if (!isInternalClick.value) {
         let shouldScroll = true;
-        if (lastCenteredTableName.value) {
-          const names = tableList.value.map(t => t.name);
+        if (lastCenteredTableName.value && !isNearEnd) {
           const prevIdx = names.indexOf(lastCenteredTableName.value);
-          const newIdx = names.indexOf(latestSelected);
           if (prevIdx !== -1 && newIdx !== -1 && Math.abs(newIdx - prevIdx) <= 3) {
             shouldScroll = false;
           }
@@ -301,6 +401,10 @@ watch(
         }
       } else {
         isInternalClick.value = false;
+        if (isNearEnd) {
+          await nextTick();
+          scrollToCard(latestSelected);
+        }
       }
     }
 
@@ -462,11 +566,13 @@ watch(
                   :value="getTableNameValue(table)"
                   type="text"
                   class="table-name-input"
+                  :class="{ 'is-table-error': isTableNameInError(table) }"
                   @click.stop
                   @pointerdown.stop
                   @mousedown.stop
+                  @focus="handleTableNameFocus(table)"
                   @input="handleTableNameInput(table, $event)"
-                  @blur="handleTableNameBlur"
+                  @blur="handleTableNameBlur(table)"
                   @keydown.space.prevent.stop
                   @keydown.enter.stop="(e) => (e.target as HTMLElement)?.blur()"
                   aria-label="Nome da tabela"
@@ -488,19 +594,19 @@ watch(
                 <div class="columns-table-view">
                   <div 
                     v-for="(col, colIndex) in table.columns" 
-                    :key="`${table.name}_col_${colIndex}`"
+                    :key="`${table.id || table.name}_col_${colIndex}`"
                     class="column-row"
                     :class="{
-                      'is-pk-row': (col.isPk || col.isPrimaryKey) && !(col.isFk || col.isForeignKey),
-                      'is-fk-row': !(col.isPk || col.isPrimaryKey) && (col.isFk || col.isForeignKey),
-                      'is-pk-fk-row': (col.isPk || col.isPrimaryKey) && (col.isFk || col.isForeignKey),
+                      'is-pk-row': col.isPk && !col.isFk,
+                      'is-fk-row': !col.isPk && col.isFk,
+                      'is-pk-fk-row': col.isPk && col.isFk,
                       'is-active-hover': (hoveredColumn?.tableName === table.name && hoveredColumn?.columnName === col.name) || activeColKey === getColKey(table, colIndex)
                     }"
-                    @mouseenter="setHoveredColumn({ tableName: table.name, columnName: col.name, isPk: !!(col.isPk || col.isPrimaryKey), isFk: !!(col.isFk || col.isForeignKey), refTable: col.refTable, isHovering: true })"
+                    @mouseenter="setHoveredColumn({ tableName: table.name, columnName: col.name, isPk: !!col.isPk, isFk: !!col.isFk, refTable: col.refTable, isHovering: true })"
                     @mouseleave="activeColKey !== getColKey(table, colIndex) ? setHoveredColumn(null) : null"
                   >
                     <div class="column-name-cell">
-                      <template v-if="(col.isPk || col.isPrimaryKey) && (col.isFk || col.isForeignKey)">
+                      <template v-if="col.isPk && col.isFk">
                         <span class="badge-pk" title="Primary Key">
                           <Key :size="13" stroke-width="2" />
                         </span>
@@ -508,17 +614,17 @@ watch(
                           <Link :size="12" stroke-width="2" />
                         </span>
                       </template>
-                      <span v-else-if="col.isPk || col.isPrimaryKey" class="badge-pk" title="Primary Key">
+                      <span v-else-if="col.isPk" class="badge-pk" title="Primary Key">
                         <Key :size="13" stroke-width="2" />
                       </span>
-                      <span v-else-if="col.isFk || col.isForeignKey" class="badge-fk" title="Foreign Key">
+                      <span v-else-if="col.isFk" class="badge-fk" title="Foreign Key">
                         <Link :size="12" stroke-width="2" />
                       </span>
                       <span
                         class="column-name-input-sizer"
                         :class="{
-                          'is-pk': (col.isPk || col.isPrimaryKey) || (col.isFk || col.isForeignKey),
-                          'is-fk': !(col.isPk || col.isPrimaryKey) && (col.isFk || col.isForeignKey)
+                          'is-pk': col.isPk || col.isFk,
+                          'is-fk': !col.isPk && col.isFk
                         }"
                         :data-value="getColNameValue(table, col, colIndex)"
                       >
@@ -526,12 +632,13 @@ watch(
                           :value="getColNameValue(table, col, colIndex)"
                           type="text"
                           class="column-name-input"
+                          :class="{ 'is-col-error': isColInError(table, col) }"
                           @click.stop
                           @pointerdown.stop
                           @mousedown.stop
-                          @focus="activeColKey = getColKey(table, colIndex); setHoveredColumn({ tableName: table.name, columnName: col.name, isPk: !!(col.isPk || col.isPrimaryKey), isFk: !!(col.isFk || col.isForeignKey), refTable: col.refTable, isHovering: true })"
+                          @focus="handleColumnFocus(table, col, colIndex)"
                           @input="handleColumnNameInput(table, col, colIndex, $event)"
-                          @blur="handleColumnBlur"
+                          @blur="handleColumnBlur(table, col, colIndex)"
                           @keydown.space.prevent.stop
                           @keydown.enter.stop="(e) => (e.target as HTMLElement)?.blur()"
                           aria-label="Nome da coluna"
@@ -543,8 +650,8 @@ watch(
                       <span
                         class="column-type-input-sizer"
                         :class="{
-                          'is-pk': (col.isPk || col.isPrimaryKey) || (col.isFk || col.isForeignKey),
-                          'is-fk': !(col.isPk || col.isPrimaryKey) && (col.isFk || col.isForeignKey)
+                          'is-pk': col.isPk || col.isFk,
+                          'is-fk': !col.isPk && col.isFk
                         }"
                         :data-value="getColTypeValue(table, col, colIndex)"
                       >
@@ -552,12 +659,13 @@ watch(
                           :value="getColTypeValue(table, col, colIndex)"
                           type="text"
                           class="column-type-input"
+                          :class="{ 'is-col-error': isColTypeInError(table, col) }"
                           @click.stop
                           @pointerdown.stop
                           @mousedown.stop
-                          @focus="activeColKey = getColKey(table, colIndex); setHoveredColumn({ tableName: table.name, columnName: col.name, isPk: !!(col.isPk || col.isPrimaryKey), isFk: !!(col.isFk || col.isForeignKey), refTable: col.refTable, isHovering: true })"
+                          @focus="handleColumnFocus(table, col, colIndex)"
                           @input="handleColumnTypeInput(table, col, colIndex, $event)"
-                          @blur="handleColumnBlur"
+                          @blur="handleColumnBlur(table, col, colIndex)"
                           @keydown.enter.stop="(e) => (e.target as HTMLElement)?.blur()"
                           aria-label="Tipo da coluna"
                         />
@@ -565,12 +673,12 @@ watch(
                     </div>
 
                     <div 
-                      v-if="(col.isNotNull && !col.isPrimaryKey) || (col.isUnique && !col.isPrimaryKey) || col.isAutoIncrement" 
+                      v-if="(!col.nullable && !col.isPk) || (col.unique && !col.isPk) || col.autoIncrement" 
                       class="column-flags-cell"
                     >
-                      <span v-if="col.isNotNull && !col.isPrimaryKey" class="flag-tag">NN</span>
-                      <span v-if="col.isUnique && !col.isPrimaryKey" class="flag-tag">UQ</span>
-                      <span v-if="col.isAutoIncrement" class="flag-tag">AI</span>
+                      <span v-if="!col.nullable && !col.isPk" class="flag-tag">NN</span>
+                      <span v-if="col.unique && !col.isPk" class="flag-tag">UQ</span>
+                      <span v-if="col.autoIncrement" class="flag-tag">AI</span>
                     </div>
                   </div>
                 </div>
@@ -1019,7 +1127,12 @@ watch(
   box-shadow: inset 0 0 0 1.5px #ef4444;
 }
 
-.table-accordion-card.is-error .table-name-input {
+.table-accordion-card.is-error .table-entity-icon {
+  color: #ef4444 !important;
+  opacity: 1 !important;
+}
+
+.table-accordion-card .table-name-input.is-table-error {
   color: #ef4444;
 }
 
@@ -1308,6 +1421,11 @@ watch(
   text-align: left;
   background-color: transparent;
   cursor: text;
+}
+
+.column-name-input.is-col-error,
+.column-type-input.is-col-error {
+  color: #f87171 !important;
 }
 
 .column-type-input-sizer::after,

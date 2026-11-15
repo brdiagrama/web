@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, watch, nextTick } from "vue";
+import { ref, watch, computed } from "vue";
 import { Key, Link } from "lucide-vue-next";
 import type { Table, Column } from "@/domain/models/databaseSchema";
+import { sanitizeInlineInput, restoreCursorPosition } from "@/utils/inlineInputHelper";
 
 const props = withDefaults(
   defineProps<{
@@ -18,6 +19,8 @@ const props = withDefaults(
     tableHeight: number;
     selectedTablesCount: number;
     highlightedColumns: Set<string>;
+    draftColumns?: Record<string, string>;
+    draftColumnTypes?: Record<string, string>;
     detailLevel?: 'full' | 'simplified';
   }>(),
   {
@@ -29,7 +32,7 @@ const emit = defineEmits<{
   (e: 'startDrag', event: PointerEvent | MouseEvent, tableName: string): void;
   (e: 'selectTable', tableName: string): void;
   (e: 'rename', previousName: string, newName: string, originalName: string): void;
-  (e: 'renameColumn', tableName: string, oldColName: string, newColName: string): void;
+  (e: 'renameColumn', tableName: string, oldColName: string, newColName: string, originalColName?: string): void;
   (e: 'changeColumnType', tableName: string, colName: string, oldType: string, newType: string): void;
   (e: 'columnHover', data: {
     tableName?: string;
@@ -44,6 +47,10 @@ const emit = defineEmits<{
 const isInheritanceColumn = (col: Column) => {
   return !!(props.table?.isInheritance && col.isPk && col.isFk);
 };
+
+const isTableTitleInError = computed(() => {
+  return !!(props.errorMessage && props.displayName !== undefined && props.displayName !== props.table.name);
+});
 
 const isColumnHovered = (columnName: string) => {
   return props.highlightedColumns.has(`${props.table.name}.${columnName}`);
@@ -75,25 +82,14 @@ watch(
 const handleTitleInput = (event: Event) => {
   const target = event.target as HTMLInputElement;
   const previousSqlName = localInput.value;
-  const cleanValue = target.value.replace(/\s+/g, '');
-  
-  if (target.value !== cleanValue) {
-    const cursor = Math.max(0, (target.selectionStart || 1) - 1);
-    target.value = cleanValue;
-    target.setSelectionRange(cursor, cursor);
-  }
+  const cleanValue = sanitizeInlineInput(event);
 
   const newSqlName = cleanValue;
   localInput.value = newSqlName;
 
   if (previousSqlName !== newSqlName) {
     emit('rename', previousSqlName, newSqlName, props.table.name);
-    const cursor = target.selectionStart;
-    nextTick(() => {
-      if (document.activeElement === target && cursor !== null) {
-        target.setSelectionRange(cursor, cursor);
-      }
-    });
+    restoreCursorPosition(target, target.selectionStart);
   }
 };
 
@@ -105,14 +101,32 @@ const getColNameValue = (col: Column, colIndex: number) => {
   if (editingColIndex.value === colIndex && editingColValues.value[colIndex]) {
     return editingColValues.value[colIndex].name;
   }
+  const draftKey = `${props.table.name}.${col.name}`;
+  if (props.draftColumns && draftKey in props.draftColumns) {
+    return props.draftColumns[draftKey];
+  }
   return col.name;
+};
+
+const isColInError = (col: Column) => {
+  const draftKey = `${props.table.name}.${col.name}`;
+  return !!(props.errorMessage && props.draftColumns && draftKey in props.draftColumns);
 };
 
 const getColTypeValue = (col: Column, colIndex: number) => {
   if (editingColIndex.value === colIndex && editingColValues.value[colIndex]) {
     return editingColValues.value[colIndex].type;
   }
+  const draftKey = `${props.table.name}.${col.name}`;
+  if (props.draftColumnTypes && draftKey in props.draftColumnTypes) {
+    return props.draftColumnTypes[draftKey];
+  }
   return col.type;
+};
+
+const isColTypeInError = (col: Column) => {
+  const draftKey = `${props.table.name}.${col.name}`;
+  return !!(props.errorMessage && props.draftColumnTypes && draftKey in props.draftColumnTypes);
 };
 
 const handleTitleFocus = () => {
@@ -121,6 +135,9 @@ const handleTitleFocus = () => {
 };
 
 const handleTitleBlur = () => {
+  if (!localInput.value.trim()) {
+    emit('rename', '', props.table.name, props.table.name);
+  }
   isEditing.value = false;
   localInput.value = props.displayName !== undefined ? props.displayName : props.table.name;
 };
@@ -128,13 +145,7 @@ const handleTitleBlur = () => {
 const handleColumnNameInput = (col: Column, colIndex: number, event: Event) => {
   const target = event.target as HTMLInputElement;
   const previousColName = getColNameValue(col, colIndex);
-  const cleanValue = target.value.replace(/\s+/g, '');
-
-  if (target.value !== cleanValue) {
-    const cursor = Math.max(0, (target.selectionStart || 1) - 1);
-    target.value = cleanValue;
-    target.setSelectionRange(cursor, cursor);
-  }
+  const cleanValue = sanitizeInlineInput(event);
 
   const newColName = cleanValue;
   editingColIndex.value = colIndex;
@@ -144,13 +155,8 @@ const handleColumnNameInput = (col: Column, colIndex: number, event: Event) => {
   };
 
   if (previousColName !== newColName) {
-    emit('renameColumn', localInput.value || props.table.name, previousColName, newColName);
-    const cursorPosition = target.selectionStart;
-    nextTick(() => {
-      if (document.activeElement === target && cursorPosition !== null) {
-        target.setSelectionRange(cursorPosition, cursorPosition);
-      }
-    });
+    emit('renameColumn', localInput.value || props.table.name, previousColName, newColName, col.name);
+    restoreCursorPosition(target, target.selectionStart);
   }
 };
 
@@ -158,7 +164,7 @@ const handleColumnTypeInput = (col: Column, colIndex: number, event: Event) => {
   const target = event.target as HTMLInputElement;
   const previousType = getColTypeValue(col, colIndex);
   const currentColName = getColNameValue(col, colIndex);
-  const newType = target.value;
+  const newType = sanitizeInlineInput(event, { allowSpaces: true });
 
   editingColIndex.value = colIndex;
   editingColValues.value[colIndex] = {
@@ -168,16 +174,21 @@ const handleColumnTypeInput = (col: Column, colIndex: number, event: Event) => {
 
   if (previousType !== newType) {
     emit('changeColumnType', localInput.value || props.table.name, currentColName, previousType, newType);
-    const cursorPosition = target.selectionStart;
-    nextTick(() => {
-      if (document.activeElement === target && cursorPosition !== null) {
-        target.setSelectionRange(cursorPosition, cursorPosition);
-      }
-    });
+    restoreCursorPosition(target, target.selectionStart);
   }
 };
 
-const handleColumnBlur = () => {
+const handleColumnBlur = (col: Column, colIndex: number) => {
+  const currentVal = editingColValues.value[colIndex];
+  if (currentVal) {
+    if (!currentVal.name.trim()) {
+      emit('renameColumn', localInput.value || props.table.name, '', col.name, col.name);
+    }
+    if (!currentVal.type.trim()) {
+      emit('changeColumnType', localInput.value || props.table.name, col.name, '', col.type);
+    }
+  }
+
   editingColIndex.value = null;
   editingColValues.value = {};
   emit('columnHover', { isHovering: false });
@@ -185,117 +196,56 @@ const handleColumnBlur = () => {
 </script>
 
 <template>
-  <g
-    :transform="`translate(${x}, ${y})`"
-    class="table-group"
-    :class="{ 
-      selected: isSelected, 
-      'is-error': !!errorMessage,
-      'is-simplified': detailLevel === 'simplified' 
-    }"
-    :style="{ cursor: isPanMode ? 'grab' : 'move' }"
-    @pointerdown="handleDragStart"
-  >
+  <g :transform="`translate(${x}, ${y})`" class="table-group" :class="{
+    selected: isSelected,
+    'is-error': !!errorMessage,
+    'is-simplified': detailLevel === 'simplified'
+  }" :style="{ cursor: isPanMode ? 'grab' : 'move' }" @pointerdown="handleDragStart">
     <title v-if="errorMessage">{{ errorMessage }}</title>
-    <rect
-      :width="tableWidth"
-      :height="tableHeight"
-      class="table-bg"
-      :class="{ selected: isSelected }"
-      rx="6"
-    />
+    <rect :width="tableWidth" :height="tableHeight" class="table-bg" :class="{ selected: isSelected }" rx="6" />
 
     <path
       :d="`M0 6 Q0 0 6 0 L${tableWidth - 6} 0 Q${tableWidth} 0 ${tableWidth} 6 L${tableWidth} ${headerHeight} L0 ${headerHeight} Z`"
-      class="table-header-rect"
-    />
-    <foreignObject
-      v-if="detailLevel === 'full'"
-      :x="11"
-      :y="3.5"
-      :width="tableWidth - 22"
-      :height="headerHeight - 8"
-      class="table-title-foreign"
-    >
+      class="table-header-rect" />
+    <foreignObject v-if="detailLevel === 'full'" :x="11" :y="3.5" :width="tableWidth - 22" :height="headerHeight - 8"
+      class="table-title-foreign">
       <div class="table-title-wrapper" xmlns="http://www.w3.org/1999/xhtml">
         <span class="table-title-input-sizer" :data-value="localInput">
-          <input
-            :value="localInput"
-            type="text"
-            class="table-title-input"
-            :class="{ 'is-title-error': !!errorMessage }"
-            @click.stop
-            @pointerdown.stop
-            @mousedown.stop
-            @focus="handleTitleFocus"
-            @blur="handleTitleBlur"
-            @input="handleTitleInput"
-            @keydown.space.prevent.stop
-            @keydown.enter.stop="(e) => (e.target as HTMLElement)?.blur()"
-            aria-label="Nome da tabela no diagrama"
-          />
+          <input :value="localInput" type="text" class="table-title-input"
+            :class="{ 'is-title-error': isTableTitleInError }" @click.stop @pointerdown.stop @mousedown.stop
+            @focus="handleTitleFocus" @blur="handleTitleBlur" @input="handleTitleInput" @keydown.space.prevent.stop
+            @keydown.enter.stop="(e) => (e.target as HTMLElement)?.blur()" aria-label="Nome da tabela no diagrama" />
         </span>
       </div>
     </foreignObject>
-    <rect
-      v-else
-      :x="15"
-      :y="12"
+    <rect v-else :x="15" :y="12"
       :width="Math.min(tableWidth - 30, Math.max(50, (displayName !== undefined ? displayName : table.name).length * 7.5))"
-      height="11"
-      rx="3"
-      class="table-header-skeleton"
-    />
+      height="11" rx="3" class="table-header-skeleton" />
 
     <!-- Modo Completo (Zoom Normal ou Exportação) -->
     <template v-if="detailLevel === 'full'">
-      <g 
-        v-for="(col, colIndex) in table.columns" 
-        :key="colIndex"
-        @mouseenter="hoveredRowIndex = colIndex"
-        @mouseleave="hoveredRowIndex === colIndex ? hoveredRowIndex = null : null"
-      >
-        <rect
-          v-if="!col.isPk && !col.isFk"
-          :x="0"
-          :y="headerHeight + colIndex * rowHeight"
-          :width="tableWidth"
+      <g v-for="(col, colIndex) in table.columns" :key="colIndex" @mouseenter="hoveredRowIndex = colIndex"
+        @mouseleave="hoveredRowIndex === colIndex ? hoveredRowIndex = null : null">
+        <rect v-if="!col.isPk && !col.isFk" :x="0" :y="headerHeight + colIndex * rowHeight" :width="tableWidth"
           :height="rowHeight"
           :fill="hoveredRowIndex === colIndex || isColumnHovered(col.name) || editingColIndex === colIndex ? 'var(--clr-hover)' : 'transparent'"
           class="column-neutral-hover"
           @mouseenter="emit('columnHover', { tableName: table.name, columnName: col.name, isPk: false, isFk: false, isHovering: true })"
-          @mouseleave="editingColIndex !== colIndex ? emit('columnHover', { isHovering: false }) : null"
-        />
+          @mouseleave="editingColIndex !== colIndex ? emit('columnHover', { isHovering: false }) : null" />
 
-        <rect
-          v-if="col.isPk || col.isFk"
-          :x="0"
-          :y="headerHeight + colIndex * rowHeight"
-          :width="tableWidth"
-          :height="rowHeight"
-          fill="transparent"
-          class="column-hover-area"
+        <rect v-if="col.isPk || col.isFk" :x="0" :y="headerHeight + colIndex * rowHeight" :width="tableWidth"
+          :height="rowHeight" fill="transparent" class="column-hover-area"
           @mouseenter="emit('columnHover', { tableName: table.name, columnName: col.name, isPk: col.isPk, isFk: col.isFk, refTable: col.refTable, isHovering: true })"
-          @mouseleave="editingColIndex !== colIndex ? emit('columnHover', { isHovering: false }) : null"
-        />
+          @mouseleave="editingColIndex !== colIndex ? emit('columnHover', { isHovering: false }) : null" />
 
-        <rect
-          v-if="col.isPk || col.isFk"
-          :x="0"
-          :y="headerHeight + colIndex * rowHeight"
-          :width="tableWidth"
-          :height="rowHeight"
-          :fill="col.isPk ? 'var(--diagram-col-highlight-pk)' : 'var(--diagram-col-highlight-fk)'"
-          :rx="colIndex === table.columns.length - 1 ? 6 : 0"
-          class="column-highlight-bg"
+        <rect v-if="col.isPk || col.isFk" :x="0" :y="headerHeight + colIndex * rowHeight" :width="tableWidth"
+          :height="rowHeight" :fill="col.isPk ? 'var(--diagram-col-highlight-pk)' : 'var(--diagram-col-highlight-fk)'"
+          :rx="colIndex === table.columns.length - 1 ? 6 : 0" class="column-highlight-bg"
           :class="{ 'is-active': isColumnHovered(col.name) || isTableColumnHighlighted(col) || editingColIndex === colIndex }"
-          style="pointer-events: none"
-        />
+          style="pointer-events: none" />
 
-        <g
-          :transform="`translate(15, ${headerHeight + 20 + colIndex * rowHeight - 12})`"
-          style="pointer-events: none; transform-origin: top left;"
-        >
+        <g :transform="`translate(15, ${headerHeight + 20 + colIndex * rowHeight - 12})`"
+          style="pointer-events: none; transform-origin: top left;">
           <template v-if="isInheritanceColumn(col) || (col.isPk && col.isFk)">
             <g class="pk-icon" style="display:inline-block;">
               <Key :size="18" stroke-width="2" />
@@ -313,94 +263,49 @@ const handleColumnBlur = () => {
           </g>
         </g>
 
-        <foreignObject
-          :x="(isInheritanceColumn(col) || (col.isPk && col.isFk)) ? 60 : (col.isPk || col.isFk ? 36 : 11)"
+        <foreignObject :x="(isInheritanceColumn(col) || (col.isPk && col.isFk)) ? 60 : (col.isPk || col.isFk ? 36 : 11)"
           :y="headerHeight + colIndex * rowHeight + 4"
           :width="Math.max(120, tableWidth - ((isInheritanceColumn(col) || (col.isPk && col.isFk)) ? 75 : (col.isPk || col.isFk ? 50 : 25)))"
-          :height="rowHeight - 8"
-          class="col-name-foreign"
-          @mouseenter="emit('columnHover', { tableName: table.name, columnName: col.name, isPk: col.isPk, isFk: col.isFk, refTable: col.refTable, isHovering: true })"
-        >
+          :height="rowHeight - 8" class="col-name-foreign"
+          @mouseenter="emit('columnHover', { tableName: table.name, columnName: col.name, isPk: col.isPk, isFk: col.isFk, refTable: col.refTable, isHovering: true })">
           <div class="col-input-wrapper" xmlns="http://www.w3.org/1999/xhtml">
-            <span
-              class="col-name-input-sizer"
-              :class="{ 'is-pk': col.isPk, 'is-fk': !col.isPk && col.isFk }"
-              :data-value="getColNameValue(col, colIndex)"
-            >
-              <input
-                :value="getColNameValue(col, colIndex)"
-                type="text"
-                class="col-name-input"
-                :style="{ fontWeight: col.isPk ? '600' : '500' }"
-                @click.stop
-                @pointerdown.stop
-                @mousedown.stop
+            <span class="col-name-input-sizer" :class="{ 'is-pk': col.isPk, 'is-fk': !col.isPk && col.isFk }"
+              :data-value="getColNameValue(col, colIndex)">
+              <input :value="getColNameValue(col, colIndex)" type="text" class="col-name-input"
+                :class="{ 'is-col-error': isColInError(col) }" :style="{ fontWeight: col.isPk ? '600' : '500' }"
+                @click.stop @pointerdown.stop @mousedown.stop
                 @focus="editingColIndex = colIndex; emit('selectTable', table.name)"
-                @input="handleColumnNameInput(col, colIndex, $event)"
-                @blur="handleColumnBlur"
-                @keydown.space.prevent.stop
-                @keydown.enter.stop="(e) => (e.target as HTMLElement)?.blur()"
-                aria-label="Nome da coluna"
-              />
+                @input="handleColumnNameInput(col, colIndex, $event)" @blur="handleColumnBlur(col, colIndex)"
+                @keydown.space.prevent.stop @keydown.enter.stop="(e) => (e.target as HTMLElement)?.blur()"
+                aria-label="Nome da coluna" />
             </span>
           </div>
         </foreignObject>
 
-        <foreignObject
-          :x="15"
-          :y="headerHeight + colIndex * rowHeight + 4"
-          :width="tableWidth - 30"
-          :height="rowHeight - 8"
-          class="col-type-foreign"
-          @mouseenter="emit('columnHover', { tableName: table.name, columnName: col.name, isPk: col.isPk, isFk: col.isFk, refTable: col.refTable, isHovering: true })"
-        >
+        <foreignObject :x="15" :y="headerHeight + colIndex * rowHeight + 4" :width="tableWidth - 30"
+          :height="rowHeight - 8" class="col-type-foreign"
+          @mouseenter="emit('columnHover', { tableName: table.name, columnName: col.name, isPk: col.isPk, isFk: col.isFk, refTable: col.refTable, isHovering: true })">
           <div class="col-input-wrapper is-end" xmlns="http://www.w3.org/1999/xhtml">
-            <span
-              class="col-type-input-sizer"
-              :class="{ 'is-pk': col.isPk, 'is-fk': !col.isPk && col.isFk }"
-              :data-value="getColTypeValue(col, colIndex)"
-            >
-              <input
-                :value="getColTypeValue(col, colIndex)"
-                type="text"
-                class="col-type-input"
-                :class="{ 'pk-type': col.isPk }"
-                @click.stop
-                @pointerdown.stop
-                @mousedown.stop
-                @focus="editingColIndex = colIndex; emit('selectTable', table.name)"
-                @input="handleColumnTypeInput(col, colIndex, $event)"
-                @blur="handleColumnBlur"
-                @keydown.enter.stop="(e) => (e.target as HTMLElement)?.blur()"
-                aria-label="Tipo da coluna"
-              />
+            <span class="col-type-input-sizer" :class="{ 'is-pk': col.isPk, 'is-fk': !col.isPk && col.isFk }"
+              :data-value="getColTypeValue(col, colIndex)">
+              <input :value="getColTypeValue(col, colIndex)" type="text" class="col-type-input"
+                :class="{ 'pk-type': col.isPk, 'is-col-error': isColTypeInError(col) }" @click.stop @pointerdown.stop
+                @mousedown.stop @focus="editingColIndex = colIndex; emit('selectTable', table.name)"
+                @input="handleColumnTypeInput(col, colIndex, $event)" @blur="handleColumnBlur(col, colIndex)"
+                @keydown.enter.stop="(e) => (e.target as HTMLElement)?.blur()" aria-label="Tipo da coluna" />
             </span>
           </div>
         </foreignObject>
 
-        <g
-          v-if="col.isPk || col.isFk"
-          class="column-highlight-borders"
+        <g v-if="col.isPk || col.isFk" class="column-highlight-borders"
           :class="{ 'is-active': isColumnHovered(col.name) || isTableColumnHighlighted(col) || editingColIndex === colIndex }"
-          style="pointer-events: none"
-        >
-          <line
-            :x1="0"
-            :y1="headerHeight + colIndex * rowHeight + (colIndex === 0 ? 0.55 : 0)"
-            :x2="tableWidth"
+          style="pointer-events: none">
+          <line :x1="0" :y1="headerHeight + colIndex * rowHeight + (colIndex === 0 ? 0.55 : 0)" :x2="tableWidth"
             :y2="headerHeight + colIndex * rowHeight + (colIndex === 0 ? 0.55 : 0)"
-            :stroke="col.isPk ? 'var(--diagram-col-border-pk)' : 'var(--diagram-col-border-fk)'"
-            stroke-width="1.1"
-          />
-          <line
-            v-if="colIndex < table.columns.length - 1"
-            :x1="0"
-            :y1="headerHeight + (colIndex + 1) * rowHeight"
-            :x2="tableWidth"
-            :y2="headerHeight + (colIndex + 1) * rowHeight"
-            :stroke="col.isPk ? 'var(--diagram-col-border-pk)' : 'var(--diagram-col-border-fk)'"
-            stroke-width="1.1"
-          />
+            :stroke="col.isPk ? 'var(--diagram-col-border-pk)' : 'var(--diagram-col-border-fk)'" stroke-width="1.1" />
+          <line v-if="colIndex < table.columns.length - 1" :x1="0" :y1="headerHeight + (colIndex + 1) * rowHeight"
+            :x2="tableWidth" :y2="headerHeight + (colIndex + 1) * rowHeight"
+            :stroke="col.isPk ? 'var(--diagram-col-border-pk)' : 'var(--diagram-col-border-fk)'" stroke-width="1.1" />
         </g>
       </g>
     </template>
@@ -409,41 +314,19 @@ const handleColumnBlur = () => {
     <template v-else>
       <g v-for="(col, colIndex) in table.columns" :key="colIndex">
         <template v-if="col.isPk || col.isFk">
-          <circle
-            :cx="18"
-            :cy="headerHeight + 20 + colIndex * rowHeight - 4"
-            r="3.5"
-            :fill="col.isPk ? 'var(--diagram-col-border-pk)' : 'var(--diagram-col-border-fk)'"
-          />
-          <rect
-            :x="28"
-            :y="headerHeight + 20 + colIndex * rowHeight - 6"
-            :width="Math.min(tableWidth - 46, 52 + (colIndex % 4) * 22)"
-            height="3.5"
-            rx="1.75"
-            class="column-skeleton-line"
-            :class="{ 'skeleton-pk': col.isPk, 'skeleton-fk': col.isFk }"
-          />
+          <circle :cx="18" :cy="headerHeight + 20 + colIndex * rowHeight - 4" r="3.5"
+            :fill="col.isPk ? 'var(--diagram-col-border-pk)' : 'var(--diagram-col-border-fk)'" />
+          <rect :x="28" :y="headerHeight + 20 + colIndex * rowHeight - 6"
+            :width="Math.min(tableWidth - 46, 52 + (colIndex % 4) * 22)" height="3.5" rx="1.75"
+            class="column-skeleton-line" :class="{ 'skeleton-pk': col.isPk, 'skeleton-fk': col.isFk }" />
         </template>
-        <rect
-          v-else
-          :x="18"
-          :y="headerHeight + 20 + colIndex * rowHeight - 6"
-          :width="Math.min(tableWidth - 36, 44 + (colIndex % 4) * 20)"
-          height="3.5"
-          rx="1.75"
-          class="column-skeleton-line"
-        />
+        <rect v-else :x="18" :y="headerHeight + 20 + colIndex * rowHeight - 6"
+          :width="Math.min(tableWidth - 36, 44 + (colIndex % 4) * 20)" height="3.5" rx="1.75"
+          class="column-skeleton-line" />
       </g>
     </template>
 
-    <rect
-      :width="tableWidth"
-      :height="tableHeight"
-      class="table-rect"
-      :class="{ selected: isSelected }"
-      rx="6"
-    />
+    <rect :width="tableWidth" :height="tableHeight" class="table-rect" :class="{ selected: isSelected }" rx="6" />
   </g>
 </template>
 
@@ -499,6 +382,10 @@ const handleColumnBlur = () => {
 .table-group.is-error .table-bg,
 .table-group.is-error:hover .table-bg {
   filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.35)) !important;
+}
+
+.table-group.is-error .table-header-rect {
+  fill: #ef4444 !important;
 }
 
 .table-group.is-simplified .table-bg,
@@ -580,7 +467,7 @@ const handleColumnBlur = () => {
 }
 
 .table-title-input.is-title-error {
-  color: #f87171 !important;
+  color: #921717 !important;
 }
 
 .table-title {
@@ -688,6 +575,11 @@ const handleColumnBlur = () => {
   text-align: left;
   background-color: transparent;
   cursor: text;
+}
+
+.col-name-input.is-col-error,
+.col-type-input.is-col-error {
+  color: #f87171 !important;
 }
 
 .col-type-input-sizer::after,

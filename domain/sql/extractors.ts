@@ -16,6 +16,9 @@ function applyInlineConstraints(def: any, column: Column): void {
     if (def.unique && def.unique.toLowerCase() === 'unique') column.unique = true;
     if (def.nullable && def.nullable.type === 'not null') column.nullable = false;
     if (def.definition && def.definition.primaryKey === true) column.isPk = true;
+    if (def.auto_increment || (typeof def.auto_increment === 'string' && def.auto_increment.toLowerCase() === 'auto_increment')) {
+        column.autoIncrement = true;
+    }
 }
 
 function applyArrayConstraints(def: any, column: Column): void {

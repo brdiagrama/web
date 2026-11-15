@@ -6,6 +6,7 @@ export interface Column {
   refTable?: string | null;
   nullable?: boolean;
   unique?: boolean;
+  autoIncrement?: boolean;
 }
 
 export interface Table {

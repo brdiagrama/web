@@ -44,7 +44,7 @@ export function useDiagram() {
   const { 
     sqlCode, errors, warnings, positions, edgeOffsets, 
     selectedTableNames, hoveredColumn, tableOrder, loadingProgress,
-    isStampActive, stampGhostPosition, draftTableNames, tableErrors 
+    isStampActive, stampGhostPosition, draftTableNames, draftColumnNames, draftColumnTypes, tableErrors 
   } = storeToRefs(store);
 
   const tables = computed(() => store.tables);
@@ -73,8 +73,8 @@ export function useDiagram() {
     store.setHoveredColumn(hoverInfo);
   const renameTable = (oldSqlName: string, newSqlName: string, schemaTableName?: string) =>
     store.renameTable(oldSqlName, newSqlName, schemaTableName);
-  const renameColumn = (tableName: string, oldColName: string, newColName: string) =>
-    store.renameColumn(tableName, oldColName, newColName);
+  const renameColumn = (tableName: string, oldColName: string, newColName: string, originalColName?: string) =>
+    store.renameColumn(tableName, oldColName, newColName, originalColName);
   const changeColumnType = (tableName: string, colName: string, oldType: string, newType: string) =>
     store.changeColumnType(tableName, colName, oldType, newType);
 
@@ -93,6 +93,8 @@ export function useDiagram() {
     isStampActive,
     stampGhostPosition,
     draftTableNames,
+    draftColumnNames,
+    draftColumnTypes,
     tableErrors,
     parseSql,
     bringTableToFront,

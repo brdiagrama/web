@@ -1,6 +1,5 @@
 import { ref, computed, nextTick } from 'vue';
-
-export type Theme = 'dark' | 'light';
+import type { Theme } from './useTheme';
 
 const editorTheme = ref<Theme>('dark');
 const isEditorThemeInitialized = ref(false);
