@@ -476,10 +476,24 @@ export function replaceColumnTypeInSql(
   const range = findColumnTypeRange(body, colName, oldType);
   if (!range) return sql;
 
-  const afterChar = body[range.end] || '';
+  let start = range.start;
+  let end = range.end;
+
+  if (!newType) {
+    const rest = body.slice(end);
+    if (/^[\s]*,|^[\s]*$/.test(rest)) {
+      if (body[start - 1] === ' ') {
+        start--;
+      }
+    } else if (body[end] === ' ') {
+      end++;
+    }
+  }
+
+  const afterChar = body[end] || '';
   const needsSpaceAfter = Boolean(newType && afterChar && !/[\s,;)]/.test(afterChar));
   const replacement = needsSpaceAfter ? `${newType} ` : newType;
-  const updatedBody = body.substring(0, range.start) + replacement + body.substring(range.end);
+  const updatedBody = body.substring(0, start) + replacement + body.substring(end);
   return `${prefix}${updatedBody}${suffix}`;
 }
 

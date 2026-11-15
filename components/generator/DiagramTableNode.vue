@@ -600,6 +600,11 @@ const handleColumnBlur = (col: Column, colIndex: number) => {
   white-space: pre;
 }
 
+.col-type-input-sizer:not(:focus-within)::after,
+.col-type-input:not(:focus) {
+  text-transform: uppercase;
+}
+
 .col-type-input {
   position: absolute;
   inset: 0;

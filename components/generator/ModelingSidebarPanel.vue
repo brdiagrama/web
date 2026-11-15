@@ -1444,6 +1444,11 @@ watch(
   white-space: pre;
 }
 
+.column-type-input-sizer:not(:focus-within)::after,
+.column-type-input:not(:focus) {
+  text-transform: uppercase;
+}
+
 .column-type-input {
   position: absolute;
   inset: 0;

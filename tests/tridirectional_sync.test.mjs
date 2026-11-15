@@ -1257,6 +1257,39 @@ console.log('--- Iniciando Bateria 24: Unique Composto vs Simples na Cardinalida
   assertEqual(relItens?.cardinality, 'zero-to-many', '[Cardinalidade 1:N] itens_pedido -> pedidos é 1:N (pé-de-galinha) com UNIQUE composto');
 }
 
+// ----------------------------------------------------------------------------
+// 25. TESTE DE RESTAURAÇÃO DE TIPO E NOME QUANDO SEGUIDO DE CONSTRAINTS (NOT NULL, DEFAULT, AUTO_INCREMENT)
+// ----------------------------------------------------------------------------
+console.log('--- Iniciando Bateria 25: Restauração de Tipo/Nome com Constraints Inline ---');
+{
+  const sqlConstraints = `CREATE TABLE complex_constraints (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  nome VARCHAR(100) NOT NULL,
+  saldo DECIMAL(10,2) DEFAULT 0.00,
+  ativo BOOLEAN NOT NULL DEFAULT true
+);`;
+
+  const sim = new TridirectionalSimulator(sqlConstraints, 'MySQL');
+
+  // 1. Apaga tipo de "nome" (seguido de NOT NULL) até ficar vazio e depois restaura no blur
+  sim.canvasInputColType('complex_constraints', 1, '');
+  assertEqual(sim.sqlCode.includes('nome NOT NULL'), true, '[Espaçamento] Ao esvaziar tipo, não duplica espaço antes de NOT NULL');
+  sim.canvasBlurCol('complex_constraints', 1);
+  assertEqual(sim.sqlCode.includes('nome VARCHAR(100) NOT NULL'), true, '[Blur Restore] Restaurou VARCHAR(100) perfeitamente sem espaços fantasmas');
+
+  // 2. Apaga tipo de "saldo" (seguido de DEFAULT 0.00) até ficar vazio e depois restaura no blur
+  sim.sidebarInputColType('complex_constraints', 2, '');
+  assertEqual(sim.sqlCode.includes('saldo DEFAULT 0.00'), true, '[Espaçamento] Ao esvaziar tipo, não duplica espaço antes de DEFAULT');
+  sim.sidebarBlurCol('complex_constraints', 2);
+  assertEqual(sim.sqlCode.includes('saldo DECIMAL(10,2) DEFAULT 0.00'), true, '[Blur Restore] Restaurou DECIMAL(10,2) perfeitamente antes de DEFAULT');
+
+  // 3. Apaga o NOME de "nome" (deixando apenas VARCHAR(100) NOT NULL) e restaura no blur
+  sim.canvasInputColName('complex_constraints', 1, '');
+  assertEqual(sim.sqlCode.includes('VARCHAR(100) NOT NULL'), true, '[Espaçamento] Ao esvaziar nome, mantém definição limpa');
+  sim.canvasBlurCol('complex_constraints', 1);
+  assertEqual(sim.sqlCode.includes('nome VARCHAR(100) NOT NULL'), true, '[Blur Restore] Restaurou nome da coluna com NOT NULL');
+}
+
 // ============================================================================
 // RELATÓRIO FINAL
 // ============================================================================
