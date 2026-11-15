@@ -386,12 +386,24 @@ const tableDimensionsMap = computed(() => {
   for (const tableName in tables.value) {
     const table = tables.value[tableName];
     const effectiveDisplayName = getTableDisplayName(tableName);
-    const tableWithDisplayName = effectiveDisplayName && effectiveDisplayName !== table.name 
-      ? { ...table, name: effectiveDisplayName } 
-      : table;
+    const effectiveColumns = table.columns?.map((col) => {
+      const colDraftKey = `${tableName}.${col.name}`;
+      const effectiveColName = draftColumnNames.value?.[colDraftKey] || col.name;
+      const effectiveColType = draftColumnTypes.value?.[colDraftKey] || col.type;
+      return {
+        ...col,
+        name: effectiveColName,
+        type: effectiveColType,
+      };
+    });
+    const tableWithEffectiveValues = {
+      ...table,
+      name: effectiveDisplayName && effectiveDisplayName !== table.name ? effectiveDisplayName : table.name,
+      columns: effectiveColumns || table.columns,
+    };
     map[tableName] = {
-      width: calculateTableWidth(tableWithDisplayName),
-      height: calculateTableHeight(tableWithDisplayName),
+      width: calculateTableWidth(tableWithEffectiveValues),
+      height: calculateTableHeight(tableWithEffectiveValues),
     };
   }
   return map;

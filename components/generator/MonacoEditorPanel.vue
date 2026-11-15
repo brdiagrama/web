@@ -23,15 +23,16 @@
 import { ref, computed, watch, shallowRef, toRaw, onUnmounted } from "vue";
 import { VueMonacoEditor } from "@guolao/vue-monaco-editor";
 import { useGeneratorTheme } from "@/composables/useGeneratorTheme";
-import { getTableAtLine } from "@/domain/sql/sqlLineMapper";
+import { getTableAtLine, getColumnAtLine } from "@/domain/sql/sqlLineMapper";
 
 const props = defineProps({
   modelValue: { type: String, default: "" },
   markers: { type: Array, default: () => [] },
   dbTables: { type: Array, default: () => [] },
+  tablesMap: { type: Object, default: () => ({}) },
 });
 
-const emit = defineEmits(["update:modelValue", "editor-ready", "table-cursor"]);
+const emit = defineEmits(["update:modelValue", "editor-ready", "table-cursor", "column-cursor"]);
 
 const { isEditorDark, initEditorTheme } = useGeneratorTheme();
 initEditorTheme();
@@ -366,16 +367,25 @@ const handleMount = (editor, monaco) => {
     }
   });
 
-  // Sincroniza a posição do cursor no SQL com a tabela ativa SOMENTE quando o editor estiver focado
+  // Sincroniza a posição do cursor no SQL com a tabela e coluna ativas SOMENTE quando o editor estiver focado
   editor.onDidChangeCursorPosition((e) => {
     if (!e || !e.position) return;
     if (!editor.hasTextFocus()) return;
     const lineNumber = e.position.lineNumber;
     const currentCode = localCode.value || props.modelValue || "";
-    const tableName = getTableAtLine(currentCode, lineNumber);
+    const model = editor.getModel();
+    const offset = model ? model.getOffsetAt(e.position) : undefined;
+
+    const tableName = getTableAtLine(currentCode, lineNumber, offset);
     if (tableName) {
       emit("table-cursor", tableName);
     }
+    const columnInfo = getColumnAtLine(currentCode, lineNumber, props.tablesMap, offset);
+    emit("column-cursor", columnInfo);
+  });
+
+  editor.onDidBlurEditorText(() => {
+    emit("column-cursor", null);
   });
 
   emit("editor-ready", { editor: toRaw(editor), monaco: toRaw(monaco) });

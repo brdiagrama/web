@@ -4,6 +4,10 @@ export interface TableBlockRange {
   tableName: string;
   startLine: number;
   endLine: number;
+  startOffset?: number;
+  endOffset?: number;
+  bodyStart?: number;
+  bodyEnd?: number;
 }
 
 export interface TableErrorMapping {
@@ -34,7 +38,9 @@ function splitTableDefinitions(
   for (let i = 0; i < body.length; i++) {
     const ch = body[i];
     if (inString) {
-      if (ch === stringChar && body[i - 1] !== '\\') {
+      if (ch === '\n') {
+        inString = false;
+      } else if (ch === stringChar && body[i - 1] !== '\\') {
         inString = false;
       }
       continue;
@@ -87,31 +93,20 @@ export function mapSqlErrorsToTables(
       draftNames[matched.name] = range.tableName;
     }
 
-    const isErrorInTable = errorLine >= range.startLine && errorLine <= range.endLine;
+    const isErrorInTable =
+      errorOffset !== undefined && errorOffset !== null && range.startOffset !== undefined && range.endOffset !== undefined
+        ? errorOffset >= range.startOffset && errorOffset <= range.endOffset
+        : errorLine >= range.startLine && errorLine <= range.endLine;
     if (!isErrorInTable) return;
 
     tableErrors[matched.name] = errorMessage;
 
     // Localizar se o erro aconteceu em uma coluna específica dentro do corpo da tabela
-    const openParen = sql.indexOf('(', range.startLine > 1 ? sql.split('\n').slice(0, range.startLine - 1).join('\n').length : 0);
-    if (openParen === -1) return;
+    const bodyStart = range.bodyStart ?? (sql.indexOf('(', range.startOffset ?? 0) + 1);
+    const bodyEnd = range.bodyEnd ?? -1;
+    if (bodyEnd === -1 || bodyStart >= bodyEnd) return;
 
-    let depth = 1;
-    let closeParen = -1;
-    for (let i = openParen + 1; i < sql.length; i++) {
-      if (sql[i] === '(') depth++;
-      else if (sql[i] === ')') {
-        depth--;
-        if (depth === 0) {
-          closeParen = i;
-          break;
-        }
-      }
-    }
-
-    if (closeParen === -1) return;
-
-    const body = sql.substring(openParen + 1, closeParen);
+    const body = sql.substring(bodyStart, bodyEnd);
     const defs = splitTableDefinitions(body);
 
     // Identificar a definição com erro pelo offset ou pela linha
@@ -119,17 +114,29 @@ export function mapSqlErrorsToTables(
 
     if (errorOffset !== undefined && errorOffset !== null) {
       targetDef = defs.find((d) => {
-        const absStart = openParen + 1 + d.start;
-        const absEnd = openParen + 1 + d.end;
+        const absStart = bodyStart + d.start;
+        const absEnd = bodyStart + d.end;
         return errorOffset >= absStart && errorOffset <= absEnd;
       });
     }
 
     if (!targetDef) {
-      // Fallback por linha quando offset não estiver disponível
+      targetDef = defs.find((d) => {
+        const absStart = bodyStart + d.start;
+        const absEnd = bodyStart + d.end;
+        const dStartLine = sql.substring(0, absStart).split('\n').length;
+        const dEndLine = sql.substring(0, absEnd).split('\n').length;
+        return errorLine >= dStartLine && errorLine <= dEndLine;
+      });
+    }
+
+    if (!targetDef) {
+      // Fallback por inclusão de texto de linha quando não localizado por limites exatos
       const lines = sql.split('\n');
       const errLineText = (lines[errorLine - 1] || '').trim();
-      targetDef = defs.find((d) => d.text.includes(errLineText) || errLineText.includes(d.text.trim()));
+      if (errLineText) {
+        targetDef = defs.find((d) => d.text.includes(errLineText) || errLineText.includes(d.text.trim()));
+      }
     }
 
     if (!targetDef) return;
@@ -144,41 +151,43 @@ export function mapSqlErrorsToTables(
     const targetColIndex = columnDefsOnly.indexOf(targetDef);
 
     const cleanDef = targetDef.text.trim().replace(/^--.*$/gm, '').trim();
-    if (!cleanDef || isConstraint(cleanDef)) {
+    if (isConstraint(cleanDef)) {
       return;
     }
 
-    const tokens = cleanDef.split(/\s+/);
-    if (tokens.length === 0) return;
-
-    const rawColName = tokens[0].replace(/[`"']/g, '');
+    const tokens = cleanDef.split(/\s+/).filter(Boolean);
+    const rawColName = tokens[0] ? tokens[0].replace(/[`"']/g, '') : '';
     const rawColType = tokens.slice(1).join(' ');
 
     // Localizar a coluna correspondente no esquema:
     // 1. Por igualdade ou prefixo do nome
-    // 2. Se o nome foi substituído por caracteres inválidos (ex: @@@), pelo índice ordinal da coluna na tabela
+    // 2. Se o nome foi substituído por caracteres inválidos ou apagado, pelo índice ordinal da coluna na tabela
     let matchedCol =
-      matched.columns.find((c) => c.name.toLowerCase() === rawColName.toLowerCase()) ||
-      matched.columns.find((c) =>
-        rawColName.toLowerCase().startsWith(c.name.toLowerCase()) ||
-        c.name.toLowerCase().startsWith(rawColName.toLowerCase())
-      );
-
-    if (!matchedCol && targetColIndex !== -1 && targetColIndex < matched.columns.length) {
-      matchedCol = matched.columns[targetColIndex];
-    }
+      (rawColName
+        ? matched.columns.find((c) => c.name.toLowerCase() === rawColName.toLowerCase()) ||
+          matched.columns.find((c) =>
+            rawColName.toLowerCase().startsWith(c.name.toLowerCase()) ||
+            c.name.toLowerCase().startsWith(rawColName.toLowerCase())
+          )
+        : null) ||
+      (targetColIndex !== -1 && targetColIndex < matched.columns.length
+        ? matched.columns[targetColIndex]
+        : null);
 
     if (!matchedCol) return;
 
     const draftKey = `${matched.name}.${matchedCol.name}`;
 
     // Determinar se o erro foi no nome da coluna ou na tipagem
-    if (rawColName !== matchedCol.name) {
+    if (!cleanDef) {
+      draftColumnNames[draftKey] = '';
+    } else if (rawColName !== matchedCol.name) {
       draftColumnNames[draftKey] = rawColName;
-    } else if (rawColType && rawColType !== matchedCol.type) {
+    } else if (rawColType && rawColType.replace(/\s+/g, '') !== matchedCol.type.replace(/\s+/g, '')) {
       draftColumnTypes[draftKey] = rawColType;
+    } else if (!rawColType && matchedCol.type) {
+      draftColumnTypes[draftKey] = '';
     } else {
-      // Se a sintaxe quebrou logo após o nome, registra o rascunho do nome
       draftColumnNames[draftKey] = rawColName;
     }
   });
@@ -187,75 +196,208 @@ export function mapSqlErrorsToTables(
 }
 
 /**
- * Retorna o nome da tabela que contém a linha especificada no script SQL.
+ * Retorna o nome da tabela que contém a linha ou offset especificado no script SQL.
  */
-export function getTableAtLine(sql: string, lineNumber: number): string | null {
-  if (!sql || !lineNumber) return null;
+export function getTableAtLine(sql: string, lineNumber?: number, offset?: number): string | null {
+  if (!sql || (!lineNumber && offset === undefined)) return null;
   const ranges = extractTableLineRanges(sql);
-  const matched = ranges.find((r) => lineNumber >= r.startLine && lineNumber <= r.endLine);
+  const matched = ranges.find((r) => {
+    if (offset !== undefined && r.startOffset !== undefined && r.endOffset !== undefined) {
+      return offset >= r.startOffset && offset <= r.endOffset;
+    }
+    return lineNumber !== undefined && lineNumber >= r.startLine && lineNumber <= r.endLine;
+  });
   return matched ? matched.tableName : null;
 }
 
 /**
- * Mapeia os intervalos de linhas (startLine/endLine) e o nome atual
- * de cada bloco CREATE TABLE no texto SQL.
+ * Mapeia os intervalos de linhas (startLine/endLine) e offsets de cada bloco CREATE TABLE no texto SQL,
+ * suportando formatação multilinhas ou SQL minificado em uma única linha.
  */
 export function extractTableLineRanges(sql: string): TableBlockRange[] {
   if (!sql) return [];
-  const lines = sql.split('\n');
   const ranges: TableBlockRange[] = [];
+  const createRegex = /\bCREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+[`"']?([^\s(`"']+)[\`"']?\s*\(/gi;
 
-  let currentStart = -1;
-  let currentName = '';
-  let parenDepth = 0;
-  let foundOpeningParen = false;
+  let match: RegExpExecArray | null;
+  while ((match = createRegex.exec(sql)) !== null) {
+    const tableName = match[1];
+    const startOffset = match.index;
+    const bodyStart = match.index + match[0].length;
 
-  const createRegex = /^\s*CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+([^\s(]*)/i;
+    let depth = 1;
+    let inString = false;
+    let stringChar = '';
+    let endOffset = sql.length;
+    let bodyEnd = sql.length;
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const lineNum = i + 1;
-    const newCreateMatch = line.match(createRegex);
-
-    if (currentStart !== -1 && newCreateMatch) {
-      ranges.push({
-        tableName: currentName,
-        startLine: currentStart,
-        endLine: lineNum - 1,
-      });
-      currentStart = -1;
-      currentName = '';
-    }
-
-    if (currentStart === -1 && newCreateMatch) {
-      currentStart = lineNum;
-      currentName = (newCreateMatch[1] || '').replace(/[`"']/g, '');
-      parenDepth = 0;
-      foundOpeningParen = false;
-    }
-
-    if (currentStart !== -1) {
-      for (const ch of line) {
-        if (ch === '(') {
-          parenDepth++;
-          foundOpeningParen = true;
-        } else if (ch === ')') {
-          parenDepth--;
+    for (let i = bodyStart; i < sql.length; i++) {
+      const ch = sql[i];
+      if (inString) {
+        if (ch === '\n') {
+          inString = false;
+        } else if (ch === stringChar && sql[i - 1] !== '\\') {
+          inString = false;
         }
+        continue;
       }
 
-      const endsBlock = (foundOpeningParen && parenDepth <= 0) || line.includes(';');
-      if (endsBlock || i === lines.length - 1) {
-        ranges.push({
-          tableName: currentName,
-          startLine: currentStart,
-          endLine: lineNum,
-        });
-        currentStart = -1;
-        currentName = '';
+      if (ch === "'" || ch === '"' || ch === '`') {
+        inString = true;
+        stringChar = ch;
+        continue;
+      }
+
+      if (ch === '(') {
+        depth++;
+      } else if (ch === ')') {
+        depth--;
+        if (depth === 0) {
+          bodyEnd = i;
+          let j = i + 1;
+          while (j < sql.length && (sql[j] === ' ' || sql[j] === '\t' || sql[j] === '\r' || sql[j] === '\n')) {
+            j++;
+          }
+          endOffset = (sql[j] === ';') ? j + 1 : i + 1;
+          break;
+        }
+      } else if (ch === ';' && depth <= 1) {
+        bodyEnd = i;
+        endOffset = i + 1;
+        break;
       }
     }
+
+    const startLine = sql.substring(0, startOffset).split('\n').length;
+    const endLine = sql.substring(0, endOffset).split('\n').length;
+
+    ranges.push({
+      tableName,
+      startLine,
+      endLine,
+      startOffset,
+      endOffset,
+      bodyStart,
+      bodyEnd,
+    });
   }
 
   return ranges;
+}
+
+/**
+ * Retorna as informações da coluna que contém a linha ou offset especificado no script SQL.
+ */
+export function getColumnAtLine(
+  sql: string,
+  lineNumber?: number,
+  tables?: Record<string, Table>,
+  offset?: number
+): {
+  tableName: string;
+  columnName: string;
+  isPk?: boolean;
+  isFk?: boolean;
+  refTable?: string | null;
+  isHovering: boolean;
+} | null {
+  if (!sql || (!lineNumber && offset === undefined) || !tables) return null;
+
+  const ranges = extractTableLineRanges(sql);
+  const matchedRange = ranges.find((r) => {
+    if (offset !== undefined && r.startOffset !== undefined && r.endOffset !== undefined) {
+      return offset >= r.startOffset && offset <= r.endOffset;
+    }
+    return lineNumber !== undefined && lineNumber >= r.startLine && lineNumber <= r.endLine;
+  });
+  if (!matchedRange) return null;
+
+  if (offset !== undefined && matchedRange.bodyStart !== undefined && matchedRange.bodyEnd !== undefined) {
+    if (offset < matchedRange.bodyStart || offset > matchedRange.bodyEnd) {
+      return null;
+    }
+  } else if (lineNumber !== undefined && (lineNumber <= matchedRange.startLine || lineNumber >= matchedRange.endLine)) {
+    return null;
+  }
+
+  const table = tables[matchedRange.tableName];
+  if (!table || !table.columns) return null;
+
+  const bodyStart = matchedRange.bodyStart ?? (sql.indexOf('(', matchedRange.startOffset ?? 0) + 1);
+  const bodyEnd = matchedRange.bodyEnd ?? sql.length;
+  const body = sql.substring(bodyStart, bodyEnd);
+  const defs = splitTableDefinitions(body);
+
+  const targetDef = defs.find((d) => {
+    const absStart = bodyStart + d.start;
+    const absEnd = bodyStart + d.end;
+    if (offset !== undefined) {
+      return offset >= absStart && offset <= absEnd;
+    }
+    const dStartLine = sql.substring(0, absStart).split('\n').length;
+    const dEndLine = sql.substring(0, absEnd).split('\n').length;
+    return lineNumber !== undefined && lineNumber >= dStartLine && lineNumber <= dEndLine;
+  });
+
+  if (!targetDef) return null;
+
+  const cleanDef = targetDef.text.trim().replace(/^--.*$/gm, '').trim();
+  if (!cleanDef) return null;
+
+  const tokens = cleanDef.split(/\s+/).filter(Boolean);
+  const rawColName = tokens[0]?.replace(/[`"']/g, '');
+
+  let matchedCol = table.columns.find(
+    (c) => c.name.toLowerCase() === rawColName?.toLowerCase()
+  );
+
+  if (!matchedCol) {
+    const fkMatch = cleanDef.match(/FOREIGN\s+KEY\s*\(\s*[`"']?([^`"'\s)]+)[`"']?\s*\)/i);
+    if (fkMatch && fkMatch[1]) {
+      const fkColName = fkMatch[1];
+      matchedCol = table.columns.find(
+        (c) => c.name.toLowerCase() === fkColName.toLowerCase()
+      );
+    }
+  }
+
+  if (!matchedCol) {
+    const pkMatch = cleanDef.match(/PRIMARY\s+KEY\s*\(\s*[`"']?([^`"'\s)]+)[`"']?\s*\)/i);
+    if (pkMatch && pkMatch[1]) {
+      const pkColName = pkMatch[1];
+      matchedCol = table.columns.find(
+        (c) => c.name.toLowerCase() === pkColName.toLowerCase()
+      );
+    }
+  }
+
+  // Fallback para quando o usuário estiver digitando/editando o nome da coluna no editor
+  if (!matchedCol && rawColName) {
+    matchedCol = table.columns.find(
+      (c) =>
+        c.name.toLowerCase().startsWith(rawColName.toLowerCase()) ||
+        rawColName.toLowerCase().startsWith(c.name.toLowerCase())
+    );
+  }
+
+  if (!matchedCol) {
+    const isConstraint = (text: string) =>
+      /^(?:PRIMARY\s+KEY|FOREIGN\s+KEY|UNIQUE|CHECK|CONSTRAINT|INDEX|KEY)\b/i.test(text.trim());
+    const columnDefsOnly = defs.filter((d) => !isConstraint(d.text.trim()));
+    const targetColIndex = columnDefsOnly.indexOf(targetDef);
+    if (targetColIndex !== -1 && targetColIndex < table.columns.length) {
+      matchedCol = table.columns[targetColIndex];
+    }
+  }
+
+  if (!matchedCol) return null;
+
+  return {
+    tableName: table.name,
+    columnName: matchedCol.name,
+    isPk: !!matchedCol.isPk,
+    isFk: !!matchedCol.isFk,
+    refTable: matchedCol.refTable,
+    isHovering: true,
+  };
 }

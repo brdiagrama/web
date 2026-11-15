@@ -25,7 +25,7 @@ useHead({
 
 const { 
   sqlCode, tables, tableOrder, errors: domainErrors, warnings: domainWarnings, parseSql,
-  isStampActive, cancelStampMode, toggleStampMode, selectTable 
+  isStampActive, cancelStampMode, toggleStampMode, selectTable, setHoveredColumn
 } = useDiagram();
 const { isEditorDark, initEditorTheme, isModelingDark, initModelingTheme } = useGeneratorTheme();
 initEditorTheme();
@@ -317,8 +317,10 @@ const exportDiagramSVG = () => {
             v-model="sqlCode"
             :markers="[...domainErrors, ...domainWarnings]"
             :db-tables="availableTableNames"
+            :tables-map="tables"
             @update:model-value="parseSql"
             @table-cursor="handleTableCursor"
+            @column-cursor="setHoveredColumn"
             aria-label="Editor de código SQL"
           />
         </aside>

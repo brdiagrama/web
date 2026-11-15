@@ -34,10 +34,33 @@ function applyArrayConstraints(def: any, column: Column): void {
     });
 }
 
+function formatColumnType(def: any): string {
+    const definition = def?.definition;
+    if (!definition || !definition.dataType) return '';
+
+    const baseType = definition.dataType;
+
+    if (definition.expr && Array.isArray(definition.expr.value)) {
+        const exprValues = definition.expr.value
+            .map((item: any) => `'${item.value}'`)
+            .join(', ');
+        return `${baseType}(${exprValues})`;
+    }
+
+    if (definition.length !== undefined && definition.length !== null) {
+        if (definition.scale !== undefined && definition.scale !== null) {
+            return `${baseType}(${definition.length},${definition.scale})`;
+        }
+        return `${baseType}(${definition.length})`;
+    }
+
+    return baseType;
+}
+
 export function extractColumnFromDefinition(def: any): Column {
     const column: Column = {
         name: def.column.column,
-        type: def.definition.dataType,
+        type: formatColumnType(def),
         isPk: false,
         isFk: false,
         refTable: null,

@@ -105,7 +105,9 @@ function extractTableBlock(sql: string, tableName: string): { prefix: string; bo
       continue;
     }
     if (inString) {
-      if (ch === stringChar && sql[i - 1] !== '\\') {
+      if (ch === '\n') {
+        inString = false;
+      } else if (ch === stringChar && sql[i - 1] !== '\\') {
         inString = false;
       }
       continue;
@@ -138,7 +140,14 @@ function extractTableBlock(sql: string, tableName: string): { prefix: string; bo
     }
   }
 
-  if (endIndex === -1) return null;
+  if (endIndex === -1) {
+    const nextCloseMatch = sql.slice(startIndex).search(/\);/);
+    if (nextCloseMatch !== -1) {
+      endIndex = startIndex + nextCloseMatch;
+    } else {
+      return null;
+    }
+  }
 
   return {
     prefix: sql.substring(0, startIndex),
@@ -201,6 +210,83 @@ export function replaceColumnNameInSql(
 }
 
 /**
+ * Localiza com precisão o intervalo (start, end) do tipo de uma coluna dentro do corpo da tabela.
+ * Respeita parênteses (ex: ENUM('a','b'), DECIMAL(10,2)) e aspas sem quebrar em vírgulas internas.
+ */
+function findColumnTypeRange(body: string, colName: string): { start: number; end: number } | null {
+  const escapedCol = colName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const colStartRegex = new RegExp(`(?:^|[\\n,(;])([ \\t]*[\`"']?${escapedCol}[\`"']?[ \\t]+)`, 'i');
+  const match = body.match(colStartRegex);
+  if (!match || match.index === undefined) return null;
+
+  const typeStart = match.index + match[0].length;
+  let depth = 0;
+  let inString = false;
+  let stringChar = '';
+  let typeEnd = body.length;
+
+  const CONSTRAINT_WORDS = new Set([
+    'primary', 'not', 'null', 'unique', 'default', 'check', 'references',
+    'auto_increment', 'collate', 'comment', 'unsigned', 'zerofill'
+  ]);
+
+  for (let i = typeStart; i < body.length; i++) {
+    const ch = body[i];
+
+    if (ch === '\n' || ch === ';') {
+      typeEnd = i;
+      break;
+    }
+
+    if (inString) {
+      if (ch === stringChar && body[i - 1] !== '\\') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (ch === "'" || ch === '"' || ch === '`') {
+      inString = true;
+      stringChar = ch;
+      continue;
+    }
+
+    if (ch === '(') {
+      depth++;
+      continue;
+    }
+
+    if (ch === ')') {
+      if (depth > 0) {
+        depth--;
+        continue;
+      } else {
+        typeEnd = i;
+        break;
+      }
+    }
+
+    if (depth === 0) {
+      if (ch === ',') {
+        typeEnd = i;
+        break;
+      }
+
+      if (/\s/.test(ch)) {
+        const remaining = body.slice(i).trimStart();
+        const firstWord = remaining.split(/[\s,;()]/)[0].toLowerCase();
+        if (CONSTRAINT_WORDS.has(firstWord)) {
+          typeEnd = i;
+          break;
+        }
+      }
+    }
+  }
+
+  return { start: typeStart, end: typeEnd };
+}
+
+/**
  * Localiza a coluna em sua respectiva tabela e altera o seu tipo SQL.
  */
 export function replaceColumnTypeInSql(
@@ -218,46 +304,10 @@ export function replaceColumnTypeInSql(
   if (!block) return sql;
 
   const { prefix, body, suffix } = block;
-  const escapeRegExp = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const escapedCol = escapeRegExp(colName);
+  const range = findColumnTypeRange(body, colName);
+  if (!range) return sql;
 
-  if (!oldType) {
-    // Restaurando a partir do tipo vazio:
-    // Caso 1: Coluna seguida imediatamente de delimitador (ex: "  nome," ou "  nome\n")
-    const emptyTypeRegex = new RegExp(
-      `((?:^|[\\n,;])[ \\t]*[\`"']?${escapedCol}[\`"']?)[ \\t]*(?=[,;\\n\\)]|$)`,
-      'i'
-    );
-    if (emptyTypeRegex.test(body)) {
-      const updatedBody = body.replace(emptyTypeRegex, `$1 ${newType}`);
-      return `${prefix}${updatedBody}${suffix}`;
-    }
-
-    // Caso 2: Coluna seguida de constraints (ex: "  id  PRIMARY KEY")
-    const emptyWithConstraintsRegex = new RegExp(
-      `((?:^|[\\n,;])[ \\t]*[\`"']?${escapedCol}[\`"']?)[ \\t]+`,
-      'i'
-    );
-    const updatedBody = body.replace(emptyWithConstraintsRegex, `$1 ${newType} `);
-    return `${prefix}${updatedBody}${suffix}`;
-  }
-
-  const escapedOldType = escapeRegExp(oldType);
-  const exactTypeRegex = new RegExp(
-    `((?:^|[\\n,;])[ \\t]*[\`"']?${escapedCol}[\`"']?[ \\t]+)(${escapedOldType})`,
-    'i'
-  );
-
-  if (exactTypeRegex.test(body)) {
-    const updatedBody = body.replace(exactTypeRegex, `$1${newType}`);
-    return `${prefix}${updatedBody}${suffix}`;
-  }
-
-  const fallbackTypeRegex = new RegExp(
-    `((?:^|[\\n,;])[ \\t]*[\`"']?${escapedCol}[\`"']?[ \\t]+)([A-Za-z0-9_]+(?:\\s*\\([^)]*\\))?)`,
-    'i'
-  );
-  const updatedBody = body.replace(fallbackTypeRegex, `$1${newType}`);
+  const updatedBody = body.substring(0, range.start) + newType + body.substring(range.end);
   return `${prefix}${updatedBody}${suffix}`;
 }
 

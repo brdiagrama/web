@@ -246,12 +246,8 @@ export const useDiagramStore = defineStore('diagram', {
           );
           this.tableErrors = tableErrors;
           this.draftTableNames = draftNames;
-          if (draftColumnNames && Object.keys(draftColumnNames).length > 0) {
-            this.draftColumnNames = { ...this.draftColumnNames, ...draftColumnNames };
-          }
-          if (draftColumnTypes && Object.keys(draftColumnTypes).length > 0) {
-            this.draftColumnTypes = { ...this.draftColumnTypes, ...draftColumnTypes };
-          }
+          this.draftColumnNames = draftColumnNames;
+          this.draftColumnTypes = draftColumnTypes;
         }
       }
     },
