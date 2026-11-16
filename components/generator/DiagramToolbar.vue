@@ -34,6 +34,17 @@
         >
             <Grid :size="18" />
         </IconButton>
+
+        <!-- Botão de Auto-organizar / Auto-alinhar Layout -->
+        <IconButton
+            tooltip="Organizar diagrama automaticamente"
+            tooltip-location="top"
+            :theme="isCanvasDark ? 'dark' : 'light'"
+            aria-label="Organizar diagrama automaticamente"
+            @click="handleAutoAlign"
+        >
+            <LayoutGrid :size="18" />
+        </IconButton>
            
         <div class="zoom-control">
             <IconButton
@@ -79,7 +90,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { Maximize2, BoxSelect, Grid, Minus, Plus, Sun, Moon } from 'lucide-vue-next';
+import { Maximize2, BoxSelect, Grid, LayoutGrid, Minus, Plus, Sun, Moon } from 'lucide-vue-next';
 import { useDiagramStore } from '@/stores/diagram';
 import { useGeneratorTheme } from '@/composables/useGeneratorTheme';
 import IconButton from '@/components/shared/IconButton.vue';
@@ -100,6 +111,10 @@ const toggleGrid = () => {
 
 const toggleSelectMode = () => {
     store.toggleSelectMode();
+};
+
+const handleAutoAlign = () => {
+    store.autoAlignLayout();
 };
 
 const zoomScale = computed({

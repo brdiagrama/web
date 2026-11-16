@@ -638,5 +638,14 @@ export const useDiagramStore = defineStore('diagram', {
         this.setSql(this.sqlCode);
       }
     },
+
+    autoAlignLayout() {
+      if (!this.schema || !this.schema.tables || Object.keys(this.schema.tables).length === 0) return;
+      const layoutResult = generateLayout(this.schema, undefined);
+      this.positions = layoutResult.positions;
+      this.edgeOffsets = layoutResult.edgeOffsets;
+      const { saveTablePositions } = useDiagramStorage();
+      saveTablePositions(this.positions);
+    },
   },
 });

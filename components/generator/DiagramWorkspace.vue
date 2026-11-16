@@ -35,6 +35,7 @@
             :row-height="rowHeight"
             :source-offset-y="edgeOffsets[rel.id]?.sourceOffsetY || 0"
             :target-offset-y="edgeOffsets[rel.id]?.targetOffsetY || 0"
+            :route-offset-index="edgeOffsets[rel.id]?.routeOffsetIndex || 0"
             :selected-tables="selectedTableNames"
             :hovered-column="hoveredColumn"
             :detail-level="detailLevel"

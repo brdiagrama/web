@@ -94,7 +94,9 @@ export function calculateRelationshipPath(
   if (t1Right + gap < t2Left) {
     const startX = t1Right;
     const endX = t2Left;
-    const midX = (startX + endX) / 2;
+    const relIndex = options.index ?? 0;
+    const offset = (relIndex % 2 === 1 ? 1 : -1) * Math.floor((relIndex + 1) / 2) * 36;
+    const midX = (startX + endX) / 2 + offset;
 
     if (deltaY === 0) return `M ${startX} ${y1} L ${endX} ${y2}`;
 
@@ -112,7 +114,9 @@ export function calculateRelationshipPath(
   if (t1Left > t2Right + gap) {
     const startX = t1Left;
     const endX = t2Right;
-    const midX = (startX + endX) / 2;
+    const relIndex = options.index ?? 0;
+    const offset = (relIndex % 2 === 1 ? 1 : -1) * Math.floor((relIndex + 1) / 2) * 36;
+    const midX = (startX + endX) / 2 + offset;
 
     if (deltaY === 0) return `M ${startX} ${y1} L ${endX} ${y2}`;
 

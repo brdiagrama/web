@@ -64,6 +64,7 @@ const props = defineProps({
   rowHeight: { type: Number, default: 32 },
   sourceOffsetY: { type: Number, default: 0 },
   targetOffsetY: { type: Number, default: 0 },
+  routeOffsetIndex: { type: Number, default: 0 },
   selectedTables: { type: Set, default: () => new Set() },
   hoveredColumn: { type: Object, default: null },
   detailLevel: { type: String, default: "full" },
@@ -128,6 +129,7 @@ const routerOptions = computed(() => ({
   rowHeight: props.rowHeight,
   sourceOffsetY: props.sourceOffsetY,
   targetOffsetY: props.targetOffsetY,
+  index: props.routeOffsetIndex,
 }));
 
 const pathData = computed(() =>
