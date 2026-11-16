@@ -689,6 +689,8 @@ watch(
                       </span>
                     </div>
 
+                    <!-- Badges de constraints temporariamente comentadas para manter consistência de UX até a implementação de edição interativa (Opção A) -->
+                    <!--
                     <div 
                       v-if="(!col.nullable && !col.isPk) || (col.unique && !col.isPk) || col.autoIncrement" 
                       class="column-flags-cell"
@@ -697,6 +699,7 @@ watch(
                       <span v-if="col.unique && !col.isPk" class="flag-tag">UQ</span>
                       <span v-if="col.autoIncrement" class="flag-tag">AI</span>
                     </div>
+                    -->
 
                     <button
                       class="delete-column-btn"
