@@ -1290,6 +1290,104 @@ console.log('--- Iniciando Bateria 25: Restauração de Tipo/Nome com Constraint
   assertEqual(sim.sqlCode.includes('nome VARCHAR(100) NOT NULL'), true, '[Blur Restore] Restaurou nome da coluna com NOT NULL');
 }
 
+// ----------------------------------------------------------------------------
+// 26. TESTE DE ADICIONAR COLUNA VIA SIDEBAR (addColumn)
+// ----------------------------------------------------------------------------
+console.log('--- Iniciando Bateria 26: Adicionar Coluna via Sidebar ---');
+{
+  const sqlBase = `CREATE TABLE produtos (\n  id INT PRIMARY KEY,\n  nome VARCHAR(100)\n);\n\nCREATE TABLE clientes (\n  id INT PRIMARY KEY\n);`;
+  const sim = new TridirectionalSimulator(sqlBase, 'MySQL');
+
+  // Adiciona uma coluna na tabela produtos
+  sim.diagram.addColumn('produtos');
+  assertEqual(sim.schema.tables.produtos.columns.length, 3, '[Add Col] Tabela produtos agora tem 3 colunas');
+  assertEqual(sim.schema.tables.produtos.columns[2].name, 'nova_coluna_1', '[Add Col] Nome gerado sequencial nova_coluna_1');
+  assertEqual(sim.schema.tables.produtos.columns[2].type, 'VARCHAR(100)', '[Add Col] Tipo padrão VARCHAR(100)');
+  assertEqual(sim.sqlCode.includes('nome VARCHAR(100),'), true, '[Add Col] Linha anterior recebeu vírgula');
+  assertEqual(sim.sqlCode.includes('nova_coluna_1 VARCHAR(100)'), true, '[Add Col] Nova coluna inserida');
+
+  // Adiciona segunda coluna para testar incremento de nome (nova_coluna_2)
+  sim.diagram.addColumn('produtos');
+  assertEqual(sim.schema.tables.produtos.columns.length, 4, '[Add Col 2] Tabela produtos agora tem 4 colunas');
+  assertEqual(sim.schema.tables.produtos.columns[3].name, 'nova_coluna_2', '[Add Col 2] Nome gerado sequencial nova_coluna_2');
+
+  // Tabela clientes não foi afetada
+  assertEqual(sim.schema.tables.clientes.columns.length, 1, '[Add Col Isolamento] Tabela clientes intacta');
+}
+
+// ----------------------------------------------------------------------------
+// 27. TESTE DE REMOVER COLUNA E REMOVER TABELA (MULTILINHA E MINIFICADO)
+// ----------------------------------------------------------------------------
+console.log('--- Iniciando Bateria 27: Remover Coluna e Tabela ---');
+{
+  // 1. Remover coluna do meio em SQL multilinha
+  const sqlMulti = `CREATE TABLE usuarios (
+  id INT PRIMARY KEY,
+  email VARCHAR(100) NOT NULL,
+  nome VARCHAR(100)
+);
+
+CREATE TABLE pedidos (
+  id INT PRIMARY KEY
+);`;
+
+  const simMulti = new TridirectionalSimulator(sqlMulti, 'MySQL');
+  simMulti.diagram.removeColumn('usuarios', 'email', 1);
+  assertEqual(simMulti.schema.tables.usuarios.columns.length, 2, '[Remove Col Meio] Restam 2 colunas');
+  assertEqual(simMulti.schema.tables.usuarios.columns.map(c => c.name).includes('email'), false, '[Remove Col Meio] Coluna email excluída');
+  assertEqual(simMulti.errors.length, 0, '[Remove Col Meio] SQL sintaticamente perfeito');
+
+  // 2. Remover última coluna em SQL multilinha
+  simMulti.diagram.removeColumn('usuarios', 'nome', 1);
+  assertEqual(simMulti.schema.tables.usuarios.columns.length, 1, '[Remove Col Fim] Resta 1 coluna (id)');
+  assertEqual(simMulti.errors.length, 0, '[Remove Col Fim] SQL válido sem vírgula residual na última linha');
+
+  // 3. Remover tabela inteira
+  simMulti.diagram.removeTable('usuarios');
+  assertEqual(Object.keys(simMulti.schema.tables).length, 1, '[Remove Table] Apenas tabela pedidos resta');
+  assertEqual(simMulti.schema.tables.usuarios, undefined, '[Remove Table] usuarios removida');
+  assertEqual(simMulti.sqlCode.includes('CREATE TABLE usuarios'), false, '[Remove Table] Bloco CREATE TABLE usuarios apagado');
+  assertEqual(simMulti.sqlCode.includes('CREATE TABLE pedidos'), true, '[Remove Table] Bloco pedidos preservado intacto');
+  assertEqual(simMulti.errors.length, 0, '[Remove Table] SQL resultante válido');
+
+  // 4. Remover coluna em SQL minificado (uma única linha)
+  const sqlMin = `CREATE TABLE itens (id INT PRIMARY KEY, preco DECIMAL(10,2), qtd INT);`;
+  const simMin = new TridirectionalSimulator(sqlMin, 'MySQL');
+  simMin.diagram.removeColumn('itens', 'preco', 1);
+  assertEqual(simMin.schema.tables.itens.columns.length, 2, '[Remove Col Minificado] Restam 2 colunas');
+  assertEqual(simMin.sqlCode.includes('preco'), false, '[Remove Col Minificado] preco removido do SQL minificado');
+  assertEqual(simMin.errors.length, 0, '[Remove Col Minificado] SQL minificado válido');
+}
+
+// ----------------------------------------------------------------------------
+// 28. TESTE DE REMOÇÃO DA ÚLTIMA COLUNA (OPÇÃO 4 - TABELA VAZIA SEM FANTASMAS)
+// ----------------------------------------------------------------------------
+console.log('--- Iniciando Bateria 28: Remoção da Última Coluna (Tabela Vazia Sem Colunas Fantasmas) ---');
+{
+  const singleColSql = `CREATE TABLE DASDSADSA (\n  col1 VARCHAR(100)\n);`;
+  const sim = new TridirectionalSimulator(singleColSql, 'MySQL');
+
+  assertEqual(sim.schema.tables.DASDSADSA.columns.length, 1, '[Opção 4 Pré] Tabela começa com 1 coluna');
+  assertEqual(sim.getCanvasColName('DASDSADSA', 0), 'col1', '[Opção 4 Pré] Canvas exibe col1');
+  assertEqual(sim.getCanvasColType('DASDSADSA', 0), 'VARCHAR(100)', '[Opção 4 Pré] Canvas exibe VARCHAR(100)');
+
+  // Remove a única coluna existente
+  sim.diagram.removeColumn('DASDSADSA', 'col1', 0);
+
+  // 1. Tabela fica com 0 colunas
+  assertEqual(sim.schema.tables.DASDSADSA.columns.length, 0, '[Opção 4] Tabela deve ter 0 colunas');
+
+  // 2. Não deve exibir nenhum tipo fantasma no Canvas nem na Sidebar (retorna null pois não há coluna no índice 0)
+  assertEqual(sim.getCanvasColType('DASDSADSA', 0), null, '[Opção 4] Canvas não exibe tipo fantasma');
+  assertEqual(sim.getSidebarColType('DASDSADSA', 0), null, '[Opção 4] Sidebar não exibe tipo fantasma');
+  assertEqual(sim.getCanvasColName('DASDSADSA', 0), null, '[Opção 4] Canvas não exibe nome de coluna fantasma');
+  assertEqual(sim.getSidebarColName('DASDSADSA', 0), null, '[Opção 4] Sidebar não exibe nome de coluna fantasma');
+
+  // 3. Tabela continua na lista de tabelas, com status de erro visual (pois CREATE TABLE () é sintaxe inválida no SQL)
+  assertEqual(!!sim.tableErrors['DASDSADSA'], true, '[Opção 4] Tabela tem erro registrado indicando sintaxe vazia');
+  assertEqual(sim.sqlCode.includes('CREATE TABLE DASDSADSA'), true, '[Opção 4] Bloco CREATE TABLE DASDSADSA permanece no SQL');
+}
+
 // ============================================================================
 // RELATÓRIO FINAL
 // ============================================================================

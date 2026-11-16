@@ -2,7 +2,7 @@
 import { ref, computed, watch } from "vue";
 import { 
   Database, Plus, Search, ChevronRight, 
-  Key, Link, Sun, Moon, TableProperties 
+  Key, Link, Sun, Moon, TableProperties, Trash2 
 } from "lucide-vue-next";
 import IconButton from "@/components/shared/IconButton.vue";
 import type { Table, Column } from "@/domain/models/databaseSchema";
@@ -33,6 +33,9 @@ const {
   renameTable, 
   renameColumn, 
   changeColumnType, 
+  addColumn,
+  removeColumn,
+  removeTable,
   draftTableNames, 
   draftColumnNames,
   draftColumnTypes,
@@ -588,6 +591,14 @@ watch(
 
             <div class="card-meta">
               <span class="column-count">{{ table.columns.length }} campos</span>
+              <button
+                class="delete-table-btn"
+                title="Excluir tabela"
+                aria-label="Excluir tabela"
+                @click.stop="removeTable(table.name)"
+              >
+                <Trash2 :size="13" />
+              </button>
             </div>
           </div>
 
@@ -686,6 +697,15 @@ watch(
                       <span v-if="col.unique && !col.isPk" class="flag-tag">UQ</span>
                       <span v-if="col.autoIncrement" class="flag-tag">AI</span>
                     </div>
+
+                    <button
+                      class="delete-column-btn"
+                      title="Excluir coluna"
+                      aria-label="Excluir coluna"
+                      @click.stop="removeColumn(table.name, col.name, colIndex)"
+                    >
+                      <Trash2 :size="12" />
+                    </button>
                   </div>
                 </div>
 
@@ -693,6 +713,7 @@ watch(
                 <button 
                   class="add-column-row-btn"
                   aria-label="Adicionar coluna nesta tabela"
+                  @click.stop="addColumn(table.name)"
                 >
                   <Plus :size="13" />
                   <span>Adicionar coluna</span>
@@ -1501,6 +1522,35 @@ watch(
   border-color: var(--clr-primary);
   color: var(--clr-primary);
   background-color: rgba(26, 186, 156, 0.06);
+}
+
+.delete-table-btn,
+.delete-column-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--panel-text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.card-header:hover .delete-table-btn,
+.column-row:hover .delete-column-btn {
+  opacity: 0.65;
+}
+
+.delete-table-btn:hover,
+.delete-column-btn:hover {
+  opacity: 1 !important;
+  color: #ef4444 !important;
+  background-color: rgba(239, 68, 68, 0.12) !important;
 }
 </style>
 

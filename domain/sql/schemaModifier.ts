@@ -497,3 +497,176 @@ export function replaceColumnTypeInSql(
   return `${prefix}${updatedBody}${suffix}`;
 }
 
+/**
+ * Adiciona uma nova coluna ao final das definições de uma tabela no SQL,
+ * mantendo a indentação e adicionando a vírgula necessária na linha anterior.
+ */
+export function addColumnToTableInSql(
+  sql: string,
+  tableName: string,
+  colDefinition: string = 'nova_coluna VARCHAR(100)'
+): string {
+  if (!sql || !tableName) return sql;
+
+  const block = extractTableBlock(sql, tableName);
+  if (!block) return sql;
+
+  const { prefix, body, suffix } = block;
+  const lines = body.split('\n');
+
+  let lastNonEmptyIdx = lines.length - 1;
+  while (lastNonEmptyIdx >= 0 && !lines[lastNonEmptyIdx].trim()) {
+    lastNonEmptyIdx--;
+  }
+
+  if (lastNonEmptyIdx < 0) {
+    return `${prefix}\n  ${colDefinition}\n${suffix}`;
+  }
+
+  const lastLine = lines[lastNonEmptyIdx];
+  const indentMatch = lastLine.match(/^(\s*)/);
+  const indent = indentMatch ? indentMatch[1] : '  ';
+
+  let updatedLastLine = lastLine;
+  const trailingCommentMatch = lastLine.match(/(\s*--.*)$/);
+  if (trailingCommentMatch) {
+    const codePart = lastLine.slice(0, trailingCommentMatch.index).trimEnd();
+    const commentPart = trailingCommentMatch[1];
+    if (!codePart.endsWith(',')) {
+      updatedLastLine = `${codePart},${commentPart}`;
+    }
+  } else {
+    const trimmed = lastLine.trimEnd();
+    if (!trimmed.endsWith(',')) {
+      updatedLastLine = `${trimmed},`;
+    }
+  }
+
+  lines[lastNonEmptyIdx] = updatedLastLine;
+  lines.splice(lastNonEmptyIdx + 1, 0, `${indent}${colDefinition}`);
+
+  const newBody = lines.join('\n');
+  return `${prefix}${newBody}${suffix}`;
+}
+
+/**
+ * Remove uma tabela inteira do script SQL, incluindo sua instrução CREATE TABLE,
+ * mantendo o espaçamento do arquivo limpo.
+ */
+export function removeTableFromSql(sql: string, tableName: string): string {
+  if (!sql || !tableName) return sql;
+  const escapeRegExp = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const escapedTable = escapeRegExp(tableName);
+
+  const regex = new RegExp(
+    `([ \\t]*\\n)?\\bCREATE\\s+TABLE(?:\\s+IF\\s+NOT\\s+EXISTS)?\\s+(?:[\`"'\\[]?[^\\s(\`"'\\]]+\\.)?[\`"'\\[]?${escapedTable}[\`"'\\]]?[^;]*;?([ \\t]*\\n)?`,
+    'i'
+  );
+  const updated = sql.replace(regex, '');
+  return updated.replace(/\n{3,}/g, '\n\n').trim();
+}
+
+/**
+ * Remove uma coluna de uma tabela preservando a formatação do SQL,
+ * seja ele multilinha com indentação ou minificado em uma única linha.
+ */
+export function removeColumnFromTableInSql(
+  sql: string,
+  tableName: string,
+  colName: string,
+  targetColIndex?: number
+): string {
+  if (!sql || !tableName || !colName) return sql;
+
+  const block = extractTableBlock(sql, tableName);
+  if (!block) return sql;
+
+  const { prefix, body, suffix } = block;
+  const TABLE_CONSTRAINTS = /^(?:PRIMARY\s+KEY|FOREIGN\s+KEY|UNIQUE|CHECK|CONSTRAINT|INDEX|KEY)\b/i;
+  const defs: Array<{ text: string }> = [];
+  let dDepth = 0;
+  let start = 0;
+  let dInString = false;
+  let dStringChar = '';
+
+  for (let i = 0; i < body.length; i++) {
+    const ch = body[i];
+    if (dInString) {
+      if (ch === '\n') dInString = false;
+      else if (ch === dStringChar && body[i - 1] !== '\\') dInString = false;
+      continue;
+    }
+    if (ch === "'" || ch === '"' || ch === '`') {
+      dInString = true;
+      dStringChar = ch;
+      continue;
+    }
+    if (ch === '(') dDepth++;
+    else if (ch === ')') { if (dDepth > 0) dDepth--; }
+    else if (ch === ',') {
+      const rest = body.slice(i + 1);
+      const isLineEndComma = rest.search(/[\r\n]/) !== -1 &&
+        (rest.search(/[\r\n]/) < rest.search(/\S/) || rest.search(/\S/) === -1);
+      if (dDepth === 0 || isLineEndComma) {
+        defs.push({ text: body.substring(start, i) });
+        start = i + 1;
+        dDepth = 0;
+      }
+    }
+  }
+  defs.push({ text: body.substring(start) });
+
+  let colIndexCount = 0;
+  let targetIdx = -1;
+
+  for (let i = 0; i < defs.length; i++) {
+    const d = defs[i];
+    const clean = d.text.trim().replace(/^--.*$/gm, '').trim();
+    if (!clean) continue;
+
+    const isConstraint = TABLE_CONSTRAINTS.test(clean);
+    if (!isConstraint) {
+      const colMatch = clean.match(/^[`"']?([A-Za-z0-9_]+)[`"']?/);
+      const parsedColName = colMatch ? colMatch[1] : '';
+
+      if (targetColIndex !== undefined) {
+        if (colIndexCount === targetColIndex) {
+          targetIdx = i;
+          break;
+        }
+      } else if (parsedColName.toLowerCase() === colName.toLowerCase()) {
+        targetIdx = i;
+        break;
+      }
+      colIndexCount++;
+    }
+  }
+
+  if (targetIdx === -1) return sql;
+
+  const remainingDefs = defs.filter((_, idx) => idx !== targetIdx);
+  const isMultiline = body.includes('\n');
+
+  if (isMultiline) {
+    const formatted = remainingDefs
+      .map(d => d.text.replace(/\r?\n/g, '').trimEnd())
+      .filter(t => t.trim().length > 0)
+      .map((t, idx, arr) => {
+        const clean = t.replace(/,\s*$/, '');
+        return idx < arr.length - 1 ? `${clean},` : clean;
+      })
+      .join('\n');
+
+    return formatted.length > 0 ? `${prefix}\n${formatted}\n${suffix}` : `${prefix}\n${suffix}`;
+  } else {
+    const formatted = remainingDefs
+      .map(d => d.text.trim().replace(/,\s*$/, ''))
+      .filter(t => t.length > 0)
+      .join(', ');
+
+    return `${prefix}${formatted}${suffix}`;
+  }
+}
+
+
+

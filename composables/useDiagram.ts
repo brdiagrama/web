@@ -79,6 +79,12 @@ export function useDiagram(piniaInstance?: any) {
     store.renameColumn(tableName, oldColName, newColName, originalColName, targetColIndex);
   const changeColumnType = (tableName: string, colName: string, oldType: string, newType: string) =>
     store.changeColumnType(tableName, colName, oldType, newType);
+  const addColumn = (tableName: string, columnName?: string, columnType?: string) =>
+    store.addColumn(tableName, columnName, columnType);
+  const removeColumn = (tableName: string, colName: string, targetColIndex?: number) =>
+    store.removeColumn(tableName, colName, targetColIndex);
+  const removeTable = (tableName: string) =>
+    store.removeTable(tableName);
 
   return {
     sqlCode,
@@ -114,5 +120,8 @@ export function useDiagram(piniaInstance?: any) {
     renameTable,
     renameColumn,
     changeColumnType,
+    addColumn,
+    removeColumn,
+    removeTable,
   };
 }

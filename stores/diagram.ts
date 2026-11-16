@@ -7,7 +7,10 @@ import { useDiagramStorage } from '@/composables/useDiagramStorage';
 import { 
   replaceTableNameInSql, 
   replaceColumnNameInSql, 
-  replaceColumnTypeInSql 
+  replaceColumnTypeInSql,
+  addColumnToTableInSql,
+  removeColumnFromTableInSql,
+  removeTableFromSql
 } from '@/domain/sql/schemaModifier';
 import { mapSqlErrorsToTables } from '@/domain/sql/sqlLineMapper';
 
@@ -531,6 +534,62 @@ export const useDiagramStore = defineStore('diagram', {
       };
       const updatedSql = replaceColumnTypeInSql(this.sqlCode, tableName, colName, oldType, newType);
       this.setSql(updatedSql, true);
+      return true;
+    },
+
+    addColumn(tableName: string, columnName?: string, columnType?: string): boolean {
+      if (!tableName || !this.schema.tables[tableName]) return false;
+      const table = this.schema.tables[tableName];
+      const existingColNames = new Set(table.columns.map((c) => c.name.toLowerCase()));
+
+      let counter = 1;
+      let targetName = columnName || `nova_coluna_${counter}`;
+      while (existingColNames.has(targetName.toLowerCase())) {
+        counter++;
+        targetName = `nova_coluna_${counter}`;
+      }
+
+      const defaultType = columnType || (this.sqlDialect === 'PostgreSQL' ? 'VARCHAR(100)' : 'VARCHAR(100)');
+      const colDef = `${targetName} ${defaultType}`;
+      const updatedSql = addColumnToTableInSql(this.sqlCode, tableName, colDef);
+      this.setSql(updatedSql);
+      return true;
+    },
+
+    removeColumn(tableName: string, colName: string, targetColIndex?: number): boolean {
+      if (!tableName || !colName || !this.schema.tables[tableName]) return false;
+      const table = this.schema.tables[tableName];
+
+      // Se a tabela só possui 1 coluna (ou menos), sua remoção deixará a tabela vazia (0 colunas)
+      if (table.columns.length <= 1) {
+        table.columns = [];
+        // Limpar rascunhos associados à tabela para não reter tipos ou nomes fantasmas
+        const prefix = `${tableName}.`;
+        const nextDraftNames = { ...this.draftColumnNames };
+        const nextDraftTypes = { ...this.draftColumnTypes };
+        for (const k of Object.keys(nextDraftNames)) {
+          if (k.startsWith(prefix)) delete nextDraftNames[k];
+        }
+        for (const k of Object.keys(nextDraftTypes)) {
+          if (k.startsWith(prefix)) delete nextDraftTypes[k];
+        }
+        this.draftColumnNames = nextDraftNames;
+        this.draftColumnTypes = nextDraftTypes;
+      }
+
+      const updatedSql = removeColumnFromTableInSql(this.sqlCode, tableName, colName, targetColIndex);
+      this.setSql(updatedSql);
+      return true;
+    },
+
+    removeTable(tableName: string): boolean {
+      if (!tableName || !this.schema.tables[tableName]) return false;
+      const updatedSql = removeTableFromSql(this.sqlCode, tableName);
+      delete this.schema.tables[tableName];
+      delete this.positions[tableName];
+      this.tableOrder = this.tableOrder.filter(n => n !== tableName);
+      this.selectedTableNames.delete(tableName);
+      this.setSql(updatedSql);
       return true;
     },
 

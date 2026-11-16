@@ -98,7 +98,10 @@ export function extractColumnRawTypesFromSql(
 
     const body = sql.substring(bodyStart, bodyEnd);
     const defs = splitTableDefinitions(body);
-    const columnDefsOnly = defs.filter((d) => !isConstraint(d.text));
+    const columnDefsOnly = defs.filter((d) => {
+      const clean = d.text.trim().replace(/^--.*$/gm, '').trim();
+      return clean.length > 0 && !isConstraint(clean);
+    });
 
     columnDefsOnly.forEach((colDef, colOrdinalIndex) => {
       const cleanDef = colDef.text.trim().replace(/^--.*$/gm, '').trim();
@@ -226,7 +229,10 @@ export function mapSqlErrorsToTables(
         text.trim().replace(/^--.*$/gm, '').trim()
       );
 
-    const columnDefsOnly = defs.filter((d) => !isConstraint(d.text));
+    const columnDefsOnly = defs.filter((d) => {
+      const clean = d.text.trim().replace(/^--.*$/gm, '').trim();
+      return clean.length > 0 && !isConstraint(clean);
+    });
     const constraintRegex = /\b(primary|key|not|null|unique|default|check|references|constraint|collate|auto_increment|autoincrement|identity|generated|masked|encrypted)\b/i;
 
     columnDefsOnly.forEach((colDef, colOrdinalIndex) => {

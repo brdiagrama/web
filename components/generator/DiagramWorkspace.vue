@@ -354,14 +354,39 @@ watch(
   }
 );
 
+const handleKeyDown = (e) => {
+  if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+
+  const activeEl = document.activeElement;
+  if (activeEl) {
+    const tagName = activeEl.tagName?.toUpperCase();
+    const isInput = tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT';
+    const isMonaco = !!activeEl.closest?.('.monaco-editor');
+    const isEditable = activeEl.getAttribute?.('contenteditable') === 'true';
+    if (isInput || isMonaco || isEditable) {
+      return;
+    }
+  }
+
+  const selected = Array.from(selectedTableNames.value);
+  if (selected.length === 0) return;
+
+  e.preventDefault();
+  selected.forEach((tableName) => {
+    diagramStore.removeTable(tableName);
+  });
+};
+
 onMounted(() => {
   window.addEventListener('pointermove', handleGlobalStampPointerMove, { passive: true });
   window.addEventListener('pointerdown', handleGlobalStampPointerDown, { capture: true });
+  window.addEventListener('keydown', handleKeyDown);
 });
 
 onUnmounted(() => {
   window.removeEventListener('pointermove', handleGlobalStampPointerMove);
   window.removeEventListener('pointerdown', handleGlobalStampPointerDown, { capture: true });
+  window.removeEventListener('keydown', handleKeyDown);
 });
 
 const blurActiveInput = () => {
