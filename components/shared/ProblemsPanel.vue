@@ -38,8 +38,8 @@
           <div class="problem-status-strip"></div>
           
           <div class="problem-icon">
-            <XCircle v-if="problem.type === 'error'" :size="16" class="icon-error" />
-            <AlertTriangle v-else :size="16" class="icon-warning" />
+            <XCircle v-if="problem.type === 'error'" :size="15" class="icon-error" />
+            <AlertTriangle v-else :size="15" class="icon-warning" />
           </div>
           
           <div class="problem-content">
@@ -82,66 +82,74 @@ const sortedProblems = computed(() => {
 
 <style scoped>
 .problems-panel {
-  background-color: var(--clr-bg-surface);
-  border-top: 1px solid var(--clr-border);
-  height: 200px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 180px;
+  max-height: 50%;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25);
-  z-index: 50;
-  transition: background-color 0.25s ease, border-color 0.25s ease;
+  z-index: 30;
+  background-color: var(--panel-surface, var(--clr-bg-surface));
+  border-top: 1px solid var(--panel-border, var(--clr-border));
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.22);
+  font-family: var(--diagram-font, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif);
+  will-change: transform;
 }
 
 .problems-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 14px;
-  height: 40px;
-  background-color: var(--clr-bg);
-  border-bottom: 1px solid var(--clr-border);
+  padding: 0 12px;
+  height: 34px;
+  min-height: 34px;
+  background-color: var(--panel-bg, var(--clr-bg));
+  border-bottom: 1px solid var(--panel-border, var(--clr-border));
   cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  user-select: none;
+  transition: background-color 0.15s ease;
 }
 
 .problems-header:hover {
-  background-color: var(--clr-hover);
+  background-color: var(--panel-hover, var(--clr-hover));
 }
 
 .problems-header:hover .panel-title {
-  color: var(--clr-text);
+  color: var(--panel-text, var(--clr-text));
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .panel-title {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.5px;
-  color: var(--clr-text-muted);
+  letter-spacing: 0.8px;
+  color: var(--panel-text-muted, var(--clr-text-muted));
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: inherit;
+  text-transform: uppercase;
 }
 
 .badges-container {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .count-badge {
   font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 6px;
+  padding: 1px 7px;
+  border-radius: 4px;
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   transition: background 0.2s;
 }
 
@@ -158,10 +166,10 @@ const sortedProblems = computed(() => {
 .icon-btn {
   background: none;
   border: none;
-  color: var(--clr-text-muted);
+  color: var(--panel-text-muted, var(--clr-text-muted));
   cursor: pointer;
   padding: 4px;
-  border-radius: 6px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -169,24 +177,24 @@ const sortedProblems = computed(() => {
 }
 
 .icon-btn:hover {
-  background-color: var(--clr-hover);
-  color: var(--clr-text);
+  background-color: var(--panel-hover, var(--clr-hover));
+  color: var(--panel-text, var(--clr-text));
 }
 
 .problem-item {
   display: flex;
   position: relative;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--clr-border);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--panel-border, var(--clr-border));
   cursor: pointer;
   transition: background-color 0.15s ease;
   align-items: flex-start;
-  gap: 12px;
-  background-color: var(--clr-bg-surface);
+  gap: 10px;
+  background-color: var(--panel-surface, var(--clr-bg-surface));
 }
 
 .problem-item:hover {
-  background-color: var(--clr-hover);
+  background-color: var(--panel-hover, var(--clr-hover));
 }
 
 .problem-status-strip {
@@ -200,7 +208,8 @@ const sortedProblems = computed(() => {
 .problem-item.warning .problem-status-strip { background-color: #f59e0b; }
 
 .problem-icon {
-  margin-top: 2px;
+  margin-top: 1px;
+  flex-shrink: 0;
 }
 .icon-error { color: #ef4444; }
 .icon-warning { color: #f59e0b; }
@@ -209,44 +218,46 @@ const sortedProblems = computed(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
+  min-width: 0;
 }
 
 .problem-header-line {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 8px;
   flex-wrap: wrap;
 }
 
 .problem-message {
-  font-size: 13px;
-  color: var(--clr-text);
+  font-size: 12.5px;
+  color: var(--panel-text, var(--clr-text));
   font-family: inherit;
-  line-height: 1.4;
+  line-height: 1.35;
+  word-break: break-word;
 }
 
 .code-tag {
   font-family: 'Fira Code', 'JetBrains Mono', monospace;
-  font-size: 11px;
-  background: var(--clr-hover);
-  padding: 1px 6px;
-  border-radius: 4px;
-  color: var(--clr-text);
+  font-size: 10.5px;
+  background: var(--panel-hover, var(--clr-hover));
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--panel-text, var(--clr-text));
 }
 
 .location-link {
   font-size: 11px;
-  color: var(--clr-text-muted);
-  font-family: monospace;
+  color: var(--panel-text-muted, var(--clr-text-muted));
+  font-family: "Fira Code", monospace;
   text-decoration: underline;
   text-decoration-color: transparent;
   transition: all 0.2s;
 }
 
 .problem-item:hover .location-link {
-  color: var(--clr-primary);
-  text-decoration-color: var(--clr-primary);
+  color: var(--clr-primary, #1aba9c);
+  text-decoration-color: var(--clr-primary, #1aba9c);
 }
 
 .problems-list {
@@ -255,14 +266,18 @@ const sortedProblems = computed(() => {
   min-height: 0;
 }
 
-.slide-up-enter-active,
+/* Transição acelerada por hardware GPU com transform */
+.slide-up-enter-active {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.18s ease-out;
+}
+
 .slide-up-leave-active {
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  transition: transform 0.16s cubic-bezier(0.4, 0, 1, 1), opacity 0.14s ease-in;
 }
 
 .slide-up-enter-from,
 .slide-up-leave-to {
-  height: 0;
+  transform: translateY(100%);
   opacity: 0;
 }
 </style>

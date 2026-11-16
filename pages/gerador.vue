@@ -32,6 +32,7 @@ initEditorTheme();
 initModelingTheme();
 
 const workspaceRef = ref(null);
+const monacoEditorRef = ref(null);
 const isProblemsVisible = ref(false);
 const editorWidth = ref(550);
 const isResizing = ref(false);
@@ -224,6 +225,13 @@ const toggleEditor = () => {
 
 const toggleProblemsPanel = () => {
   isProblemsVisible.value = !isProblemsVisible.value;
+  if (isProblemsVisible.value && !isEditorVisible.value) {
+    isEditorVisible.value = true;
+  }
+};
+
+const handleGotoLine = (lineNumber) => {
+  monacoEditorRef.value?.gotoLine?.(lineNumber);
 };
 
 const newProject = async () => {
@@ -313,16 +321,28 @@ const exportDiagramSVG = () => {
             ✕
           </button>
 
-          <MonacoEditorPanel
-            v-model="sqlCode"
-            :markers="[...domainErrors, ...domainWarnings]"
-            :db-tables="availableTableNames"
-            :tables-map="tables"
-            @update:model-value="parseSql"
-            @table-cursor="handleTableCursor"
-            @column-cursor="setHoveredColumn"
-            aria-label="Editor de código SQL"
-          />
+          <div class="editor-workspace-body">
+            <MonacoEditorPanel
+              ref="monacoEditorRef"
+              v-model="sqlCode"
+              :markers="[...domainErrors, ...domainWarnings]"
+              :db-tables="availableTableNames"
+              :tables-map="tables"
+              @update:model-value="parseSql"
+              @table-cursor="handleTableCursor"
+              @column-cursor="setHoveredColumn"
+              aria-label="Editor de código SQL"
+            />
+
+            <!-- Painel de Problemas (Erros/Warnings) no rodapé do Editor (estilo terminal) -->
+            <ProblemsPanel
+              :problems="[...domainErrors, ...domainWarnings]"
+              :is-visible="isProblemsVisible"
+              @close="isProblemsVisible = false"
+              @toggle="isProblemsVisible = !isProblemsVisible"
+              @goto-line="handleGotoLine"
+            />
+          </div>
         </aside>
 
         <!-- Barra de Redimensionamento (Arrastar) -->
@@ -443,14 +463,6 @@ const exportDiagramSVG = () => {
           @focus-table="handleFocusTableFromPanel"
         />
       </div>
-
-      <!-- Painel de Problemas (Erros/Warnings) -->
-      <ProblemsPanel
-        :problems="[...domainErrors, ...domainWarnings]"
-        :is-visible="isProblemsVisible"
-        @close="isProblemsVisible = false"
-        @toggle="isProblemsVisible = !isProblemsVisible"
-      />
 
       <!-- Overlay de Redimensionamento Global -->
       <div v-if="isResizing || isModelingResizing" class="global-resize-overlay"></div>
@@ -690,6 +702,15 @@ const exportDiagramSVG = () => {
   background-color: var(--panel-bg);
   color: var(--panel-text);
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.editor-workspace-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .collapsed-sidebar {
