@@ -1,7 +1,16 @@
 <template>
   <svg ref="svgRoot" class="diagram-canvas" tabindex="-1" @wheel="handleWheelEvent" @pointerdown="handleMouseDown"
     @pointermove="handleCanvasPointerMove" @mouseleave="handleMouseLeave" @contextmenu="handleContextMenu"
-    :style="{ width: '100%', height: '100%', outline: 'none', cursor: store.isStampActive ? 'crosshair' : (store.isPanMode ? (isLeftMousePanning ? 'grabbing' : 'grab') : currentCursor) }">
+    :style="{ 
+      width: '100%', 
+      height: '100%', 
+      outline: 'none', 
+      cursor: store.isStampActive 
+        ? 'crosshair' 
+        : (store.isSelectMode 
+            ? 'crosshair' 
+            : (isLeftMousePanning ? 'grabbing' : 'default')) 
+    }">
     <defs>
       <pattern id="grid-pattern" :width="store.gridSize" :height="store.gridSize" patternUnits="userSpaceOnUse">
         <circle :cx="store.gridSize / 2" :cy="store.gridSize / 2" r="1" fill="var(--grid-color, var(--ref-color, #999))"
@@ -353,12 +362,6 @@ const handleMouseDown = (e) => {
     enablePan();
   }
   else if (e.button === 0) {
-    if (store.isPanMode) {
-      isLeftMousePanning.value = true;
-      enablePan();
-      return;
-    }
-
     if (!isBackground) {
       return;
     }
@@ -367,6 +370,16 @@ const handleMouseDown = (e) => {
       return;
     }
 
+    // Se o modo de seleção de área NÃO estiver ativo (e sem Shift), o comportamento padrão ao arrastar o fundo é mover o Canvas (PAN)
+    const isBoxSelectRequested = store.isSelectMode || e.shiftKey;
+
+    if (!isBoxSelectRequested) {
+      isLeftMousePanning.value = true;
+      enablePan();
+      return;
+    }
+
+    // Modo Seleção de Área (Marquee) ativo pelo botão da toolbar ou segurando Shift
     const rect = svgRoot.value.getBoundingClientRect();
     const pan = panZoomInstance.value.getPan();
     const zoom = panZoomInstance.value.getZoom();

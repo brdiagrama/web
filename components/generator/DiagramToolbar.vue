@@ -11,16 +11,16 @@
             <Maximize2 :size="18" />
         </IconButton>
         
-        <!-- Botão de Pan Mode -->
+        <!-- Botão de Selecionar Várias Tabelas (Área de Seleção) -->
         <IconButton
-            tooltip="Modo de navegação (arrastar tela)"
+            tooltip="Selecionar área (selecionar várias tabelas)"
             tooltip-location="top"
             :theme="isCanvasDark ? 'dark' : 'light'"
-            :active="store.isPanMode"
-            aria-label="Modo de navegação"
-            @click="togglePanMode"
+            :active="store.isSelectMode"
+            aria-label="Selecionar várias tabelas"
+            @click="toggleSelectMode"
         >
-            <Hand :size="18" />
+            <BoxSelect :size="18" />
         </IconButton>
 
         <!-- Botão do Grid -->
@@ -79,7 +79,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { Maximize2, Hand, Grid, Minus, Plus, Sun, Moon } from 'lucide-vue-next';
+import { Maximize2, BoxSelect, Grid, Minus, Plus, Sun, Moon } from 'lucide-vue-next';
 import { useDiagramStore } from '@/stores/diagram';
 import { useGeneratorTheme } from '@/composables/useGeneratorTheme';
 import IconButton from '@/components/shared/IconButton.vue';
@@ -98,8 +98,8 @@ const toggleGrid = () => {
     store.toggleGrid();
 };
 
-const togglePanMode = () => {
-    store.togglePanMode();
+const toggleSelectMode = () => {
+    store.toggleSelectMode();
 };
 
 const zoomScale = computed({

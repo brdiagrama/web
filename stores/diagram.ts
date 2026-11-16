@@ -55,6 +55,7 @@ export interface DiagramState {
   isGridVisible: boolean;
   gridSize: number;
   isPanMode: boolean;
+  isSelectMode: boolean;
   isStampActive: boolean;
   stampGhostPosition: { x: number; y: number } | null;
   draftTableNames: Record<string, string>;
@@ -93,6 +94,7 @@ export const useDiagramStore = defineStore('diagram', {
     isGridVisible: false,
     gridSize: 20,
     isPanMode: false,
+    isSelectMode: false,
     isStampActive: false,
     stampGhostPosition: null,
     draftTableNames: {},
@@ -372,6 +374,18 @@ export const useDiagramStore = defineStore('diagram', {
 
     togglePanMode() {
       this.isPanMode = !this.isPanMode;
+      if (this.isPanMode) {
+        this.isSelectMode = false;
+        this.isStampActive = false;
+      }
+    },
+
+    toggleSelectMode() {
+      this.isSelectMode = !this.isSelectMode;
+      if (this.isSelectMode) {
+        this.isPanMode = false;
+        this.isStampActive = false;
+      }
     },
 
     setGridSize(size: number) {
@@ -381,6 +395,7 @@ export const useDiagramStore = defineStore('diagram', {
     startStampMode() {
       this.isStampActive = true;
       this.isPanMode = false;
+      this.isSelectMode = false;
     },
 
     cancelStampMode() {
