@@ -70,6 +70,56 @@ function prepareSvgClone(svgElement: SVGSVGElement, bounds: DiagramBounds, isDar
 
   svgClone.querySelectorAll(unwantedSelectors.join(', ')).forEach((el) => el.remove());
 
+  // Substitui foreignObject por elementos nativos de texto SVG para não contaminar o canvas (evita SecurityError)
+  svgClone.querySelectorAll('.table-title-foreign').forEach((fo) => {
+    const input = fo.querySelector('input');
+    const textValue = input?.value || input?.getAttribute('value') || '';
+    const textNode = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    textNode.setAttribute('x', '15');
+    textNode.setAttribute('y', '22');
+    textNode.setAttribute('class', 'table-title');
+    textNode.textContent = textValue;
+    fo.parentNode?.replaceChild(textNode, fo);
+  });
+
+  svgClone.querySelectorAll('.col-name-foreign').forEach((fo) => {
+    const input = fo.querySelector('input');
+    const textValue = input?.value || input?.getAttribute('value') || '';
+    const isPk = fo.querySelector('.is-pk') !== null;
+    const xAttr = fo.getAttribute('x') || '15';
+    const yAttr = fo.getAttribute('y') || '0';
+    const yNum = parseFloat(yAttr) + 16;
+
+    const textNode = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    textNode.setAttribute('x', xAttr);
+    textNode.setAttribute('y', yNum.toString());
+    textNode.setAttribute('class', 'col-text');
+    if (isPk) {
+      textNode.setAttribute('font-weight', '600');
+    }
+    textNode.textContent = textValue;
+    fo.parentNode?.replaceChild(textNode, fo);
+  });
+
+  svgClone.querySelectorAll('.col-type-foreign').forEach((fo) => {
+    const input = fo.querySelector('input');
+    const textValue = input?.value || input?.getAttribute('value') || '';
+    const isPk = input?.classList.contains('pk-type') || false;
+    const parentTableGroup = fo.closest('.table-group');
+    const tableBg = parentTableGroup?.querySelector('.table-bg');
+    const tableWidth = tableBg ? parseFloat(tableBg.getAttribute('width') || '220') : 220;
+    const yAttr = fo.getAttribute('y') || '0';
+    const yNum = parseFloat(yAttr) + 16;
+
+    const textNode = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    textNode.setAttribute('x', (tableWidth - 15).toString());
+    textNode.setAttribute('y', yNum.toString());
+    textNode.setAttribute('text-anchor', 'end');
+    textNode.setAttribute('class', isPk ? 'col-type pk-type' : 'col-type');
+    textNode.textContent = textValue;
+    fo.parentNode?.replaceChild(textNode, fo);
+  });
+
   const computedStyle = window.getComputedStyle(svgElement);
   const canvasBg = computedStyle.getPropertyValue("--canvas-bg").trim();
 
@@ -111,7 +161,15 @@ function prepareSvgClone(svgElement: SVGSVGElement, bounds: DiagramBounds, isDar
       const rules = sheet.cssRules || (sheet as any).rules;
       if (rules) {
         for (const rule of Array.from(rules)) {
-          cssText += rule.cssText + "\n";
+          const ruleCss = rule.cssText;
+          if (!ruleCss) continue;
+
+          // Ignora regras que violam a segurança de SVGs renderizados em <img> (CORS/taint)
+          if (ruleCss.startsWith("@font-face") || ruleCss.startsWith("@import")) continue;
+          if (ruleCss.includes(".monaco-") || ruleCss.includes(".codicon")) continue;
+          if (/url\s*\(\s*['"]?(https?:|\/\/|data:font)/i.test(ruleCss)) continue;
+
+          cssText += ruleCss + "\n";
         }
       }
     } catch (e) {
@@ -164,6 +222,7 @@ export async function exportPng(
     const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const img = new Image();
+    img.crossOrigin = "anonymous";
 
     await new Promise<void>((resolve, reject) => {
       img.onload = () => resolve();
@@ -202,9 +261,12 @@ export async function exportPng(
       if (pngBlob) {
         downloadFile(pngBlob, "diagrama.png", "image/png");
         toastSuccess("PNG Exportado", "A imagem em alta definição foi baixada.");
+      } else {
+        toastError("Falha na Exportação", "Não foi possível gerar a imagem PNG.");
       }
     }, "image/png");
   } catch (err: any) {
+    console.error("[diagramExporter] Erro ao exportar PNG:", err);
     toastError("Falha na Exportação", "Não foi possível gerar a imagem PNG.");
   }
 }
@@ -217,28 +279,33 @@ async function drawWatermark(
 ): Promise<void> {
   return new Promise((resolve) => {
     const logoImg = new Image();
+    logoImg.crossOrigin = "anonymous";
     logoImg.onload = () => {
-      ctx.save();
-      ctx.scale(scale, scale);
+      try {
+        ctx.save();
+        ctx.scale(scale, scale);
 
-      const logoHeight = 50;
-      const logoWidth = (logoImg.width / logoImg.height) * logoHeight;
-      const logoPadding = 20;
+        const logoHeight = 50;
+        const logoWidth = (logoImg.width / logoImg.height) * logoHeight;
+        const logoPadding = 20;
 
-      ctx.shadowColor = "rgba(0, 0, 0, 0.2)";
-      ctx.shadowBlur = 4;
-      ctx.shadowOffsetX = 1;
-      ctx.shadowOffsetY = 1;
+        ctx.shadowColor = "rgba(0, 0, 0, 0.2)";
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 1;
 
-      ctx.globalAlpha = 0.7;
-      ctx.drawImage(
-        logoImg,
-        boundsWidth - logoWidth - logoPadding,
-        boundsHeight - logoHeight - logoPadding,
-        logoWidth,
-        logoHeight
-      );
-      ctx.restore();
+        ctx.globalAlpha = 0.7;
+        ctx.drawImage(
+          logoImg,
+          boundsWidth - logoWidth - logoPadding,
+          boundsHeight - logoHeight - logoPadding,
+          logoWidth,
+          logoHeight
+        );
+        ctx.restore();
+      } catch (e) {
+        console.warn("[diagramExporter] Não foi possível desenhar watermark:", e);
+      }
       resolve();
     };
     logoImg.onerror = () => {

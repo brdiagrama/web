@@ -412,27 +412,18 @@ const handleMount = (editor, monaco) => {
   editorMounted.value = true;
 
   // Ajusta o layout quando visualViewport muda (teclado virtual em iOS/Android)
-  if (window.visualViewport) {
-    const onVVResize = () => {
-      try {
-        // Força o editor a recalcular o layout
-        const ed = toRaw(editorRef.value);
-        if (ed && ed.layout) ed.layout();
-      } catch (err) {
-        // visualViewport layout error (suppressed)
-      }
-    };
+  if (typeof window !== "undefined" && window.visualViewport) {
+    window.visualViewport.addEventListener("resize", handleVisualViewportResize);
+    window.visualViewport.addEventListener("scroll", handleVisualViewportResize);
+  }
+};
 
-    window.visualViewport.addEventListener("resize", onVVResize);
-    window.visualViewport.addEventListener("scroll", onVVResize);
-
-    // Cleanup on unmount
-    onUnmounted(() => {
-      try {
-        window.visualViewport.removeEventListener("resize", onVVResize);
-        window.visualViewport.removeEventListener("scroll", onVVResize);
-      } catch (e) {}
-    });
+const handleVisualViewportResize = () => {
+  try {
+    const ed = toRaw(editorRef.value);
+    if (ed && ed.layout) ed.layout();
+  } catch (err) {
+    // visualViewport layout error
   }
 };
 
@@ -441,6 +432,10 @@ const handleChange = (value) => {
 };
 
 onUnmounted(() => {
+  if (typeof window !== "undefined" && window.visualViewport) {
+    window.visualViewport.removeEventListener("resize", handleVisualViewportResize);
+    window.visualViewport.removeEventListener("scroll", handleVisualViewportResize);
+  }
   if (completionDisposable) {
     completionDisposable.dispose();
     completionDisposable = null;
