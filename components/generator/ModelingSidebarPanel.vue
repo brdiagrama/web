@@ -2,7 +2,7 @@
 import { ref, computed, watch } from "vue";
 import { 
   Database, Plus, Search, ChevronRight, 
-  Key, Link, Sun, Moon, TableProperties, Trash2 
+  Key, Link, Sun, Moon, TableProperties, Trash2, X 
 } from "lucide-vue-next";
 import IconButton from "@/components/shared/IconButton.vue";
 import type { Table, Column } from "@/domain/models/databaseSchema";
@@ -492,10 +492,21 @@ watch(
         <template #prepend-inner>
           <Search :size="15" class="search-icon" aria-hidden="true" />
         </template>
+        <template #clear="{ props: clearProps }">
+          <button
+            type="button"
+            v-bind="clearProps"
+            class="flex items-center justify-center text-[var(--panel-text-muted)] hover:text-[var(--panel-text)] cursor-pointer bg-transparent border-0 p-0.5"
+            aria-label="Limpar busca"
+          >
+            <X :size="14" aria-hidden="true" />
+          </button>
+        </template>
       </v-text-field>
 
       <v-tooltip
         text="Nova Tabela (T) Clique para carimbar no canvas"
+        aria-label="Nova Tabela (T) Clique para carimbar no canvas"
         location="bottom"
         :theme="isModelingDark ? 'dark' : 'light'"
       >

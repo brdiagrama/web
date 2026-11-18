@@ -19,6 +19,8 @@ const currentYear = new Date().getFullYear();
           src="~/assets/images/logo/logo-completa.svg" 
           alt="BrDiagrama" 
           class="logo-image"
+          width="499"
+          height="120"
         />
       </div>
 

@@ -153,7 +153,12 @@ watch(activeTab, () => {
         <div class="monitor-top-bezel w-full h-7 md:h-8 flex items-center justify-center shrink-0" aria-hidden="true">
           <div class="monitor-camera"></div>
         </div>
-        <div class="video-screen flex-1 relative w-full h-full overflow-hidden">
+        <div
+          id="showcase-tabpanel"
+          class="video-screen flex-1 relative w-full h-full overflow-hidden"
+          role="tabpanel"
+          :aria-labelledby="`tab-${activeTab}`"
+        >
           <transition name="spinner-fade">
             <div v-if="videoLoading" class="absolute inset-0 flex items-center justify-center bg-[var(--clr-monitor-screen)] z-30">
               <div class="spinner"></div>
@@ -186,16 +191,21 @@ watch(activeTab, () => {
           </transition>
 
           <div class="video-overlay">
-            <h3 class="video-overlay-title">
+            <h2 class="video-overlay-title">
               {{ currentTabContent.title }}
-            </h3>
+            </h2>
             <p class="video-overlay-desc">
               {{ currentTabContent.description }}
             </p>
           </div>
 
           <div class="video-controls">
-            <v-tooltip :text="isPlaying ? 'Pausar vídeo' : 'Reproduzir vídeo'" location="top" scroll-strategy="none">
+            <v-tooltip
+              :text="isPlaying ? 'Pausar vídeo' : 'Reproduzir vídeo'"
+              :aria-label="isPlaying ? 'Pausar vídeo' : 'Reproduzir vídeo'"
+              location="top"
+              scroll-strategy="none"
+            >
               <template #activator="{ props: tooltipProps }">
                 <v-btn
                   v-bind="tooltipProps"
@@ -212,7 +222,12 @@ watch(activeTab, () => {
               </template>
             </v-tooltip>
 
-            <v-tooltip text="Reiniciar vídeo" location="top" scroll-strategy="none">
+            <v-tooltip
+              text="Reiniciar vídeo"
+              aria-label="Reiniciar vídeo"
+              location="top"
+              scroll-strategy="none"
+            >
               <template #activator="{ props: tooltipProps }">
                 <v-btn
                   v-bind="tooltipProps"
@@ -240,6 +255,7 @@ watch(activeTab, () => {
           <v-btn
             v-for="tab in tabs"
             :key="tab.id"
+            :id="`tab-${tab.id}`"
             :variant="activeTab === tab.id ? 'flat' : 'text'"
             :color="activeTab === tab.id ? 'primary' : undefined"
             rounded="pill"
@@ -249,7 +265,7 @@ watch(activeTab, () => {
             :class="{ active: activeTab === tab.id }"
             role="tab"
             :aria-selected="activeTab === tab.id"
-            :aria-controls="`panel-${tab.id}`"
+            aria-controls="showcase-tabpanel"
             :aria-label="`Exibir exemplo de ${tab.label}`"
             @click="activeTab = tab.id"
           >

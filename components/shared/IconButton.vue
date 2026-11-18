@@ -2,6 +2,7 @@
   <v-tooltip 
     v-if="tooltip"
     :text="tooltip" 
+    :aria-label="ariaLabel || tooltip"
     :location="tooltipLocation" 
     :theme="theme"
     :disabled="disabled || active"

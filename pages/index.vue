@@ -10,11 +10,61 @@ import Footer from "~/components/layout/Footer.vue";
 
 useHead({
   title: "BrDiagrama - Modelagem de Banco de Dados e Diagramas ER Online",
+  link: [
+    { rel: "canonical", href: "https://brdiagrama.com/" },
+  ],
   meta: [
     {
       name: "description",
       content:
         "A ferramenta gratuita e 100% brasileira para você transformar scripts SQL (DDL) em diagramas ER de forma automática e offline.",
+    },
+    { property: "og:url", content: "https://brdiagrama.com/" },
+    { property: "og:title", content: "BrDiagrama - Transforme SQL em Diagramas ER Automaticamente" },
+    {
+      property: "og:description",
+      content:
+        "Ferramenta brasileira gratuita que gera diagramas ER a partir de SQL em tempo real. Detecta relacionamentos, cardinalidade e herança automaticamente.",
+    },
+    { property: "og:image", content: "https://brdiagrama.com/og-cover-social.png" },
+    { name: "twitter:url", content: "https://brdiagrama.com/" },
+    { name: "twitter:title", content: "BrDiagrama - SQL para Diagrama ER Instantâneo" },
+    {
+      name: "twitter:description",
+      content:
+        "Ferramenta gratuita que converte SQL em diagramas ER visuais. Detecta cardinalidade automaticamente. 100% offline e sem cadastro.",
+    },
+    { name: "twitter:image", content: "https://brdiagrama.com/og-cover-social.png" },
+  ],
+  script: [
+    {
+      type: "application/ld+json",
+      innerHTML: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        name: "BrDiagrama",
+        alternateName: "BrDiagrama - SQL to ER Diagram",
+        url: "https://brdiagrama.com",
+        logo: "https://brdiagrama.com/logo.svg",
+        description:
+          "Ferramenta online gratuita que transforma código SQL (DDL) em diagramas ER visuais automaticamente. Detecta cardinalidade, herança e relacionamentos em tempo real.",
+        applicationCategory: "DeveloperApplication",
+        operatingSystem: "Web Browser",
+        offers: {
+          "@type": "Offer",
+          price: "0",
+          priceCurrency: "BRL",
+        },
+        screenshot: "https://brdiagrama.com/og-cover-social.png",
+        inLanguage: "pt-BR",
+        potentialAction: {
+          "@type": "UseAction",
+          target: {
+            "@type": "EntryPoint",
+            urlTemplate: "https://brdiagrama.com/gerador",
+          },
+        },
+      }),
     },
   ],
 });

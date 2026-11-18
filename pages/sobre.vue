@@ -17,8 +17,40 @@ import {
 
 useHead({
   title: 'Sobre o BrDiagrama - História e Equipe | Ferramenta Brasileira de Diagramas ER',
+  link: [
+    { rel: 'canonical', href: 'https://brdiagrama.com/sobre' }
+  ],
   meta: [
-    { name: 'description', content: 'Conheça a história do BrDiagrama: 3 estudantes de ADS da FMP criaram a ferramenta brasileira que transforma SQL em diagramas ER de forma prática, rápida e gratuita.' }
+    { name: 'description', content: 'Conheça a história do BrDiagrama: 3 estudantes de ADS da FMP criaram a ferramenta brasileira que transforma SQL em diagramas ER de forma prática, rápida e gratuita.' },
+    { property: 'og:url', content: 'https://brdiagrama.com/sobre' },
+    { property: 'og:title', content: 'Sobre o BrDiagrama - A História da Ferramenta Brasileira' },
+    { property: 'og:description', content: 'Três estudantes de ADS criaram a solução definitiva para transformar SQL em diagramas ER. Conheça nossa história, tecnologias e a paixão por inovação.' },
+    { property: 'og:image', content: 'https://brdiagrama.com/og-cover-social.png' },
+    { name: 'twitter:url', content: 'https://brdiagrama.com/sobre' },
+    { name: 'twitter:title', content: 'Sobre o BrDiagrama - Ferramenta Brasileira de Diagramas ER' },
+    { name: 'twitter:description', content: 'História de 3 estudantes que criaram a melhor ferramenta para converter SQL em diagramas visuais. Offline, gratuita e 100% brasileira.' },
+    { name: 'twitter:image', content: 'https://brdiagrama.com/og-cover-social.png' }
+  ],
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'AboutPage',
+        name: 'Sobre o BrDiagrama',
+        description: 'História do BrDiagrama, equipe de desenvolvimento e tecnologias utilizadas na ferramenta brasileira de conversão SQL para diagramas ER.',
+        url: 'https://brdiagrama.com/sobre',
+        mainEntity: {
+          '@type': 'Organization',
+          name: 'BrDiagrama',
+          alternateName: 'BrDiagrama Team',
+          url: 'https://brdiagrama.com',
+          logo: 'https://brdiagrama.com/logo.svg',
+          description: 'Ferramenta brasileira gratuita que transforma SQL em diagramas ER automaticamente',
+          sameAs: ['https://github.com/brdiagrama/web']
+        }
+      })
+    }
   ]
 })
 
@@ -271,7 +303,7 @@ onMounted(() => {
               </svg>
             </a>
             <div class="team-avatar">
-              <img src="/team/membro1.jpg" alt="Davi Lima" class="avatar-image"
+              <img src="/team/membro1.jpg" alt="Davi Lima" class="avatar-image" width="120" height="120" loading="lazy"
                 @error="(e) => (e.target.style.display = 'none')" />
               <div class="avatar-placeholder"><span>👨‍💻</span></div>
             </div>
@@ -289,7 +321,7 @@ onMounted(() => {
               </svg>
             </a>
             <div class="team-avatar">
-              <img src="/team/membro2.jpg" alt="Leonardo Andrade" class="avatar-image"
+              <img src="/team/membro2.jpg" alt="Leonardo Andrade" class="avatar-image" width="120" height="120" loading="lazy"
                 @error="(e) => (e.target.style.display = 'none')" />
               <div class="avatar-placeholder"><span>👨‍💻</span></div>
             </div>
@@ -307,7 +339,7 @@ onMounted(() => {
               </svg>
             </a>
             <div class="team-avatar">
-              <img src="/team/membro3.jpg" alt="Lucas Blank" class="avatar-image"
+              <img src="/team/membro3.jpg" alt="Lucas Blank" class="avatar-image" width="120" height="120" loading="lazy"
                 @error="(e) => (e.target.style.display = 'none')" />
               <div class="avatar-placeholder"><span>👨‍💻</span></div>
             </div>

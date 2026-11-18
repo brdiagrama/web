@@ -40,6 +40,8 @@
                   :src="item.icon"
                   :alt="item.label"
                   class="item-icon-img"
+                  width="16"
+                  height="16"
                 />
                 <component
                   :is="item.icon"

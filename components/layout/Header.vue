@@ -51,8 +51,8 @@ onBeforeUnmount(() => {
             src="~/assets/images/logo/logo-completa.svg"
             alt="BrDiagrama - Transforme SQL em Diagramas ER"
             class="logo-img"
-            width="auto"
-            height="36"
+            width="158"
+            height="38"
           />
         </NuxtLink>
 
@@ -77,7 +77,12 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="flex items-center gap-1 sm:gap-2 md:gap-3">
-        <v-tooltip :text="isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'" location="bottom" scroll-strategy="none">
+        <v-tooltip
+          :text="isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'"
+          :aria-label="isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'"
+          location="bottom"
+          scroll-strategy="none"
+        >
           <template #activator="{ props: tooltipProps }">
             <v-btn
               v-bind="tooltipProps"

@@ -44,7 +44,13 @@ const handleSelect = (item: DropdownItem) => {
       @select="handleSelect"
     >
       <template #activator="{ props: menuProps, isOpen }">
-        <v-tooltip text="Selecionar Banco de Dados" location="bottom" :disabled="isOpen" :theme="isEditorDark ? 'dark' : 'light'">
+        <v-tooltip
+          text="Selecionar Banco de Dados"
+          aria-label="Selecionar Banco de Dados"
+          location="bottom"
+          :disabled="isOpen"
+          :theme="isEditorDark ? 'dark' : 'light'"
+        >
           <template #activator="{ props: tooltipProps }">
             <button
               v-bind="{ ...menuProps, ...tooltipProps }"
@@ -59,7 +65,7 @@ const handleSelect = (item: DropdownItem) => {
               <Transition name="sgbd-quick-fade" mode="out-in">
                 <div :key="currentOption.id" class="sgbd-content-wrap">
                   <div class="sgbd-icon-box">
-                    <img :src="currentOption.icon" :alt="currentOption.label" class="sgbd-icon-img" />
+                    <img :src="currentOption.icon" :alt="currentOption.label" class="sgbd-icon-img" width="18" height="18" />
                   </div>
                   <span class="sgbd-name">{{ currentOption.label }}</span>
                 </div>

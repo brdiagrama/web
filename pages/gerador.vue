@@ -18,8 +18,42 @@ import { downloadFile } from "@/utils/helpers";
 // Metadata
 useHead({
   title: 'Gerador BrDiagrama - Crie Diagramas ER a partir de SQL Online | Gratuito e Offline',
+  link: [
+    { rel: 'canonical', href: 'https://brdiagrama.com/gerador' }
+  ],
   meta: [
-    { name: 'description', content: 'Gerador online gratuito para converter SQL (CREATE TABLE) em diagramas ER automaticamente. Detecta relacionamentos 1:1, 1:N, N:N e herança. Funciona 100% offline no navegador.' }
+    { name: 'description', content: 'Gerador online gratuito para converter SQL (CREATE TABLE) em diagramas ER automaticamente. Detecta relacionamentos 1:1, 1:N, N:N e herança. Funciona 100% offline no navegador.' },
+    { property: 'og:url', content: 'https://brdiagrama.com/gerador' },
+    { property: 'og:title', content: 'Gerador BrDiagrama - Transforme SQL em Diagramas ER Online' },
+    { property: 'og:description', content: 'Gerador online gratuito e offline. Cole seu SQL, visualize o diagrama instantaneamente. Detecta relacionamentos automaticamente. Exporte em PNG ou SVG.' },
+    { property: 'og:image', content: 'https://brdiagrama.com/og-cover-social.png' },
+    { name: 'twitter:url', content: 'https://brdiagrama.com/gerador' },
+    { name: 'twitter:title', content: 'Gerador BrDiagrama - SQL para Diagrama ER Instantâneo' },
+    { name: 'twitter:description', content: 'Gerador online gratuito. Cole SQL, visualize o diagrama. Detecta cardinalidade automaticamente. 100% offline e sem cadastro.' },
+    { name: 'twitter:image', content: 'https://brdiagrama.com/og-cover-social.png' }
+  ],
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'WebApplication',
+        name: 'BrDiagrama Gerador',
+        alternateName: 'Gerador de Diagramas ER Online',
+        url: 'https://brdiagrama.com/gerador',
+        applicationCategory: 'DeveloperApplication',
+        operatingSystem: 'Web Browser',
+        description: 'Gerador online gratuito que transforma código SQL (DDL) em diagramas ER visuais automaticamente. Funciona 100% offline no navegador.',
+        screenshot: 'https://brdiagrama.com/og-cover-social.png',
+        offers: {
+          '@type': 'Offer',
+          price: '0',
+          priceCurrency: 'BRL'
+        },
+        inLanguage: 'pt-BR',
+        isAccessibleForFree: true
+      })
+    }
   ]
 });
 
@@ -349,6 +383,7 @@ const exportDiagramSVG = () => {
         <v-tooltip 
           v-if="isEditorVisible && !isMobile"
           text="Arrastar para redimensionar" 
+          aria-label="Arrastar para redimensionar"
           location="right"
           target="cursor"
           :offset="12"
@@ -373,6 +408,7 @@ const exportDiagramSVG = () => {
       <v-tooltip 
         v-if="!isEditorVisible && !isMobile"
         text="Expandir editor" 
+        aria-label="Expandir editor"
         location="right"
         target="cursor"
         :offset="12"
@@ -400,6 +436,7 @@ const exportDiagramSVG = () => {
       <v-tooltip 
         v-if="!isModelingVisible && !isMobile"
         text="Expandir modelagem" 
+        aria-label="Expandir modelagem"
         location="left"
         target="cursor"
         :offset="12"
@@ -436,6 +473,7 @@ const exportDiagramSVG = () => {
         <v-tooltip 
           v-if="isModelingVisible && !isMobile"
           text="Arrastar para redimensionar" 
+          aria-label="Arrastar para redimensionar"
           location="left"
           target="cursor"
           :offset="12"

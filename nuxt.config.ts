@@ -14,6 +14,7 @@ export default defineNuxtConfig({
       prefixComposables: ['useLayout']
     },
     vuetifyOptions: {
+      icons: false,
       theme: {
         defaultTheme: 'dark',
         themes: {
@@ -50,7 +51,39 @@ export default defineNuxtConfig({
   ],
   app: {
     head: {
+      htmlAttrs: {
+        lang: 'pt-BR'
+      },
+      title: 'BrDiagrama - Modelagem de Banco de Dados e Diagramas ER Online',
+      meta: [
+        { name: 'description', content: 'A ferramenta gratuita e 100% brasileira para você transformar scripts SQL (DDL) em diagramas ER de forma automática e offline.' },
+        { name: 'robots', content: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1' },
+        { name: 'author', content: 'BrDiagrama Team - FMP' },
+        { name: 'language', content: 'Portuguese' },
+        { name: 'theme-color', content: '#1abc9c' },
+        { property: 'og:type', content: 'website' },
+        { property: 'og:site_name', content: 'BrDiagrama' },
+        { property: 'og:locale', content: 'pt_BR' },
+        { property: 'og:url', content: 'https://brdiagrama.com/' },
+        { property: 'og:title', content: 'BrDiagrama - Transforme SQL em Diagramas ER Automaticamente' },
+        { property: 'og:description', content: 'Ferramenta brasileira gratuita que gera diagramas ER a partir de SQL em tempo real. Detecta relacionamentos, cardinalidade e herança automaticamente.' },
+        { property: 'og:image', content: 'https://brdiagrama.com/og-cover-social.png' },
+        { property: 'og:image:secure_url', content: 'https://brdiagrama.com/og-cover-social.png' },
+        { property: 'og:image:type', content: 'image/png' },
+        { property: 'og:image:width', content: '1200' },
+        { property: 'og:image:height', content: '630' },
+        { property: 'og:image:alt', content: 'BrDiagrama - Interface do gerador de diagramas ER' },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:title', content: 'BrDiagrama - SQL para Diagrama ER Instantâneo' },
+        { name: 'twitter:description', content: 'Ferramenta gratuita que converte SQL em diagramas ER visuais. Detecta cardinalidade automaticamente. 100% offline e sem cadastro.' },
+        { name: 'twitter:image', content: 'https://brdiagrama.com/og-cover-social.png' },
+        { name: 'twitter:image:alt', content: 'BrDiagrama - Gerador de diagramas ER' }
+      ],
       link: [
+        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+        { rel: 'icon', type: 'image/png', sizes: '96x96', href: '/favicon-96x96.png' },
+        { rel: 'shortcut icon', href: '/favicon.ico' },
+        { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@8..144,100..1000&family=Fira+Code:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap' }

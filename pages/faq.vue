@@ -8,8 +8,58 @@ import Footer from "~/components/layout/Footer.vue";
 
 useHead({
   title: 'FAQ - Dúvidas Frequentes | BrDiagrama',
+  link: [
+    { rel: 'canonical', href: 'https://brdiagrama.com/faq' }
+  ],
   meta: [
-    { name: 'description', content: 'Dúvidas frequentes sobre o BrDiagrama. Saiba como exportar, como o parser funciona e nossa política de privacidade (offline first).' }
+    { name: 'description', content: 'Dúvidas frequentes sobre o BrDiagrama. Saiba como exportar, como o parser funciona e nossa política de privacidade (offline first).' },
+    { property: 'og:url', content: 'https://brdiagrama.com/faq' },
+    { property: 'og:title', content: 'FAQ - Tire suas Dúvidas sobre o BrDiagrama' },
+    { property: 'og:description', content: 'Respostas completas sobre funcionamento, segurança, tipos de relacionamento SQL, compatibilidade e muito mais. 100% gratuito e offline!' },
+    { property: 'og:image', content: 'https://brdiagrama.com/og-cover-social.png' },
+    { name: 'twitter:url', content: 'https://brdiagrama.com/faq' },
+    { name: 'twitter:title', content: 'FAQ - Perguntas Frequentes sobre BrDiagrama' },
+    { name: 'twitter:description', content: 'Como funciona? É seguro? Funciona offline? Todas as respostas sobre a ferramenta brasileira de SQL para Diagramas ER.' },
+    { name: 'twitter:image', content: 'https://brdiagrama.com/og-cover-social.png' }
+  ],
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        name: 'Perguntas Frequentes - BrDiagrama',
+        description: 'Perguntas e respostas sobre o BrDiagrama: funcionalidades, compatibilidade SQL, segurança e privacidade.',
+        url: 'https://brdiagrama.com/faq',
+        inLanguage: 'pt-BR',
+        mainEntity: [
+          {
+            '@type': 'Question',
+            name: 'O que é o BrDiagrama?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'BrDiagrama é uma ferramenta online gratuita que transforma código SQL (DDL) em diagramas ER (Entidade-Relacionamento) de forma automática e instantânea.'
+            }
+          },
+          {
+            '@type': 'Question',
+            name: 'BrDiagrama é gratuito?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'Sim! O BrDiagrama é 100% gratuito e não requer cadastro.'
+            }
+          },
+          {
+            '@type': 'Question',
+            name: 'O BrDiagrama funciona offline?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'Sim! Todo o processamento acontece no seu navegador. Após carregar a página, você pode usar o BrDiagrama mesmo sem conexão com a internet.'
+            }
+          }
+        ]
+      })
+    }
   ]
 })
 

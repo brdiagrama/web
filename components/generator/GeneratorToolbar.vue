@@ -54,7 +54,7 @@ const triggerImportLocal = () => {
           src="~/assets/images/logo/logo-completa.svg"
           alt="BrDiagrama - Logo"
           class="editor-logo"
-          width="auto"
+          width="141"
           height="34"
         />
       </NuxtLink>
@@ -63,7 +63,13 @@ const triggerImportLocal = () => {
 
     <nav class="header-actions" aria-label="Ações do gerador">
       <!-- Badge de Erros -->
-      <v-tooltip v-if="errorCount > 0" :text="`${errorCount} erro(s) no SQL`" location="bottom" :theme="isEditorDark ? 'dark' : 'light'">
+      <v-tooltip
+        v-if="errorCount > 0"
+        :text="`${errorCount} erro(s) no SQL`"
+        :aria-label="`${errorCount} erro(s) no SQL`"
+        location="bottom"
+        :theme="isEditorDark ? 'dark' : 'light'"
+      >
         <template #activator="{ props: tooltipProps }">
           <button
             v-bind="tooltipProps"
@@ -78,7 +84,13 @@ const triggerImportLocal = () => {
       </v-tooltip>
 
       <!-- Badge de Avisos -->
-      <v-tooltip v-if="warningCount > 0" :text="`${warningCount} aviso(s) no SQL`" location="bottom" :theme="isEditorDark ? 'dark' : 'light'">
+      <v-tooltip
+        v-if="warningCount > 0"
+        :text="`${warningCount} aviso(s) no SQL`"
+        :aria-label="`${warningCount} aviso(s) no SQL`"
+        location="bottom"
+        :theme="isEditorDark ? 'dark' : 'light'"
+      >
         <template #activator="{ props: tooltipProps }">
           <button
             v-bind="tooltipProps"
