@@ -5,7 +5,8 @@
 User-agent: *
 Allow: /
 
-# Bloquear arquivos desnecessários para crawlers
+# Bloquear arquivos e rotas desnecessários ou em desenvolvimento
+Disallow: /slides
 Disallow: /node_modules/
 Disallow: /dist/
 Disallow: /.git/
