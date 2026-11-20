@@ -2,9 +2,12 @@
 import { ref, computed, watch } from "vue";
 import { 
   Database, Plus, Search, ChevronRight, 
-  Key, Link, Sun, Moon, TableProperties, Trash2, X 
-} from "lucide-vue-next";
+  Key, Link, Sun, Moon, TableProperties, Trash2, X, Bot
+}from "lucide-vue-next";
 import IconButton from "@/components/shared/IconButton.vue";
+import AiChatPanel from "@/components/generator/AiChatPanel.vue";
+
+const isAiChatOpen = ref(false);
 import type { Table, Column } from "@/domain/models/databaseSchema";
 import { useGeneratorTheme } from "@/composables/useGeneratorTheme";
 import { useDiagram } from "@/composables/useDiagram";
@@ -448,6 +451,16 @@ watch(
       </div>
 
       <nav class="header-actions" aria-label="Ações de modelagem">
+        <!-- Integrar com IA -->
+        <IconButton
+          tooltip="Integrar com IA"
+          :theme="isModelingDark ? 'dark' : 'light'"
+          size="small"
+          @click="isAiChatOpen = !isAiChatOpen"
+        >
+          <Bot :size="18" />
+        </IconButton>
+
         <!-- Alternar Tema -->
         <IconButton
           :tooltip="isModelingDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'"
@@ -738,6 +751,8 @@ watch(
         </div>
       </div>
     </div>
+
+    <AiChatPanel v-if="isAiChatOpen" @close="isAiChatOpen = false" />
   </aside>
 </template>
 
