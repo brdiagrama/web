@@ -20,29 +20,17 @@ export interface DiagramTableData {
   columns: DiagramColumnData[];
 }
 
-export interface CardinalityDemoItem {
-  id: string;
-  label: string;
-  badge: string;
+export interface MethodPipelinePhase {
+  number: string;
   title: string;
   description: string;
-  sqlSnippet: string;
-  videoSrc: string;
 }
 
-export interface MethodStepItem {
-  step: string;
-  title: string;
-  summary: string;
-  artifact: string;
-}
-
-export interface ArchitectureLayerItem {
-  id: string;
-  layer: string;
-  title: string;
-  stack: string[];
-  responsibility: string;
+export interface BetaMetricItem {
+  value: string;
+  label: string;
+  detail: string;
+  highlight?: boolean;
 }
 
 export const SLIDES_METADATA: SlideMetadata[] = [
@@ -52,107 +40,113 @@ export const SLIDES_METADATA: SlideMetadata[] = [
     shortTitle: 'Capa',
     sectionLabel: 'Abertura',
     speakerNote:
-      'Apresentar o BrDiagrama como ferramenta CASE web desenvolvida na FMP pelos autores Davi Lima, Leonardo Andrade e Lucas Blank, sob orientação da Profa. Daniela Amorim, com foco em sincronização bidirecional entre SQL DDL e DER.',
+      'Apresentar o BrDiagrama como ferramenta CASE web desenvolvida na FMP pelos autores Davi Lima, Leonardo Andrade e Lucas Blank, sob orientação da Profa. Daniela Amorim e Prof. Sérgio Schutz.',
+  },
+  {
+    id: 'contexto',
+    number: '02',
+    shortTitle: 'Contexto e Relevância',
+    sectionLabel: '1. Contexto e Relevância',
+    speakerNote:
+      'Contextualizar a presença maciça dos bancos relacionais em produção corporativa (57,3%) e a 1ª Lei de Lehman: software e dados devem evoluir continuamente para permanecerem úteis.',
   },
   {
     id: 'problema',
-    number: '02',
-    shortTitle: 'Justificativa',
-    sectionLabel: '1. Introdução & Justificativa',
-    speakerNote:
-      'Contextualizar a presença dos bancos relacionais (57,3% em 2025) e a Lei da Evolução Contínua de Meir "Manny" Lehman: um software do mundo real nunca está pronto, evolui continuamente junto à estrutura de dados, mas as empresas raramente atualizam a modelagem inicial do banco, tornando a documentação legada e incoerente.',
-  },
-  {
-    id: 'uml',
     number: '03',
-    shortTitle: 'UML & Requisitos',
-    sectionLabel: '4.1–4.2 Discussão',
+    shortTitle: 'O Problema da Desincronização',
+    sectionLabel: '1.1 Problematização',
     speakerNote:
-      'Mostrar o Diagrama de Casos de Uso centrado no ator Usuário: escrever ou importar SQL aciona automaticamente a geração do DER («include»), com exportação de imagem («extend»), exportação SQL e instalação PWA offline.',
-  },
-  /* SLIDES RESERVADOS PARA REVISÃO POSTERIOR:
-  {
-    id: 'justificativa',
-    number: '03',
-    shortTitle: 'Justificativa',
-    sectionLabel: '1.1 Justificativa',
-    speakerNote:
-      'Explicar os dois públicos beneficiados: profissionais de engenharia de software (Devs, DBAs e analistas com engenharia direta e reversa integrada) e estudantes de bancos de dados (aprendizado visual imediato dos efeitos DDL).',
+      'Apresentar a desincronização entre o script SQL em evolução contínua e a documentação DER desatualizada, destacando as 3 principais dores: atualização manual dupla, divergência estrutural e retrabalho.',
   },
   {
-    id: 'objetivos',
+    id: 'visao',
     number: '04',
-    shortTitle: 'Objetivos',
-    sectionLabel: '1.2 Objetivos',
+    shortTitle: 'A Solução BrDiagrama',
+    sectionLabel: '1.2 Solução Proposta',
     speakerNote:
-      'Apresentar o objetivo geral da ferramenta CASE web com sincronização em tempo real e sintetizar os 8 objetivos específicos em 4 entregas concretas: concepção, motor SQL DDL, sincronização bidirecional e validação.',
+      'Apresentar a solução do BrDiagrama: sincronização bidirecional e em tempo real entre scripts SQL e diagramas DER, atendendo à indústria de engenharia de software e ao ensino de bancos de dados.',
+  },
+  {
+    id: 'objetivo',
+    number: '05',
+    shortTitle: 'Objetivo Geral',
+    sectionLabel: '1.3 Objetivo e Metodologia',
+    speakerNote:
+      'Apresentar o objetivo geral do artigo e suas dimensões metodológicas: natureza aplicada, abordagem quali-quantitativa e execução client-side web.',
+  },
+  {
+    id: 'metodo',
+    number: '06',
+    shortTitle: 'Método Proposto',
+    sectionLabel: '3. Metodologia de Desenvolvimento',
+    speakerNote:
+      'Apresentar o método proposto estruturado em 4 etapas concretas de Engenharia de Software: Requisitos e Casos de Uso, Prototipação no Figma, Desenvolvimento do Sistema e Testes e Validação com estudantes.',
   },
   {
     id: 'fundamentacao',
-    number: '05',
+    number: '07',
     shortTitle: 'Fundamentação',
-    sectionLabel: '2. Fundamentação',
+    sectionLabel: '2. Fundamentação Teórica',
     speakerNote:
-      'Posicionar o trabalho na literatura: modelo relacional e integridade por chaves (Elmasri & Navathe; Silberschatz), DER (Chen; Heuser), SQL DDL e classificação de Fuggetta como ferramenta CASE de projeto e engenharia reversa.',
+      'Explicar os conceitos teóricos essenciais: o Modelo Entidade-Relacionamento (nível conceitual e lógico) e a Linguagem SQL DDL (nível físico e estrutural).',
   },
   {
-    id: 'metodologia',
-    number: '06',
-    shortTitle: 'Metodologia',
-    sectionLabel: '3. Metodologia',
-    speakerNote:
-      'Detalhar o enquadramento metodológico (pesquisa aplicada, quali-quantitativa, descritiva, bibliográfica e experimental) e percorrer as 6 etapas do ciclo de desenvolvimento adotado.',
-  },
-  {
-    id: 'prototipacao',
+    id: 'engenharia_case',
     number: '08',
-    shortTitle: 'Interface & UI/UX',
-    sectionLabel: '4.3 Prototipação',
+    shortTitle: 'Engenharia CASE',
+    sectionLabel: '2.1 Engenharia Direta e Reversa',
     speakerNote:
-      'Demonstrar a evolução do wireframe no Figma até a interface Live Split-Screen final, e alternar entre os modos reais de detecção automática de cardinalidades (1:1, 1:N, N:N e Herança).',
+      'Demonstrar os dois fluxos de transformação da ferramenta CASE: Engenharia Direta (DER gerando SQL DDL) e Engenharia Reversa (SQL DDL sendo interpretado para desenhar o DER).',
+  },
+  {
+    id: 'desenvolvimento',
+    number: '09',
+    shortTitle: 'Desenvolvimento',
+    sectionLabel: '4. Ações do Usuário',
+    speakerNote:
+      'Apresentar o perfil de usuário atendido pelo BrDiagrama e o ciclo de ações práticas: importação e escrita de código SQL DDL, manipulação interativa no canvas visual, exportação em múltiplos formatos e execução PWA sem servidor local.',
   },
   {
     id: 'arquitetura',
-    number: '09',
+    number: '10',
     shortTitle: 'Arquitetura',
-    sectionLabel: '4.4 Arquitetura',
+    sectionLabel: '4.1 Arquitetura em 3 Camadas',
     speakerNote:
-      'Explicar a arquitetura 100% client-side em 3 camadas (Apresentação, Processamento AST + Pinia e Hospedagem Vercel/PWA) e interagir com o simulador de sincronização bidirecional ao vivo no slide.',
+      'Explicar detalhadamente a arquitetura client-side em 3 camadas do BrDiagrama: Apresentação (Nuxt, Monaco, SVG, LocalStorage), Processamento Client-Side (node-sql-parser, AST e Pinia) e Hospedagem em Nuvem (Vercel e PWA).',
   },
   {
-    id: 'validacao',
-    number: '10',
-    shortTitle: 'Validação & Conclusão',
-    sectionLabel: '4.5–5. Conclusão',
+    id: 'teste_beta',
+    number: '11',
+    shortTitle: 'Teste Beta',
+    sectionLabel: '4.5 Validação Empírica',
     speakerNote:
-      'Apresentar o protocolo planejado para os testes de validação (tarefa prática SQL/DER, fases Alfa/Beta e formulário), retomar como o BrDiagrama responde ao problema de pesquisa e apontar trabalhos futuros.',
+      'Apresentar os resultados do Teste Beta com 25 estudantes da 2ª e 3ª fase de ADS: 96% geraram o diagrama completo, 100% aprovaram tipos/chaves/relacionamentos, 92% tabelas/colunas e 96% de satisfação geral, além das melhorias mapeadas.',
   },
-  */
+  {
+    id: 'conclusao',
+    number: '12',
+    shortTitle: 'Conclusão',
+    sectionLabel: '5. Conclusão e Agradecimentos',
+    speakerNote:
+      'Encerrar apresentando as principais conclusões alcançadas pelo projeto BrDiagrama e fazer os agradecimentos à banca examinadora, orientadores e instituição.',
+  },
 ];
 
 export const ARTICLE_COVER_INFO = {
   title:
-    'Ferramenta para Apoio à Modelagem de Dados com Sincronização Bidirecional entre Scripts SQL e Diagramas de Entidade e Relacionamento',
+    'Desenvolvimento de uma Ferramenta para Apoio à Modelagem de Dados com Sincronização Bidirecional entre Scripts SQL e Diagramas de Entidade e Relacionamento: BrDiagrama',
   institution: 'Faculdade Municipal de Palhoça (FMP)',
   course: 'Análise e Desenvolvimento de Sistemas',
   year: '2026',
   authors: ['Davi Lima', 'Leonardo Andrade', 'Lucas Blank'],
   advisors: ['Daniela Amorim', 'Sérgio Schutz'],
-  emails: ['davi.lima@aluno.fmpsc.edu.br', 'daniela.amorim@fmpsc.edu.br'],
+  emails: [
+    'davi.lima@aluno.fmpsc.edu.br',
+    'leonardo.andrade@aluno.fmpsc.edu.br',
+    'lucas.blank@aluno.fmpsc.edu.br',
+    'daniela.amorim@fmpsc.edu.br',
+  ],
 };
-
-export const COVER_SQL_SNIPPET = `CREATE TABLE clientes (
-  id INT PRIMARY KEY,
-  nome VARCHAR(100) NOT NULL
-);
-
-CREATE TABLE pedidos (
-  id INT PRIMARY KEY,
-  total DECIMAL(10,2) NOT NULL,
-  data DATE NOT NULL,
-  cliente_id INT NOT NULL,
-  FOREIGN KEY (cliente_id) REFERENCES clientes(id)
-);`;
 
 export const COVER_TABLES: DiagramTableData[] = [
   {
@@ -190,274 +184,97 @@ export const PROBLEM_BREAKDOWN = [
   },
 ];
 
-export const JUSTIFICATION_AXES = [
+export const METHOD_PIPELINE: MethodPipelinePhase[] = [
   {
-    id: 'industria',
-    audience: 'Indústria e Engenharia de Software',
-    roles: 'Desenvolvedores · DBAs · Analistas',
-    summary:
-      'Integra engenharia direta e reversa em tempo real, eliminando a desincronização entre o script implementado e a documentação visual.',
-    points: [
-      'Alterações no SQL atualizam o DER instantaneamente.',
-      'Edições visuais no diagrama refletem de volta no código DDL.',
-      'Reduz retrabalho em evoluções contínuas do esquema.',
-    ],
+    number: '01',
+    title: 'Requisitos e Casos de Uso',
+    description:
+      'Definição das necessidades do sistema e mapeamento das ações do usuário, focando na sincronização em tempo real.',
   },
   {
-    id: 'ensino',
-    audience: 'Ensino de Bancos de Dados',
-    roles: 'Estudantes · Docentes · Laboratórios',
-    summary:
-      'Aproxima conceitos teóricos de modelagem relacional da prática em SQL por meio de feedback visual imediato.',
-    points: [
-      'Visualização instantânea dos efeitos de CREATE, PK e FK.',
-      'Compreensão prática de cardinalidades 1:1, 1:N e N:N.',
-      'Acesso direto no navegador e offline, sem instalação complexa.',
-    ],
-  },
-];
-
-export const OBJECTIVES_DATA = {
-  general:
-    'Desenvolver uma ferramenta CASE web para modelagem de bancos de dados relacionais que permita a sincronização bidirecional e em tempo real entre scripts SQL DDL e Diagramas de Entidade-Relacionamento.',
-  pillars: [
-    {
-      code: '01_concepcao',
-      title: 'Pesquisa, Requisitos e Prototipação',
-      items: [
-        'Pesquisar tecnologias viáveis para execução web e offline.',
-        'Levantar requisitos e modelar fluxos UML e wireframes no Figma.',
-      ],
-    },
-    {
-      code: '02_motor_ddl',
-      title: 'Interpretação SQL DDL e Chaves',
-      items: [
-        'Processar scripts SQL DDL para estrutura intermediária (AST).',
-        'Identificar PKs, FKs e cardinalidades para compor relacionamentos.',
-      ],
-    },
-    {
-      code: '03_sync_engine',
-      title: 'Sincronização Bidirecional Real-Time',
-      items: [
-        'Refletir alterações do editor SQL imediatamente no DER.',
-        'Propagar edições visuais no diagrama de volta ao código SQL.',
-      ],
-    },
-    {
-      code: '04_interface_testes',
-      title: 'Interface Interativa e Validação',
-      items: [
-        'Entregar editor e canvas SVG com navegação, zoom e exportação.',
-        'Executar testes funcionais e validação prática da sincronização.',
-      ],
-    },
-  ],
-};
-
-export const THEORY_TABLES: DiagramTableData[] = [
-  {
-    id: 'modelo_relacional',
-    name: 'modelo_relacional',
-    subtitle: 'Base Estrutural',
-    columns: [
-      { name: 'tabelas_e_tuplas', type: 'Elmasri; Navathe (2015)', isPk: true },
-      { name: 'integridade_pk_fk', type: 'Silberschatz et al. (2020)', isFk: true },
-      { name: 'sgbds_relacionais', type: 'PostgreSQL; Oracle (2026)' },
-    ],
+    number: '02',
+    title: 'Prototipação no Figma',
+    description:
+      'Criação do visual das telas para validar o editor de código à esquerda e o espaço do diagrama à direita.',
   },
   {
-    id: 'mer_e_sql_ddl',
-    name: 'mer_e_sql_ddl',
-    subtitle: 'Representação e Linguagem',
-    columns: [
-      { name: 'entidade_relacionamento', type: 'Chen (1976)', isPk: true },
-      { name: 'cardinalidade_1_n', type: 'Heuser (2009)' },
-      { name: 'create_alter_drop', type: 'ISO SQL; Oracle (2026)', isFk: true },
-    ],
+    number: '03',
+    title: 'Desenvolvimento do Sistema',
+    description:
+      'Construção do motor que lê o SQL, atualiza o diagrama visual e permite usar o aplicativo mesmo sem internet.',
   },
   {
-    id: 'ferramenta_case',
-    name: 'ferramenta_case',
-    subtitle: 'Classificação Tecnológica',
-    columns: [
-      { name: 'nivel_tool', type: 'Fuggetta (1993)', isPk: true },
-      { name: 'projeto_e_eng_reversa', type: 'Sommerville (2007)', isFk: true },
-      { name: 'automacao_e_apoio', type: 'Pressman (2002); Chen (2002)' },
-    ],
-  },
-];
-
-export const METHODOLOGY_CLASSIFICATION = [
-  { label: 'Natureza', value: 'Aplicada', ref: 'Gil, 2019' },
-  { label: 'Abordagem', value: 'Quali-Quantitativa', ref: 'Gray, 2012' },
-  { label: 'Objetivo', value: 'Descritiva', ref: 'Gil, 2019' },
-  { label: 'Procedimentos', value: 'Bibliográfica + Experimental', ref: 'Heuser, 2009' },
-];
-
-export const METHOD_STEPS: MethodStepItem[] = [
-  {
-    step: '01',
-    title: 'Requisitos',
-    summary: 'Levantamento funcional e não funcional com foco na sincronização bidirecional.',
-    artifact: 'Especificação (Apêndice A)',
-  },
-  {
-    step: '02',
-    title: 'Modelagem UML',
-    summary: 'Definição da arquitetura e fluxos por Diagrama de Casos de Uso.',
-    artifact: 'Figura 1 / Apêndice B',
-  },
-  {
-    step: '03',
-    title: 'Prototipação',
-    summary: 'Wireframes no Figma validando editor à esquerda e canvas à direita.',
-    artifact: 'Figura 2 / Apêndice C',
-  },
-  {
-    step: '04',
-    title: 'Implementação',
-    summary: 'Nuxt 4, Vue 3.5, TypeScript, Monaco Editor, node-sql-parser (AST) e Pinia.',
-    artifact: 'Motor SQL ↔ DER',
-  },
-  {
-    step: '05',
-    title: 'Canvas e PWA',
-    summary: 'Renderização SVG com svg-pan-zoom, Web Storage, exportação PNG/SVG e modo offline.',
-    artifact: 'App Instalável',
-  },
-  {
-    step: '06',
+    number: '04',
     title: 'Testes e Validação',
-    summary: 'Testes unitários e de integração do parser, seguidos de avaliação prática de uso.',
-    artifact: 'Validação (Seção 4.5)',
+    description:
+      'Verificação técnica do funcionamento e aplicação prática com 25 alunos do curso de ADS da faculdade.',
   },
 ];
 
-export const UML_USE_CASES = [
+export interface ConceptCardData {
+  tag: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  items: { label: string; detail: string }[];
+}
+
+export const FUNDAMENTACAO_CONCEPTS: ConceptCardData[] = [
   {
-    name: 'Escrever ou Importar SQL',
-    relation: 'Gatilho principal',
-    description: 'O usuário cria o código do banco na hora ou carrega um arquivo SQL pronto.',
+    tag: 'Chen (1976) · Heuser (2009)',
+    title: 'Modelo Entidade-Relacionamento (DER)',
+    subtitle: 'Nível Conceitual e Lógico',
+    description:
+      'Representação gráfica abstrata das entidades do domínio, seus atributos e as cardinalidades que regem os vínculos entre tabelas.',
+    items: [
+      { label: 'Entidades e Tabelas', detail: 'Estruturas que representam objetos do mundo real' },
+      { label: 'Atributos e Chaves', detail: 'Identificadores únicos (PK) e vínculos externos (FK)' },
+      { label: 'Cardinalidades', detail: 'Relações de proporção entre registros (1:1, 1:N e N:N)' },
+    ],
   },
   {
-    name: 'Gerar DER',
-    relation: '«include» automático',
-    description: 'Cria o diagrama visual automaticamente enquanto o código é digitado.',
-  },
-  {
-    name: 'Exportar Imagem',
-    relation: '«extend» opcional',
-    description: 'Download do diagrama pronto em imagem (PNG) ou vetor (SVG).',
-  },
-  {
-    name: 'Exportar SQL e Instalar APP',
-    relation: 'Ações diretas',
-    description: 'Baixa o script final e permite usar o aplicativo sem internet direto no computador.',
+    tag: 'Elmasri e Navathe (2015) · ISO/IEC SQL',
+    title: 'Linguagem SQL (Subconjunto DDL)',
+    subtitle: 'Nível Físico e Estrutural',
+    description:
+      'Linguagem declarativa padronizada para definir, alterar e estruturar os esquemas de tabelas e regras de integridade relacional.',
+    items: [
+      { label: 'Definição Estrutural', detail: 'Instruções CREATE TABLE, ALTER TABLE e DROP TABLE' },
+      { label: 'Tipos e Restrições', detail: 'Tipagem de colunas (INT, VARCHAR, DATE) e constraints' },
+      { label: 'Integridade Referencial', detail: 'Cláusulas REFERENCES e regras de chave estrangeira' },
+    ],
   },
 ];
 
-export const CARDINALITY_DEMOS: CardinalityDemoItem[] = [
+export const BETA_METRICS: BetaMetricItem[] = [
   {
-    id: '1:1',
-    label: '1:1',
-    badge: 'UNIQUE + NOT NULL',
-    title: 'Conexão Exclusiva (1:1)',
-    description:
-      'Detecta automaticamente a restrição UNIQUE e NOT NULL na chave estrangeira, desenhando vínculo exclusivo entre entidades.',
-    sqlSnippet: 'perfil_id INT NOT NULL UNIQUE REFERENCES usuarios(id)',
-    videoSrc: '/videos/1-1.mp4',
+    value: '100%',
+    label: 'Chaves, Tipos e Relações',
+    detail: 'Concordância total na representação de PK, FK e tipos de dados.',
+    highlight: true,
   },
   {
-    id: '1:N',
-    label: '0..N',
-    badge: 'FK Opcional',
-    title: 'Um para Muitos (Opcional)',
-    description:
-      'Quando a chave estrangeira aceita valores nulos, o conector representa participação opcional no relacionamento.',
-    sqlSnippet: 'departamento_id INT NULL REFERENCES departamentos(id)',
-    videoSrc: '/videos/1-N.mp4',
+    value: '96%',
+    label: 'Geração Completa e Satisfação',
+    detail: '24 de 25 diagramas gerados integralmente e aprovação geral de uso.',
+    highlight: true,
   },
   {
-    id: 'apenas1:N',
-    label: '1..N',
-    badge: 'FK NOT NULL',
-    title: 'Um para Muitos (Estrito)',
-    description:
-      'Ao definir NOT NULL na chave estrangeira, a ferramenta destaca a obrigatoriedade referencial do vínculo.',
-    sqlSnippet: 'cliente_id INT NOT NULL REFERENCES clientes(id)',
-    videoSrc: '/videos/apenas1-N.mp4',
-  },
-  {
-    id: 'N:N',
-    label: 'N:N',
-    badge: 'Tabela Associativa',
-    title: 'Muitos para Muitos (N:N)',
-    description:
-      'Reconhece tabelas de junção por chaves primárias compostas que referenciam duas ou mais entidades.',
-    sqlSnippet: 'PRIMARY KEY (aluno_id, turma_id) -- Duas FKs compostas',
-    videoSrc: '/videos/N-N.mp4',
-  },
-  {
-    id: 'heranca',
-    label: 'Herança',
-    badge: 'PK = FK',
-    title: 'Herança e Especialização',
-    description:
-      'Identifica quando a chave primária também atua como chave estrangeira da superclasse, representando extensão Pai-Filho.',
-    sqlSnippet: 'pessoa_id INT PRIMARY KEY REFERENCES pessoas(id)',
-    videoSrc: '/videos/heranca.mp4',
+    value: '92%',
+    label: 'Tabelas, Colunas e Reuso',
+    detail: 'Identificação exata da estrutura e intenção de usar em novos projetos.',
   },
 ];
 
-export const ARCHITECTURE_LAYERS: ArchitectureLayerItem[] = [
-  {
-    id: 'apresentacao',
-    layer: 'Camada 01',
-    title: 'Apresentação (Browser)',
-    stack: ['Nuxt 4', 'Vue 3.5', 'TypeScript', 'Monaco Editor', 'SVG + svg-pan-zoom', 'Web Storage'],
-    responsibility:
-      'Divide a interface em editor SQL e canvas vetorial interativo com manipulação inline, pan/zoom e persistência local.',
-  },
-  {
-    id: 'processamento',
-    layer: 'Camada 02',
-    title: 'Processamento (Engine Local)',
-    stack: ['node-sql-parser (AST)', 'Extratores Semânticos', 'Pinia Store', 'Path Router'],
-    responsibility:
-      'Decompõe comandos DDL em Árvore Sintática Abstrata (AST), extrai PKs/FKs/cardinalidades e sincroniza estado e coordenadas (X, Y).',
-  },
-  {
-    id: 'hospedagem',
-    layer: 'Camada 03',
-    title: 'Entrega e Autonomia (PWA)',
-    stack: ['Vercel HTTPS', 'Service Worker', 'Progressive Web App'],
-    responsibility:
-      'Dispensa servidores backend para parsing: entrega estática segura com instalação local e execução integral offline.',
-  },
+export const BETA_IMPROVEMENTS = [
+  'Salvar múltiplos projetos',
+  'Atalho de desfazer ações (Ctrl + Z)',
+  'Dicas visuais para erros de sintaxe SQL',
+  'Refinamento de organização da interface',
 ];
 
-export const VALIDATION_PROTOCOL = [
-  {
-    tag: 'Tarefa Prática',
-    title: 'Modelagem Direta e Reversa',
-    detail: 'Execução de roteiro com scripts SQL DDL e edição direta no diagrama para aferir correspondência estrutural.',
-  },
-  {
-    tag: 'Ciclo Alfa / Beta',
-    title: 'Testes com Participantes',
-    detail: 'Validação técnica interna (Alfa) seguida de uso orientado com estudantes/desenvolvedores (Beta).',
-  },
-  {
-    tag: 'Instrumento',
-    title: 'Formulário Estruturado',
-    detail: 'Coleta de tempo de resposta percebido, clareza do diagrama gerado e facilidade de uso da interface.',
-  },
-];
-
-export const FUTURE_ROADMAP = [
-  'Expansão do suporte completo de comandos ALTER TABLE e DROP TABLE nos diferentes dialetos.',
-  'Aprimoramento da geração incremental de scripts de migração a partir de alterações no DER.',
-  'Avaliação empírica ampliada em turmas de modelagem de dados e times de engenharia.',
+export const CONCLUSION_FUTURE = [
+  'Ampliar testes com novos perfis (DBAs e times comerciais)',
+  'Suporte expandido a comandos DDL complexos e migrações',
+  'Novos recursos visuais de sincronização SQL ↔ DER',
 ];

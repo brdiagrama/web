@@ -82,6 +82,36 @@ const handleRowClick = (col: DiagramColumnData) => {
   overflow: hidden;
   transition: border-color 0.2s ease, transform 0.2s ease;
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+@media print {
+  .slide-diagram-card {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .card-header {
+    background-color: #192747 !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .table-name {
+    color: #ffffff !important;
+  }
+
+  .column-row {
+    background-color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .column-row.is-pk {
+    background-color: #f7fafc !important;
+  }
 }
 
 .slide-diagram-card.is-interactive {

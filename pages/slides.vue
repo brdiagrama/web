@@ -9,42 +9,29 @@ import {
   Maximize2,
   Minimize2,
   X,
-  Database,
-  Code2,
   GitCompareArrows,
   Briefcase,
   GraduationCap,
   Check,
-  AlertCircle,
-  Layers,
-  Cpu,
-  Globe,
-  ClipboardCheck,
   ArrowUpRight,
-  RefreshCw,
-  FileCode2,
-  Image as ImageIcon,
-  Smartphone,
   Key,
+  Printer,
+  User,
+  ArrowRight,
+  Download,
+  Loader2,
 } from 'lucide-vue-next';
 import SlideDiagramCard from '@/components/slides/SlideDiagramCard.vue';
 import {
   SLIDES_METADATA,
   ARTICLE_COVER_INFO,
-  COVER_SQL_SNIPPET,
   COVER_TABLES,
   PROBLEM_BREAKDOWN,
-  JUSTIFICATION_AXES,
-  OBJECTIVES_DATA,
-  THEORY_TABLES,
-  METHODOLOGY_CLASSIFICATION,
-  METHOD_STEPS,
-  UML_USE_CASES,
-  CARDINALITY_DEMOS,
-  ARCHITECTURE_LAYERS,
-  VALIDATION_PROTOCOL,
-  FUTURE_ROADMAP,
-  type DiagramTableData,
+  METHOD_PIPELINE,
+  FUNDAMENTACAO_CONCEPTS,
+  BETA_METRICS,
+  BETA_IMPROVEMENTS,
+  CONCLUSION_FUTURE,
 } from '@/data/slidesPresentationData';
 import mysqlIcon from '@/assets/images/sgbd/mysql.svg';
 import postgresqlIcon from '@/assets/images/sgbd/postgresql.svg';
@@ -69,14 +56,8 @@ const currentSlideIndex = ref(0);
 const isOverviewOpen = ref(false);
 const isNotesOpen = ref(false);
 const isFullscreen = ref(false);
-
-const activeTheoryId = ref('ferramenta_case');
-const activeCardinalityId = ref('1:1');
-
-const hasEmailColumn = ref(false);
-const isFkRequired = ref(true);
-const isTableRenamed = ref(false);
-const lastSyncSource = ref<'SQL' | 'DER'>('SQL');
+const isExportingPptx = ref(false);
+const isPrintAllMode = ref(false);
 
 const totalSlides = SLIDES_METADATA.length;
 
@@ -88,36 +69,6 @@ const progressPercent = computed(() => {
   return Math.round(((currentSlideIndex.value + 1) / totalSlides) * 100);
 });
 
-const activeCardinality = computed(() => {
-  const found = CARDINALITY_DEMOS.find((item) => item.id === activeCardinalityId.value);
-  return found ?? CARDINALITY_DEMOS[0];
-});
-
-const theoryInsights: Record<string, { title: string; summary: string; tags: string[] }> = {
-  modelo_relacional: {
-    title: 'Organização Relacional e Integridade por Chaves',
-    summary:
-      'SGBDs estruturam dados em tabelas (tuplas e atributos) com integridade garantida por chaves primárias e estrangeiras (Elmasri; Navathe, 2015; Silberschatz et al., 2020).',
-    tags: ['Tabelas', 'Chave Primária (PK)', 'Chave Estrangeira (FK)'],
-  },
-  mer_e_sql_ddl: {
-    title: 'Do Modelo Entidade-Relacionamento ao Código DDL',
-    summary:
-      'O MER (Chen, 1976) expressa entidades e cardinalidades (1:1, 1:N, N:N), enquanto comandos DDL (CREATE, ALTER, DROP) materializam a estrutura no SGBD (Heuser, 2009; Oracle, 2026).',
-    tags: ['MER / DER', 'Cardinalidade', 'SQL DDL'],
-  },
-  ferramenta_case: {
-    title: 'Classificação CASE (Fuggetta, 1993)',
-    summary:
-      'Situa-se no nível de ferramenta (Tool), unindo as categorias de projeto (geração visual do DER) e engenharia reversa (extração direta do SQL DDL), eliminando desenho manual.',
-    tags: ['Nivel Tool', 'Projeto Visual', 'Engenharia Reversa'],
-  },
-};
-
-const activeTheoryDetail = computed(() => {
-  return theoryInsights[activeTheoryId.value] ?? theoryInsights.ferramenta_case;
-});
-
 const dialectBadges = [
   { name: 'PostgreSQL', icon: postgresqlIcon },
   { name: 'MySQL', icon: mysqlIcon },
@@ -125,65 +76,6 @@ const dialectBadges = [
   { name: 'SQLite', icon: sqliteIcon },
   { name: 'SQL Server', icon: sqlserverIcon },
 ];
-
-const demoTargetTableName = computed(() => {
-  return isTableRenamed.value ? 'matriculas' : 'pedidos';
-});
-
-const demoSqlCode = computed(() => {
-  const emailLine = hasEmailColumn.value ? '\n  email VARCHAR(120) NOT NULL,' : '';
-  const fkConstraint = isFkRequired.value ? 'INT NOT NULL' : 'INT NULL';
-  return `CREATE TABLE clientes (
-  id INT PRIMARY KEY,
-  nome VARCHAR(100) NOT NULL,${emailLine}
-);
-
-CREATE TABLE ${demoTargetTableName.value} (
-  id INT PRIMARY KEY,
-  cliente_id ${fkConstraint},
-  FOREIGN KEY (cliente_id) REFERENCES clientes(id)
-);`;
-});
-
-const demoAstSummary = computed(() => {
-  const columnsCount = hasEmailColumn.value ? 3 : 2;
-  const cardinalityLabel = isFkRequired.value ? '1 : 1..N (Estrito)' : '1 : 0..N (Opcional)';
-  return {
-    tables: ['clientes', demoTargetTableName.value],
-    columnsCount,
-    cardinalityLabel,
-  };
-});
-
-const demoClientsTable = computed<DiagramTableData>(() => {
-  const columns = [
-    { name: 'id', type: 'INT', isPk: true },
-    { name: 'nome', type: 'VARCHAR(100)' },
-  ];
-  if (hasEmailColumn.value) {
-    columns.push({ name: 'email', type: 'VARCHAR(120)' });
-  }
-  return {
-    id: 'demo_clientes',
-    name: 'clientes',
-    columns,
-  };
-});
-
-const demoTargetTable = computed<DiagramTableData>(() => {
-  return {
-    id: 'demo_target',
-    name: demoTargetTableName.value,
-    columns: [
-      { name: 'id', type: 'INT', isPk: true },
-      {
-        name: 'cliente_id',
-        type: isFkRequired.value ? 'INT NOT NULL' : 'INT NULL',
-        isFk: true,
-      },
-    ],
-  };
-});
 
 const animateCurrentSlide = () => {
   if (import.meta.client && slideBodyRef.value) {
@@ -195,25 +87,13 @@ const animateCurrentSlide = () => {
         {
           opacity: 1,
           y: 0,
-          duration: 0.42,
-          stagger: 0.055,
+          duration: 0.4,
+          stagger: 0.05,
           ease: 'power2.out',
           clearProps: 'opacity,y,transform',
         }
       );
     }
-
-    const connectorPaths = slideBodyRef.value.querySelectorAll<SVGPathElement>('.draw-connector');
-    connectorPaths.forEach((pathEl) => {
-      const length = pathEl.getTotalLength();
-      gsap.set(pathEl, { strokeDasharray: length, strokeDashoffset: length });
-      gsap.to(pathEl, {
-        strokeDashoffset: 0,
-        duration: 0.75,
-        delay: 0.15,
-        ease: 'power2.inOut',
-      });
-    });
   }
 };
 
@@ -244,6 +124,60 @@ const toggleNotes = () => {
   isNotesOpen.value = !isNotesOpen.value;
 };
 
+const printSlides = () => {
+  if (!import.meta.client) return;
+  window.print();
+};
+
+const exportPptx = async () => {
+  if (!import.meta.client || isExportingPptx.value) return;
+  isExportingPptx.value = true;
+
+  try {
+    const pptxgen = (await import('pptxgenjs')).default;
+    const html2canvas = (await import('html2canvas')).default;
+
+    const pres = new pptxgen();
+    pres.layout = 'LAYOUT_16x9';
+
+    const origIndex = currentSlideIndex.value;
+    const wasOverviewOpen = isOverviewOpen.value;
+    const wasNotesOpen = isNotesOpen.value;
+
+    isOverviewOpen.value = false;
+    isNotesOpen.value = false;
+
+    for (let i = 0; i < totalSlides; i++) {
+      currentSlideIndex.value = i;
+      await nextTick();
+      await new Promise((r) => setTimeout(r, 450));
+
+      const stageEl = document.querySelector('.slides-stage') as HTMLElement | null;
+      if (stageEl) {
+        const canvas = await html2canvas(stageEl, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#FFFFFF',
+        });
+        const imgData = canvas.toDataURL('image/png');
+        const slide = pres.addSlide();
+        slide.addImage({ data: imgData, x: 0, y: 0, w: '100%', h: '100%' });
+      }
+    }
+
+    currentSlideIndex.value = origIndex;
+    isOverviewOpen.value = wasOverviewOpen;
+    isNotesOpen.value = wasNotesOpen;
+
+    await pres.writeFile({ fileName: 'brdiagrama-apresentacao.pptx' });
+  } catch (err) {
+    console.error('Erro ao exportar PPTX:', err);
+  } finally {
+    isExportingPptx.value = false;
+  }
+};
+
 const toggleFullscreen = async () => {
   if (import.meta.client) {
     if (!document.fullscreenElement && slidesShellRef.value) {
@@ -266,28 +200,6 @@ const handleFullscreenChange = () => {
   if (import.meta.client) {
     isFullscreen.value = Boolean(document.fullscreenElement);
   }
-};
-
-const handleToggleEmailFromSql = () => {
-  hasEmailColumn.value = !hasEmailColumn.value;
-  lastSyncSource.value = 'SQL';
-};
-
-const handleToggleFkFromSql = () => {
-  isFkRequired.value = !isFkRequired.value;
-  lastSyncSource.value = 'SQL';
-};
-
-const handleRenameFromDiagram = () => {
-  isTableRenamed.value = !isTableRenamed.value;
-  lastSyncSource.value = 'DER';
-};
-
-const handleResetSyncDemo = () => {
-  hasEmailColumn.value = false;
-  isFkRequired.value = true;
-  isTableRenamed.value = false;
-  lastSyncSource.value = 'SQL';
 };
 
 const handleKeyDown = (event: KeyboardEvent) => {
@@ -315,8 +227,6 @@ const handleKeyDown = (event: KeyboardEvent) => {
       toggleFullscreen();
     } else if (event.key >= '1' && event.key <= '9') {
       goToSlide(Number(event.key) - 1);
-    } else if (event.key === '0') {
-      goToSlide(9);
     }
   }
 };
@@ -414,6 +324,37 @@ onBeforeUnmount(() => {
           </template>
         </v-tooltip>
 
+        <v-tooltip text="Exportar para PPTX (PowerPoint)" location="bottom" theme="light">
+          <template #activator="{ props: tooltipProps }">
+            <button
+              v-bind="tooltipProps"
+              type="button"
+              class="tool-btn pptx-btn"
+              :class="{ 'is-loading': isExportingPptx }"
+              :disabled="isExportingPptx"
+              aria-label="Exportar para PPTX"
+              @click="exportPptx"
+            >
+              <Loader2 v-if="isExportingPptx" :size="16" class="spin-icon" />
+              <Download v-else :size="16" />
+            </button>
+          </template>
+        </v-tooltip>
+
+        <v-tooltip text="Exportar para PDF / Imprimir (Ctrl+P)" location="bottom" theme="light">
+          <template #activator="{ props: tooltipProps }">
+            <button
+              v-bind="tooltipProps"
+              type="button"
+              class="tool-btn"
+              aria-label="Exportar para PDF ou Imprimir"
+              @click="printSlides"
+            >
+              <Printer :size="16" />
+            </button>
+          </template>
+        </v-tooltip>
+
         <v-tooltip :text="isFullscreen ? 'Sair da tela cheia (F)' : 'Tela cheia (F)'" location="bottom" theme="light">
           <template #activator="{ props: tooltipProps }">
             <button
@@ -460,17 +401,13 @@ onBeforeUnmount(() => {
     </div>
 
     <main class="slides-stage" role="main">
-      <div ref="slideBodyRef" :key="currentSlide.id" class="slide-container">
-        <!-- SLIDE 01: CAPA -->
-        <section v-if="currentSlide.id === 'capa'" class="slide-grid slide-cover">
+      <div v-for="slide in SLIDES_METADATA" :key="slide.id" class="slide-container" :class="{ 'screen-hidden': slide.id !== currentSlide.id }">
+        <!-- SLIDE 01: CAPA (MANTIDO E APROVADO) -->
+        <section v-if="slide.id === 'capa'" class="slide-grid slide-cover">
           <div class="cover-editorial">
             <h1 class="cover-title slide-stagger">
-              {{ ARTICLE_COVER_INFO.title }}
+              Desenvolvimento de uma Ferramenta para Apoio à Modelagem de Dados com Sincronização Bidirecional entre Scripts SQL e Diagramas de Entidade e Relacionamento: <span class="brand-word">BrDiagrama</span>
             </h1>
-
-            <p class="cover-subtitle slide-stagger">
-              <strong class="brand-word">BrDiagrama</strong> a ferramenta web que mantém scripts SQL DDL e Diagramas de Entidade-Relacionamento sincronizados em tempo real no navegador.
-            </p>
 
             <div class="cover-meta-grid slide-stagger">
               <div class="meta-block">
@@ -495,7 +432,6 @@ onBeforeUnmount(() => {
 
           <div class="cover-visual slide-stagger">
             <div class="cover-canvas-clean">
-              <!-- Bloco SQL Editor oficial do BrDiagrama (BrDiagramaDarkModern) -->
               <div class="cover-code-surface">
                 <pre class="sql-code-pre"><code><span class="sql-kw">CREATE TABLE</span> <span class="sql-ident">clientes</span> <span class="sql-delim">(</span>
   <span class="sql-ident">id</span> <span class="sql-type">INT</span> <span class="sql-kw">PRIMARY KEY</span><span class="sql-delim">,</span>
@@ -511,17 +447,14 @@ onBeforeUnmount(() => {
 <span class="sql-delim">);</span></code></pre>
               </div>
 
-              <!-- Garfo de sincronização que sai do SQL e encosta no header das duas tabelas -->
               <div class="cover-sync-fork" aria-hidden="true">
                 <svg class="fork-svg" viewBox="0 0 540 84" preserveAspectRatio="none" fill="none">
-                  <!-- Ramo esquerdo: sai do SQL com descida harmônica até o header de orientacao -->
                   <path
                     d="M 270 0 L 270 36 Q 270 50 254 50 L 130 50 Q 114 50 114 64 L 114 84"
                     stroke="#192747"
                     stroke-width="1.8"
                     stroke-linecap="round"
                   />
-                  <!-- Ramo direito: sai do SQL com descida harmônica até o header de projeto_brdiagrama -->
                   <path
                     d="M 270 0 L 270 36 Q 270 50 286 50 L 410 50 Q 426 50 426 64 L 426 84"
                     stroke="#192747"
@@ -529,13 +462,10 @@ onBeforeUnmount(() => {
                     stroke-linecap="round"
                   />
 
-                  <!-- Ponto de conexão na base do SQL -->
                   <circle cx="270" cy="2" r="3.5" fill="#192747" />
-                  <!-- Pontos de conexão encostando nos headers das tabelas -->
                   <circle cx="114" cy="82" r="3.5" fill="#192747" />
                   <circle cx="426" cy="82" r="3.5" fill="#192747" />
 
-                  <!-- Bolinha animada 1: Sincronização SQL <-> orientacao -->
                   <circle r="4.5" fill="#1ABA9C">
                     <animateMotion
                       dur="3s"
@@ -548,7 +478,6 @@ onBeforeUnmount(() => {
                     />
                   </circle>
 
-                  <!-- Bolinha animada 2: Sincronização SQL <-> projeto_brdiagrama -->
                   <circle r="4.5" fill="#1ABA9C">
                     <animateMotion
                       dur="3s"
@@ -563,22 +492,18 @@ onBeforeUnmount(() => {
                 </svg>
               </div>
 
-              <!-- Diagrama DER fiel ao BrDiagrama (clientes 1 ──< N pedidos) -->
               <div class="cover-der-stage">
                 <div class="cover-card-slot is-left">
                   <SlideDiagramCard :table="COVER_TABLES[0]" compact />
                 </div>
 
-                <!-- Linha de relacionamento 1:N fiel ao canvas do BrDiagrama -->
                 <div class="cover-der-rel" aria-hidden="true">
                   <svg class="der-rel-svg" viewBox="0 0 84 158" fill="none">
-                    <!-- Linha principal de relacionamento saindo de clientes.id (PK) até pedidos.cliente_id (FK) -->
                     <path
                       d="M 0 43 L 34 43 Q 42 43 42 51 L 42 135 Q 42 143 50 143 L 84 143"
                       stroke="#192747"
                       stroke-width="2"
                     />
-                    <!-- Fluxo tracejado azul oficial do BrDiagrama (connector-flow) -->
                     <path
                       class="der-flow-line"
                       d="M 0 43 L 34 43 Q 42 43 42 51 L 42 135 Q 42 143 50 143 L 84 143"
@@ -587,12 +512,10 @@ onBeforeUnmount(() => {
                       stroke-dasharray="3 10"
                     />
 
-                    <!-- Marcador 1 (duas barras verticais de obrigatório 1..1) -->
                     <line x1="11" y1="36" x2="11" y2="50" stroke="#192747" stroke-width="2" />
                     <line x1="16" y1="36" x2="16" y2="50" stroke="#192747" stroke-width="2" />
                     <text x="10" y="29" class="der-card-text">1</text>
 
-                    <!-- Marcador N (círculo + pé de galinha Crow's Foot encostando na FK) -->
                     <circle cx="67" cy="143" r="4" fill="#ffffff" stroke="#192747" stroke-width="2" />
                     <path d="M 84 136 L 72 143 L 84 150" stroke="#192747" stroke-width="1.8" fill="none" />
                     <text x="63" y="130" class="der-card-text">N</text>
@@ -607,67 +530,77 @@ onBeforeUnmount(() => {
           </div>
         </section>
 
-        <!-- SLIDE 02: JUSTIFICATIVA & PROBLEMA -->
-        <section v-else-if="currentSlide.id === 'problema'" class="slide-stack">
+        <!-- SLIDE 02: CONTEXTO E RELEVÂNCIA (ESTATÍSTICA + LEI DE LEHMAN) -->
+        <section v-else-if="slide.id === 'contexto'" class="slide-stack">
           <div class="slide-title-group slide-stagger">
             <h2 class="slide-heading">
               Contexto: Evolução Contínua do Software e dos Dados
             </h2>
           </div>
 
-          <div class="problem-layout">
-            <div class="problem-left">
-              <!-- Estatística 57,3% com visual métrico moderno de mercado -->
-              <div class="stat-highlight-card slide-stagger">
-                <div class="stat-gauge-wrap" aria-hidden="true">
-                  <svg viewBox="0 0 64 64" class="stat-donut-svg">
-                    <circle cx="32" cy="32" r="26" class="donut-bg" />
-                    <circle cx="32" cy="32" r="26" class="donut-fill" stroke-dasharray="163.36" stroke-dashoffset="69.75" />
-                  </svg>
-                  <span class="donut-center-tag">SGBD</span>
-                </div>
+          <div class="context-split-grid slide-stagger">
+            <!-- Bloco 1: Big Number 57,3% dos Bancos Relacionais -->
+            <div class="surface-card context-stat-hero">
+            
 
-                <div class="stat-content">
-                  <span class="stat-number">57,3%</span>
-                  <p class="stat-desc">
-                    dos bancos em ambientes produtivos corporativos são <strong>Relacionais</strong>.
-                  </p>
-                  <span class="stat-source">Mordor Intelligence (2026)</span>
-                </div>
-              </div>
-
-              <!-- Primeira Lei de Meir "Manny" Lehman (Citação editorial com foto histórica) -->
-              <div class="lehman-quote-wrap slide-stagger">
-                <p class="lehman-quote-text">
-                  &ldquo;Um programa deve mudar continuamente para continuar sendo útil.&rdquo;
+              <div class="stat-content-hero">
+                <span class="stat-number-hero">57,3%</span>
+                <p class="stat-desc-hero">
+                  dos bancos em ambientes produtivos corporativos são <strong>Relacionais</strong>.
                 </p>
-                <div class="lehman-author-row">
-                  <img
-                    src="~/assets/images/slides/lehman.jpg"
-                    alt="Meir Manny Lehman"
-                    class="lehman-avatar"
-                    width="44"
-                    height="44"
-                  />
-                  <div class="lehman-meta-wrap">
-                    <span class="lehman-name">Meir &ldquo;Manny&rdquo; Lehman</span>
-                    <span class="lehman-role-desc">Pioneiro da Computação - 1ª Lei da Evolução de Software</span>
-                  </div>
+                <span class="stat-source-hero">Mordor Intelligence (2026)</span>
+              </div>
+            </div>
+
+            <!-- Bloco 2: 1ª Lei de Lehman com Foto e Citação com Destaque Amplo -->
+            <div class="surface-card context-lehman-card">
+              <blockquote class="lehman-quote-hero">
+                &ldquo;Um programa deve mudar continuamente para continuar sendo útil.&rdquo;
+              </blockquote>
+
+              <div class="lehman-profile-row">
+                <img
+                  src="~/assets/images/slides/lehman.jpg"
+                  alt="Meir Manny Lehman"
+                  class="lehman-avatar-lg"
+                  width="56"
+                  height="56"
+                />
+                <div class="lehman-meta-wrap">
+                  <strong class="lehman-name-lg">Meir &ldquo;Manny&rdquo; Lehman</strong>
+                  <span class="lehman-role-lg">Pioneiro da Computação - 1ª Lei da Evolução de Software</span>
+                  <p class="lehman-expl">
+                    Sistemas de software corporativos e seus esquemas de banco de dados não são estáticos; passam por alterações frequentes de colunas, restrições e regras de negócio para acompanhar o mercado.
+                  </p>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
 
-              <!-- Três Dores Centrais (Lista fluida e limpa sem repetição de caixas pesadas) -->
-              <div class="problem-flow-list slide-stagger">
-                <div v-for="(item, idx) in PROBLEM_BREAKDOWN" :key="item.title" class="problem-flow-item">
-                  <div class="flow-num">{{ idx + 1 }}</div>
-                  <div class="flow-text">
-                    <h3 class="flow-title">{{ item.title }}</h3>
-                    <p class="flow-desc">{{ item.detail }}</p>
+        <!-- SLIDE 03: PROBLEMA DA DESINCRONIZAÇÃO (DOIS ELEMENTOS + 3 DORES) -->
+        <section v-else-if="slide.id === 'problema'" class="slide-stack">
+          <div class="slide-title-group slide-stagger">
+            <h2 class="slide-heading">
+              O Problema: Desincronização entre SQL e DER
+            </h2>
+          </div>
+
+          <div class="problem-layout">
+            <!-- Esquerda: As 3 Dores Centrais -->
+            <div class="problem-left slide-stagger">
+              <div class="problem-flow-list">
+                <div v-for="(item, idx) in PROBLEM_BREAKDOWN" :key="item.title" class="surface-card problem-flow-item-hero">
+                  <div class="flow-num-hero">{{ idx + 1 }}</div>
+                  <div class="flow-text-hero">
+                    <h3 class="flow-title-hero">{{ item.title }}</h3>
+                    <p class="flow-desc-hero">{{ item.detail }}</p>
                   </div>
                 </div>
               </div>
             </div>
 
+            <!-- Direita: Comparativo Visual da Desincronização -->
             <div class="problem-right slide-stagger">
               <div class="canvas-panel-box">
                 <div class="box-header-line">
@@ -675,7 +608,6 @@ onBeforeUnmount(() => {
                 </div>
 
                 <div class="desync-evolution-stage">
-                  <!-- Lado 1: Banco SQL Evoluído (Editor Oficial BrDiagrama) -->
                   <div class="evo-panel">
                     <span class="evo-title">Banco em Produção (SQL)</span>
 
@@ -689,7 +621,6 @@ onBeforeUnmount(() => {
                     </div>
                   </div>
 
-                  <!-- Conector de Ruptura (Linha tracejada vermelha de desconexão) -->
                   <div class="evo-break-bridge" aria-hidden="true">
                     <svg viewBox="0 0 88 64" class="evo-break-svg" fill="none">
                       <line x1="0" y1="32" x2="28" y2="32" stroke="#EF4444" stroke-width="2" stroke-dasharray="4 4" />
@@ -700,7 +631,6 @@ onBeforeUnmount(() => {
                     <span class="connector-caption">Sem atualização</span>
                   </div>
 
-                  <!-- Lado 2: Diagrama DER Legado / Congelado -->
                   <div class="evo-panel">
                     <span class="evo-title">Documentação DER</span>
 
@@ -729,11 +659,10 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
 
-                <!-- Solução BrDiagrama (Barra fina e minimalista, sem card pesado) -->
                 <div class="resolution-line">
-                  <GitCompareArrows :size="15" class="resolution-icon" aria-hidden="true" />
+                  <GitCompareArrows :size="16" class="resolution-icon" aria-hidden="true" />
                   <span class="resolution-text">
-                    <strong>Solução BrDiagrama:</strong> sincronização automática e bidirecional que acompanha a evolução do esquema sem retrabalho.
+                    <strong>Solução <span class="brand-word">BrDiagrama</span>:</strong> sincronização automática e bidirecional que acompanha a evolução do esquema sem retrabalho.
                   </span>
                 </div>
               </div>
@@ -741,282 +670,362 @@ onBeforeUnmount(() => {
           </div>
         </section>
 
-        <!-- SLIDE 07: UML E REQUISITOS (Agora Slide 03 ativo) -->
-        <section v-else-if="currentSlide.id === 'uml'" class="slide-stack">
-          <h2 class="slide-heading slide-stagger">
-            UML: Diagrama de Casos de Uso 
-          </h2>
+        <!-- SLIDE 04: A SOLUÇÃO BRDIAGRAMA (MOTOR + PÚBLICOS) -->
+        <section v-else-if="slide.id === 'visao'" class="slide-stack">
+          <div class="slide-title-group slide-stagger">
+            <h2 class="slide-heading">
+              A Solução: Sincronização Bidirecional em Tempo Real
+            </h2>
+          </div>
 
-          <div class="uml-layout">
-            <div class="surface-card uml-canvas-card slide-stagger">
-              <img
-                src="~/assets/images/slides/usecase.jpeg"
-                alt="Diagrama de Casos de Uso do BrDiagrama"
-                class="uml-image-diagram"
-              />
+          <div class="visao-solution-grid slide-stagger">
+            <!-- Diagrama Ilustrado Fiel ao Padrão dos Slides (SQL Dark Modern ⇄ Motor ⇄ DER) -->
+            <div class="surface-card sync-engine-hero-card">
+              <div class="sync-engine-visual-lg">
+                <!-- Bloco 1: Editor de Código -->
+                <div class="sync-code-box">
+                  <pre class="sql-code-pre"><code><span class="sql-kw">CREATE TABLE</span> <span class="sql-ident">clientes</span> <span class="sql-delim">(</span>
+  <span class="sql-ident">id</span> <span class="sql-type">INT</span> <span class="sql-kw">PRIMARY KEY</span><span class="sql-delim">,</span>
+  <span class="sql-ident">nome</span> <span class="sql-type">VARCHAR</span><span class="sql-delim">(</span><span class="sql-num">100</span><span class="sql-delim">)</span>
+<span class="sql-delim">);</span></code></pre>
+                </div>
+
+                <!-- Conexão Central: Flechas Bidirecionais -->
+                <div class="sync-engine-core" aria-hidden="true">
+                  <svg viewBox="0 0 100 36" class="engine-arrows-svg" fill="none">
+                    <path d="M 8 12 L 92 12" stroke="#1C1C1C" stroke-width="2.4" stroke-linecap="round" />
+                    <path d="M 84 6 L 92 12 L 84 18" stroke="#1C1C1C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M 92 24 L 8 24" stroke="#192747" stroke-width="2.4" stroke-linecap="round" />
+                    <path d="M 16 18 L 8 24 L 16 30" stroke="#192747" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </div>
+
+                <!-- Bloco 2: Card DER oficial dos slides -->
+                <div class="sync-der-box">
+                  <SlideDiagramCard :table="COVER_TABLES[0]" />
+                </div>
+              </div>
             </div>
 
-            <div class="uml-details-col">
-              <div v-for="(uc, idx) in UML_USE_CASES" :key="uc.name" class="surface-card uc-card slide-stagger">
-                <div class="uc-head">
-                  <div class="uc-icon" aria-hidden="true">
-                    <FileCode2 v-if="idx === 0" :size="16" />
-                    <GitCompareArrows v-else-if="idx === 1" :size="16" />
-                    <ImageIcon v-else-if="idx === 2" :size="16" />
-                    <Smartphone v-else :size="16" />
-                  </div>
+            <!-- Dois Públicos Alvo Ampliados -->
+            <div class="audience-grid-split">
+              <div class="surface-card audience-card-hero">
+                <div class="audience-title-line-hero">
+                  <Briefcase :size="20" class="icon-teal" />
+                  <strong>Indústria e Engenharia</strong>
                 </div>
-                <h3 class="uc-title">{{ uc.name }}</h3>
-                <p class="uc-desc">{{ uc.description }}</p>
+                <p>Elimina retrabalho manual na manutenção e evolução contínua do banco em equipes de desenvolvimento ágil.</p>
+              </div>
+
+              <div class="surface-card audience-card-hero">
+                <div class="audience-title-line-hero">
+                  <GraduationCap :size="20" class="icon-teal" />
+                  <strong>Ensino de Bancos de Dados</strong>
+                </div>
+                <p>Apoio pedagógico com feedback visual imediato para cada comando SQL DDL executado em sala de aula.</p>
               </div>
             </div>
           </div>
         </section>
 
-        <!-- SLIDE 08: PROTOTIPAÇÃO E UI/UX -->
-        <section v-else-if="currentSlide.id === 'prototipacao'" class="slide-stack">
-          <h2 class="slide-heading slide-stagger">
-            Do wireframe no Figma à interface Live Split-Screen
-          </h2>
+        <!-- SLIDE 05: OBJETIVO GERAL DA PESQUISA -->
+        <section v-else-if="slide.id === 'objetivo'" class="slide-stack">
+          <div class="slide-title-group slide-stagger">
+            <h2 class="slide-heading">
+              Objetivo Geral da Pesquisa
+            </h2>
+          </div>
 
-          <div class="proto-layout">
-            <div class="proto-left slide-stagger">
-              <div class="surface-card proto-evolution-card">
-                <h3 class="proto-subtitle">Evolução da Estrutura de Tela</h3>
-                <div class="wireframe-compare">
-                  <div class="wire-box">
-                    <span class="wire-tag">Figura 2 · Wireframe Figma</span>
-                    <div class="wire-mini-layout" aria-hidden="true">
-                      <div class="wire-left">SQL</div>
-                      <div class="wire-right">DER</div>
-                    </div>
-                    <p class="wire-caption">Divisão inicial: texto à esquerda e espaço quadriculado à direita.</p>
-                  </div>
+          <div class="objetivo-full-card surface-card slide-stagger">
+            <blockquote class="objetivo-quote-hero">
+              &ldquo;Desenvolver uma ferramenta CASE web para modelagem de bancos de dados relacionais que permita a <strong>sincronização bidirecional e em tempo real</strong> entre scripts SQL DDL e Diagramas de Entidade-Relacionamento, processando comandos SQL para gerar o diagrama e vice-versa.&rdquo;
+            </blockquote>
 
-                  <div class="wire-arrow" aria-hidden="true">
-                    <ChevronRight :size="18" />
-                  </div>
-
-                  <div class="wire-box is-final">
-                    <span class="wire-tag is-teal">Figura 3 · Produto Final</span>
-                    <div class="wire-mini-layout is-final" aria-hidden="true">
-                      <div class="wire-top-bar">Toolbar + SGBD</div>
-                      <div class="wire-panes">
-                        <div class="wire-monaco">Monaco</div>
-                        <div class="wire-svg-pane">Canvas SVG</div>
-                        <div class="wire-assist">Painel</div>
-                      </div>
-                    </div>
-                    <p class="wire-caption">Temas independentes, edição inline, pan/zoom e exportação PNG/SVG/SQL.</p>
-                  </div>
-                </div>
+            <div class="research-scope-tags-hero">
+              <div class="scope-tag-hero">
+                <span class="scope-label-hero">Natureza</span>
+                <span class="scope-val-hero">Aplicada</span>
+                <span class="scope-sub-hero">Geração de ferramenta funcional voltada a problemas reais de modelagem.</span>
               </div>
 
-              <div class="surface-card dialects-card">
-                <span class="dialects-label">Dialetos SGBD suportados no seletor</span>
-                <div class="dialects-row">
-                  <div v-for="db in dialectBadges" :key="db.name" class="dialect-pill">
-                    <img :src="db.icon" :alt="db.name" width="16" height="16" class="dialect-img" />
-                    <span>{{ db.name }}</span>
-                  </div>
-                </div>
+              <div class="scope-tag-hero">
+                <span class="scope-label-hero">Abordagem</span>
+                <span class="scope-val-hero">Quali-Quantitativa</span>
+                <span class="scope-sub-hero">Avaliação empírica com métricas objetivas e percepção qualitativa dos usuários.</span>
               </div>
-            </div>
 
-            <div class="proto-right slide-stagger">
-              <div class="surface-card showcase-video-card">
-                <div class="showcase-tabs" role="tablist" aria-label="Demonstrações de cardinalidade">
-                  <button
-                    v-for="demo in CARDINALITY_DEMOS"
-                    :key="demo.id"
-                    type="button"
-                    role="tab"
-                    :aria-selected="activeCardinalityId === demo.id"
-                    class="cardinality-tab"
-                    :class="{ 'is-active': activeCardinalityId === demo.id }"
-                    @click="activeCardinalityId = demo.id"
-                  >
-                    {{ demo.label }}
-                  </button>
-                </div>
-
-                <div class="video-viewport">
-                  <video
-                    :key="activeCardinality.videoSrc"
-                    :src="activeCardinality.videoSrc"
-                    autoplay
-                    loop
-                    muted
-                    playsinline
-                    class="demo-video"
-                  ></video>
-                </div>
-
-                <div class="showcase-caption">
-                  <div class="caption-top">
-                    <h3 class="caption-title">{{ activeCardinality.title }}</h3>
-                    <span class="mono-chip">{{ activeCardinality.badge }}</span>
-                  </div>
-                  <p class="caption-desc">{{ activeCardinality.description }}</p>
-                  <code class="caption-sql">{{ activeCardinality.sqlSnippet }}</code>
-                </div>
+              <div class="scope-tag-hero">
+                <span class="scope-label-hero">Execução</span>
+                <span class="scope-val-hero">Client-Side Web</span>
+                <span class="scope-sub-hero">Processamento de código 100% no navegador, sem servidor local de banco.</span>
               </div>
             </div>
           </div>
         </section>
 
-        <!-- SLIDE 09: ARQUITETURA E SINCRONIZAÇÃO -->
-        <section v-else-if="currentSlide.id === 'arquitetura'" class="slide-stack">
-          <h2 class="slide-heading slide-stagger">
-            Arquitetura em três camadas e motor bidirecional client-side
-          </h2>
+        <!-- SLIDE 04: MÉTODO PROPOSTO -->
+        <section v-else-if="slide.id === 'metodo'" class="slide-stack">
+          <div class="slide-title-group slide-stagger">
+            <h2 class="slide-heading">
+              Método Proposto: Etapas de Desenvolvimento
+            </h2>
+          </div>
 
-          <div class="layers-grid">
+          <div class="method-pipeline-grid">
             <article
-              v-for="(layer, idx) in ARCHITECTURE_LAYERS"
-              :key="layer.id"
-              class="surface-card layer-card slide-stagger"
+              v-for="item in METHOD_PIPELINE"
+              :key="item.number"
+              class="surface-card pipeline-card slide-stagger"
             >
-              <div class="layer-head">
-                <span class="layer-tag">{{ layer.layer }}</span>
-                <Layers v-if="idx === 0" :size="16" class="text-slate-600" aria-hidden="true" />
-                <Cpu v-else-if="idx === 1" :size="16" class="text-teal-700" aria-hidden="true" />
-                <Globe v-else :size="16" class="text-blue-700" aria-hidden="true" />
+              <span class="pipeline-num">{{ item.number }}</span>
+              <h3 class="pipeline-title">{{ item.title }}</h3>
+              <p class="pipeline-desc">{{ item.description }}</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- SLIDE 05: FUNDAMENTAÇÃO TEÓRICA -->
+        <section v-else-if="slide.id === 'fundamentacao'" class="slide-stack">
+          <div class="slide-title-group slide-stagger">
+            <h2 class="slide-heading">
+              Fundamentação: Conceitos de Modelagem e SQL
+            </h2>
+          </div>
+
+          <!-- Dois Grandes Pilares Conceituais: DER e SQL DDL -->
+          <div class="fundamentacao-dual-grid">
+            <article
+              v-for="concept in FUNDAMENTACAO_CONCEPTS"
+              :key="concept.title"
+              class="surface-card concept-card slide-stagger"
+            >
+              <div class="concept-header">
+                <h3 class="concept-title">{{ concept.title }}</h3>
+                <span class="concept-subtitle">{{ concept.subtitle }}</span>
               </div>
-              <h3 class="layer-title">{{ layer.title }}</h3>
-              <p class="layer-desc">{{ layer.responsibility }}</p>
-              <div class="layer-stack-list">
-                <span v-for="tech in layer.stack" :key="tech" class="stack-pill">{{ tech }}</span>
+
+              <p class="concept-desc">{{ concept.description }}</p>
+
+              <div class="concept-items-list">
+                <div v-for="item in concept.items" :key="item.label" class="concept-item-row">
+                  <span class="concept-dot"></span>
+                  <div class="concept-item-text">
+                    <strong>{{ item.label }}</strong>
+                    <span>{{ item.detail }}</span>
+                  </div>
+                </div>
               </div>
             </article>
           </div>
-
-          <div class="surface-card sync-playground slide-stagger">
-            <div class="playground-header">
-              <div>
-                <h3 class="playground-title">Simulação da Sincronização Bidirecional em Tempo Real</h3>
-                <p class="playground-sub">
-                  Origem da última mutação: <strong>{{ lastSyncSource === 'SQL' ? 'Editor SQL → AST → DER' : 'Canvas DER → Store → SQL' }}</strong>
-                </p>
-              </div>
-              <div class="playground-actions">
-                <button type="button" class="action-btn" :class="{ 'is-on': hasEmailColumn }" @click="handleToggleEmailFromSql">
-                  {{ hasEmailColumn ? 'Remover coluna email (SQL)' : '+ Coluna email (SQL)' }}
-                </button>
-                <button type="button" class="action-btn" :class="{ 'is-on': !isFkRequired }" @click="handleToggleFkFromSql">
-                  {{ isFkRequired ? 'FK Opcional NULL (SQL)' : 'FK Obrigatória NOT NULL (SQL)' }}
-                </button>
-                <button type="button" class="action-btn is-navy" @click="handleRenameFromDiagram">
-                  Renomear tabela no DER
-                </button>
-                <button type="button" class="action-reset-btn" aria-label="Resetar simulação" @click="handleResetSyncDemo">
-                  <RefreshCw :size="14" />
-                </button>
-              </div>
-            </div>
-
-            <div class="playground-split">
-              <div class="playground-sql">
-                <span class="pane-badge">Monaco SQL DDL</span>
-                <pre class="sql-code-pre is-compact"><code>{{ demoSqlCode }}</code></pre>
-              </div>
-
-              <div class="playground-ast">
-                <span class="pane-badge is-teal">AST + Pinia Store</span>
-                <div class="ast-kv">
-                  <span class="ast-k">tables[]</span>
-                  <span class="ast-v">{{ demoAstSummary.tables.join(', ') }}</span>
-                </div>
-                <div class="ast-kv">
-                  <span class="ast-k">clientes.cols</span>
-                  <span class="ast-v">{{ demoAstSummary.columnsCount }} colunas</span>
-                </div>
-                <div class="ast-kv">
-                  <span class="ast-k">cardinalidade</span>
-                  <span class="ast-v is-accent">{{ demoAstSummary.cardinalityLabel }}</span>
-                </div>
-              </div>
-
-              <div class="playground-der">
-                <span class="pane-badge is-navy">Canvas SVG</span>
-                <div class="der-pair">
-                  <SlideDiagramCard :table="demoClientsTable" compact />
-                  <div class="der-rel-indicator">
-                    <span class="rel-card-text">{{ isFkRequired ? '1 : 1..N' : '1 : 0..N' }}</span>
-                    <svg viewBox="0 0 68 18" class="w-16 h-4" fill="none" aria-hidden="true">
-                      <line x1="0" y1="9" x2="68" y2="9" stroke="#192747" stroke-width="1.5" />
-                      <line x1="8" y1="3" x2="8" y2="15" stroke="#192747" stroke-width="1.6" />
-                      <line v-if="isFkRequired" x1="50" y1="3" x2="50" y2="15" stroke="#192747" stroke-width="1.6" />
-                      <circle v-else cx="48" cy="9" r="3.5" fill="#FAF9F9" stroke="#192747" stroke-width="1.5" />
-                      <path d="M 68 3 L 56 9 L 68 15" stroke="#192747" stroke-width="1.5" fill="none" />
-                    </svg>
-                  </div>
-                  <SlideDiagramCard :table="demoTargetTable" compact :active="isTableRenamed" />
-                </div>
-              </div>
-            </div>
-          </div>
         </section>
 
-        <!-- SLIDE 10: VALIDAÇÃO E CONCLUSÃO -->
-        <section v-else-if="currentSlide.id === 'validacao'" class="slide-stack">
-          <h2 class="slide-heading slide-stagger">
-            Protocolo de validação, conclusão e trabalhos futuros
-          </h2>
+        <!-- SLIDE 06: ENGENHARIA DIRETA E REVERSA (FERRAMENTAS CASE) -->
+        <section v-else-if="slide.id === 'engenharia_case'" class="slide-stack">
+          <div class="slide-title-group slide-stagger">
+            <h2 class="slide-heading">
+              Fundamentação: Engenharia Direta e Reversa
+            </h2>
+          </div>
 
-          <div class="final-layout">
-            <div class="surface-card final-validation-card slide-stagger">
-              <div class="final-card-head">
-                <ClipboardCheck :size="18" class="text-teal-700" aria-hidden="true" />
-                <h3>Seção 4.5 — Protocolo de Validação Estruturado</h3>
+          <div class="case-two-flows-layout">
+            <!-- Bloco 1: Engenharia Direta (DER -> SQL) -->
+            <article class="surface-card case-flow-card slide-stagger">
+              <div class="flow-card-head">
+                <h3 class="flow-card-title">Engenharia Direta</h3>
+                <span class="flow-card-direction">
+                  <span>DER</span>
+                  <ArrowRight :size="14" class="direction-icon" />
+                  <span>Script SQL</span>
+                </span>
               </div>
-              <p class="final-note">
-                Estrutura definida para coleta e registro empírico dos resultados de uso da ferramenta:
+              <p class="flow-card-desc">
+                Transforma o modelo visual (tabelas, atributos e cardinalidades) no script SQL DDL correspondente de forma automatizada.
               </p>
 
-              <div class="protocol-list">
-                <div v-for="item in VALIDATION_PROTOCOL" :key="item.tag" class="protocol-row">
-                  <span class="protocol-tag">{{ item.tag }}</span>
-                  <div>
-                    <h4 class="protocol-title">{{ item.title }}</h4>
-                    <p class="protocol-detail">{{ item.detail }}</p>
-                  </div>
+              <div class="flow-visual-duo">
+                <div class="flow-visual-box is-der">
+                  <SlideDiagramCard :table="COVER_TABLES[0]" compact />
                 </div>
+                <div class="flow-arrow-mid">
+                  <ArrowRight :size="20" />
+                </div>
+                <div class="flow-visual-box is-sql">
+                  <pre class="flow-code-pre"><code><span class="sql-kw">CREATE TABLE</span> clientes (
+  id <span class="sql-type">INT</span> <span class="sql-kw">PRIMARY KEY</span>,
+  nome <span class="sql-type">VARCHAR</span>(100)
+);</code></pre>
+                </div>
+              </div>
+            </article>
+
+            <!-- Bloco 2: Engenharia Reversa (SQL -> DER) -->
+            <article class="surface-card case-flow-card slide-stagger">
+              <div class="flow-card-head">
+                <h3 class="flow-card-title">Engenharia Reversa</h3>
+                <span class="flow-card-direction">
+                  <span>Script SQL</span>
+                  <ArrowRight :size="14" class="direction-icon" />
+                  <span>DER</span>
+                </span>
+              </div>
+              <p class="flow-card-desc">
+                Interpreta comandos SQL DDL existentes e reconstrói visualmente a estrutura de tabelas, chaves e relacionamentos no diagrama.
+              </p>
+
+              <div class="flow-visual-duo">
+                <div class="flow-visual-box is-sql">
+                  <pre class="flow-code-pre"><code><span class="sql-kw">CREATE TABLE</span> pedidos (
+  id <span class="sql-type">INT</span> <span class="sql-kw">PRIMARY KEY</span>,
+  total <span class="sql-type">DECIMAL</span>(10,2),
+  cliente_id <span class="sql-type">INT</span>
+);</code></pre>
+                </div>
+                <div class="flow-arrow-mid">
+                  <ArrowRight :size="20" />
+                </div>
+                <div class="flow-visual-box is-der">
+                  <SlideDiagramCard :table="COVER_TABLES[1]" compact />
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- SLIDE 07: DESENVOLVIMENTO (AÇÕES DO USUÁRIO) -->
+        <section v-else-if="slide.id === 'desenvolvimento'" class="slide-stack">
+          <div class="dev-top-row slide-stagger">
+            <h2 class="slide-heading">
+              Desenvolvimento: Ciclo de Ações do Usuário
+            </h2>
+          </div>
+
+          <div class="persona-full-layout slide-stagger">
+            <div class="actor-hero-wide">
+              <div class="actor-avatar-box-lg">
+                <User :size="32" />
+              </div>
+              <div>
+                <h3 class="actor-title-lg">Usuário do Sistema</h3>
+                <span class="actor-roles-lg">Estudantes, Desenvolvedores e Professores</span>
               </div>
             </div>
 
-            <div class="final-right-col">
-              <div class="surface-card final-conclusion-card slide-stagger">
-                <h3 class="conclusion-title">Resposta ao Problema de Pesquisa</h3>
-                <p class="conclusion-text">
-                  O BrDiagrama integra engenharia reversa e engenharia direta em tempo real no navegador, reduzindo o trabalho manual e garantindo que scripts SQL DDL e Diagramas de Entidade-Relacionamento permaneçam consistentes durante toda a evolução do modelo.
-                </p>
+            <div class="actor-actions-grid">
+              <div class="surface-card user-action-card">
+                <div class="action-card-header">
+                  <span class="action-dot"></span>
+                  <strong>1. Escrever ou Importar SQL</strong>
+                </div>
+                <p>Inserção e leitura de scripts SQL DDL em tempo real pelo editor Monaco integrado.</p>
               </div>
 
-              <div class="surface-card final-roadmap-card slide-stagger">
-                <h3 class="roadmap-title">Trabalhos Futuros</h3>
-                <ul class="clean-check-list">
-                  <li v-for="item in FUTURE_ROADMAP" :key="item">
-                    <Check :size="15" class="check-icon" aria-hidden="true" />
-                    <span>{{ item }}</span>
-                  </li>
-                </ul>
+              <div class="surface-card user-action-card">
+                <div class="action-card-header">
+                  <span class="action-dot"></span>
+                  <strong>2. Visualizar e Editar DER</strong>
+                </div>
+                <p>Manipulação interativa de entidades e cardinalidades no canvas com sincronização reversa contínua.</p>
               </div>
 
-              <div class="final-cta-row slide-stagger">
-                <span class="closing-authors">
-                  Davi Lima · Leonardo Andrade · Lucas Blank · Orientador: Daniela Amorim · FMP 2026
-                </span>
-                <NuxtLink to="/gerador" class="live-tool-link">
-                  <span>Abrir BrDiagrama ao vivo</span>
-                  <ArrowUpRight :size="16" />
-                </NuxtLink>
+              <div class="surface-card user-action-card">
+                <div class="action-card-header">
+                  <span class="action-dot"></span>
+                  <strong>3. Exportar Diagrama e Código</strong>
+                </div>
+                <p>Geração imediata de artefatos visuais (PNG, SVG) e script SQL padronizado sem retrabalho.</p>
+              </div>
+
+              <div class="surface-card user-action-card">
+                <div class="action-card-header">
+                  <span class="action-dot"></span>
+                  <strong>4. Execução no Navegador (PWA)</strong>
+                </div>
+                <p>Aplicação 100% acessível via web, permitindo uso offline e instalação nativa sem banco local.</p>
               </div>
             </div>
           </div>
         </section>
 
-        <!-- Logos Institucionais no Canto Inferior Direito (Acompanham a transição de cada slide) -->
+        <!-- SLIDE 08: ARQUITETURA EM 3 CAMADAS (SLIDE DEDICADO 100% VISUAL) -->
+        <section v-else-if="slide.id === 'arquitetura'" class="slide-stack slide-arch-dedicated">
+          <div class="arch-top-header slide-stagger">
+            <h2 class="slide-heading">
+              Arquitetura em 3 Camadas
+            </h2>
+          </div>
+
+          <div class="arch-full-cover-stage slide-stagger">
+            <img
+              src="~/assets/images/slides/architecture.jpg"
+              alt="Arquitetura em 3 camadas do BrDiagrama: Apresentação, Processamento e Hospedagem"
+              class="arch-hero-img"
+            />
+          </div>
+        </section>
+
+        <!-- SLIDE 08: TESTE PRÁTICO COM ESTUDANTES -->
+        <section v-else-if="slide.id === 'teste_beta'" class="slide-stack">
+          <div class="beta-header-row slide-stagger">
+            <div>
+              <h2 class="slide-heading">
+                Teste Prático com Estudantes
+              </h2>
+            </div>
+            <div class="beta-sample-info">
+              <span class="sample-num">25</span>
+              <span class="sample-text">Alunos de ADS participantes (2ª e 3ª fase, FMP)</span>
+            </div>
+          </div>
+
+          <!-- Roteiro de Teste Limpo sem Borda de Caixa -->
+          <div class="beta-protocol-line slide-stagger">
+            <span class="protocol-strip-label">Roteiro de validação:</span>
+            <div class="protocol-steps-inline">
+              <span class="p-step">1. Inserir script SQL</span>
+              <ArrowRight :size="14" class="p-arrow" />
+              <span class="p-step">2. Conferir o diagrama gerado</span>
+              <ArrowRight :size="14" class="p-arrow" />
+              <span class="p-step">3. Modificar o DER visualmente</span>
+              <ArrowRight :size="14" class="p-arrow" />
+              <span class="p-step">4. Exportar e avaliar</span>
+            </div>
+          </div>
+
+          <!-- 3 Big Numbers Limpos e Equilibrados -->
+          <div class="beta-metrics-grid">
+            <article
+              v-for="metric in BETA_METRICS"
+              :key="metric.label"
+              class="surface-card beta-metric-card slide-stagger"
+            >
+              <span class="beta-big-value">{{ metric.value }}</span>
+              <h3 class="beta-metric-title">{{ metric.label }}</h3>
+              <p class="beta-metric-desc">{{ metric.detail }}</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- SLIDE 12: CONCLUSÃO E AGRADECIMENTOS -->
+        <section v-else-if="slide.id === 'conclusao'" class="slide-stack conclusao-section-wrap">
+          <div class="slide-title-group slide-stagger">
+            <h2 class="slide-heading">
+              Conclusão
+            </h2>
+          </div>
+
+          <div class="conclusao-narrative-flow slide-stagger">
+            <p class="conclusao-lead-text">
+              O <strong><span class="brand-word">BrDiagrama</span></strong> comprovou a viabilidade técnica de uma ferramenta CASE moderna com sincronização bidirecional em tempo real entre scripts SQL e diagramas relacionais. Ao processar código inteiramente no navegador e manter consistência imediata entre a visão gráfica e estrutural, o projeto elimina o retrabalho manual na evolução de esquemas e fornece suporte direto tanto para a engenharia de software na indústria quanto para a prática pedagógica no ensino de bancos de dados.
+            </p>
+          </div>
+
+          <!-- Agradecimento Marcante e Solto -->
+          <div class="thanks-banner slide-stagger">
+            <h3 class="thanks-title">Obrigado!</h3>
+          </div>
+        </section>
+
+        <!-- Logos Institucionais no Canto Inferior Direito -->
         <aside class="slide-corner-logos slide-stagger" aria-label="Logos institucionais FMP e ADS">
           <img
             src="~/assets/images/logo/fmp.jpeg"
@@ -1052,7 +1061,7 @@ onBeforeUnmount(() => {
       <div v-if="isOverviewOpen" class="overview-backdrop" role="dialog" aria-modal="true" aria-label="Grade de slides">
         <div class="overview-panel">
           <div class="overview-header">
-            <h2 class="overview-title">Visão Geral da Apresentação (10 Slides)</h2>
+            <h2 class="overview-title">Visão Geral da Apresentação ({{ totalSlides }} Slides)</h2>
             <button type="button" class="tool-btn" aria-label="Fechar grade" @click="isOverviewOpen = false">
               <X :size="18" />
             </button>
@@ -1100,7 +1109,7 @@ onBeforeUnmount(() => {
   background-image: radial-gradient(circle, rgba(115, 120, 130, 0.22) 1.2px, transparent 1.2px);
   background-size: 26px 26px;
   color: var(--slide-text);
-  font-family: 'Google Sans Flex', system-ui, -apple-system, sans-serif;
+  font-family: 'Google Sans Flex', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-variant-numeric: tabular-nums;
   overflow-x: hidden;
   position: relative;
@@ -1147,27 +1156,6 @@ onBeforeUnmount(() => {
   width: 1px;
   height: 18px;
   background-color: var(--slide-border);
-}
-
-.toolbar-context {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.8125rem;
-}
-
-.context-section {
-  color: var(--slide-text-muted);
-  font-weight: 500;
-}
-
-.context-separator {
-  color: rgba(0, 0, 0, 0.24);
-}
-
-.context-title {
-  color: var(--slide-navy);
-  font-weight: 600;
 }
 
 .toolbar-progress {
@@ -1237,6 +1225,23 @@ onBeforeUnmount(() => {
   opacity: 0.35;
 }
 
+.pptx-btn {
+  color: var(--slide-primary-ink);
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .nav-controls {
   display: inline-flex;
   align-items: center;
@@ -1268,7 +1273,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px 56px 72px 56px;
+  padding: 28px 56px 72px 56px;
 }
 
 .slide-container {
@@ -1279,27 +1284,42 @@ onBeforeUnmount(() => {
 .slide-stack {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
 }
 
 .slide-heading {
-  font-size: clamp(1.85rem, 2.8vw, 2.6rem);
+  font-size: clamp(1.85rem, 2.6vw, 2.45rem);
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: -0.025em;
   color: var(--slide-navy);
   margin: 0;
-  max-width: 32ch;
 }
 
 .surface-card {
   background-color: var(--slide-surface);
   border: 1px solid var(--slide-border);
   border-radius: 12px;
-  padding: 22px;
+  padding: 22px 24px;
 }
 
-/* SLIDE 01: CAPA */
+.section-mono-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--slide-primary-ink);
+  text-transform: uppercase;
+}
+
+.icon-teal {
+  color: var(--slide-primary-ink);
+  flex-shrink: 0;
+}
+
+/* =========================================
+   SLIDE 01: CAPA
+   ========================================= */
 .slide-cover {
   display: grid;
   grid-template-columns: 1.15fr 1fr;
@@ -1369,21 +1389,6 @@ onBeforeUnmount(() => {
   line-height: 1.4;
 }
 
-.meta-text {
-  margin: 0;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--slide-navy);
-  line-height: 1.4;
-}
-
-.meta-subtext {
-  margin: 0;
-  font-size: 0.875rem;
-  color: var(--slide-text-muted);
-  line-height: 1.45;
-}
-
 .cover-visual {
   display: flex;
   justify-content: center;
@@ -1402,7 +1407,6 @@ onBeforeUnmount(() => {
   border-radius: 10px;
   padding: 16px 20px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   position: relative;
   z-index: 2;
 }
@@ -1416,26 +1420,25 @@ onBeforeUnmount(() => {
   white-space: pre-wrap;
 }
 
-/* Tokens calibrados com o tema oficial BrDiagramaDarkModern do Monaco */
 .sql-kw {
-  color: #5EEAD4; /* Keyword oficial BrDiagrama */
+  color: #5EEAD4;
   font-weight: 600;
 }
 
 .sql-type {
-  color: #FDBA74; /* dataType oficial BrDiagrama */
+  color: #FDBA74;
 }
 
 .sql-ident {
-  color: #F0F0F0; /* identifier oficial BrDiagrama */
+  color: #F0F0F0;
 }
 
 .sql-num {
-  color: #FCA5A5; /* number oficial BrDiagrama */
+  color: #FCA5A5;
 }
 
 .sql-delim {
-  color: #9AA0A6; /* delimiter oficial BrDiagrama */
+  color: #9AA0A6;
 }
 
 .sql-code-pre.is-compact {
@@ -1499,7 +1502,6 @@ onBeforeUnmount(() => {
   fill: #192747;
 }
 
-/* Logos no canto inferior direito de todas as páginas (animam junto com a troca de slide) */
 .slide-corner-logos {
   position: fixed;
   right: 36px;
@@ -1515,15 +1517,12 @@ onBeforeUnmount(() => {
   height: 48px;
   width: auto;
   object-fit: contain;
-  background-color: transparent;
-  border: none;
-  border-radius: 0;
-  padding: 0;
   display: block;
-  filter: contrast(1.02);
 }
 
-/* SLIDE 02: JUSTIFICATIVA & PROBLEMA */
+/* =========================================
+   SLIDE 02: CONTEXTO & PROBLEMA
+   ========================================= */
 .problem-layout {
   display: grid;
   grid-template-columns: 0.98fr 1.12fr;
@@ -1537,7 +1536,6 @@ onBeforeUnmount(() => {
   gap: 20px;
 }
 
-/* Métrica 57,3% com Donut Chart Elegante e Respiro Amplo */
 .stat-highlight-card {
   background-color: var(--slide-surface);
   border: 1px solid var(--slide-border);
@@ -1546,7 +1544,6 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 22px;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
 }
 
 .stat-gauge-wrap {
@@ -1576,7 +1573,6 @@ onBeforeUnmount(() => {
   stroke: var(--slide-primary);
   stroke-width: 5;
   stroke-linecap: round;
-  transition: stroke-dashoffset 1s ease;
 }
 
 .donut-center-tag {
@@ -1585,14 +1581,12 @@ onBeforeUnmount(() => {
   font-size: 0.65rem;
   font-weight: 700;
   color: var(--slide-navy);
-  letter-spacing: 0.02em;
 }
 
 .stat-content {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 0;
 }
 
 .stat-number {
@@ -1646,7 +1640,6 @@ onBeforeUnmount(() => {
   object-fit: cover;
   border: 1.5px solid rgba(25, 39, 71, 0.16);
   flex-shrink: 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .lehman-meta-wrap {
@@ -1659,7 +1652,6 @@ onBeforeUnmount(() => {
   font-size: 0.9rem;
   font-weight: 700;
   color: var(--slide-navy);
-  line-height: 1.2;
 }
 
 .lehman-role-desc {
@@ -1667,11 +1659,9 @@ onBeforeUnmount(() => {
   color: var(--slide-text-muted);
 }
 
-/* Lista Fluida de Dores (Linhas limpas conectadas sem peso visual de caixas) */
 .problem-flow-list {
   display: flex;
   flex-direction: column;
-  gap: 0;
   background-color: #ffffff;
   border: 1px solid var(--slide-border);
   border-radius: 12px;
@@ -1684,15 +1674,10 @@ onBeforeUnmount(() => {
   gap: 14px;
   padding: 13px 18px;
   border-top: 1px solid rgba(0, 0, 0, 0.05);
-  transition: background-color 0.15s ease;
 }
 
 .problem-flow-item:first-child {
   border-top: none;
-}
-
-.problem-flow-item:hover {
-  background-color: #fcfcfd;
 }
 
 .flow-num {
@@ -1701,7 +1686,6 @@ onBeforeUnmount(() => {
   font-weight: 700;
   color: var(--slide-primary-ink);
   background-color: #edfefc;
-  border: none;
   width: 24px;
   height: 24px;
   border-radius: 6px;
@@ -1716,7 +1700,6 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
 }
 
 .flow-title {
@@ -1757,20 +1740,6 @@ onBeforeUnmount(() => {
   color: var(--slide-navy);
 }
 
-.status-tag {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 4px 12px;
-  border-radius: 9999px;
-}
-
-.status-tag.is-error {
-  background-color: #fef2f2;
-  color: #dc2626;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
 .desync-evolution-stage {
   display: grid;
   grid-template-columns: 1.1fr auto 0.95fr;
@@ -1785,34 +1754,10 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
-.evo-meta-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
 .evo-title {
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--slide-navy);
-}
-
-.evo-version {
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
-.evo-version.is-current {
-  background-color: #edfefc;
-  color: #0f766e;
-}
-
-.evo-version.is-legacy {
-  background-color: #f3f4f6;
-  color: #6b7280;
 }
 
 .evo-code-box {
@@ -1921,7 +1866,6 @@ onBeforeUnmount(() => {
   gap: 8px;
   padding: 8px 12px;
   border-left: 2px solid var(--slide-primary);
-  background-color: transparent;
 }
 
 .resolution-icon {
@@ -1937,1084 +1881,1019 @@ onBeforeUnmount(() => {
 
 .resolution-text strong {
   color: var(--slide-navy);
-  font-weight: 600;
 }
 
-/* SLIDE 03: JUSTIFICATIVA */
-.justification-grid {
+/* =========================================
+   SLIDE 03: VISÃO DO PRODUTO & OBJETIVO
+   ========================================= */
+.visao-layout {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  grid-template-columns: 1.28fr 0.92fr;
+  gap: 22px;
+  align-items: stretch;
 }
 
-.justification-card {
+.visao-diagram-card {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-}
-
-.card-top-meta {
-  display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 12px;
-}
-
-.axis-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.axis-icon.is-navy {
-  background-color: #eff6ff;
-  color: #192747;
-}
-
-.axis-icon.is-teal {
-  background-color: #edfefc;
-  color: #0f766e;
-}
-
-.axis-roles {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--slide-text-muted);
-}
-
-.axis-title {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--slide-navy);
-}
-
-.axis-summary {
-  margin: 0;
-  font-size: 0.9375rem;
-  line-height: 1.55;
-  color: var(--slide-text-muted);
-}
-
-.clean-check-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.clean-check-list li {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-size: 0.9375rem;
-  line-height: 1.45;
-  color: var(--slide-text);
-}
-
-.check-icon {
-  color: var(--slide-primary-ink);
-  margin-top: 3px;
-  flex-shrink: 0;
-}
-
-.surface-strip {
-  background-color: var(--slide-surface);
-  border: 1px solid var(--slide-border);
-  border-radius: 12px;
-  padding: 16px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
-}
-
-.strip-badge {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--slide-navy);
-}
-
-.mono-op {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem;
-  padding: 4px 8px;
-  border-radius: 6px;
-  background-color: #f3f4f6;
-  color: var(--slide-primary-ink);
-}
-
-/* SLIDE 04: OBJETIVOS */
-.objectives-tree {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.general-objective-node {
-  width: 100%;
-  max-width: 780px;
-  background-color: var(--slide-surface);
-  border: 1px solid rgba(25, 39, 71, 0.22);
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.node-table-header {
-  background-color: var(--slide-navy);
-  color: #ffffff;
-  padding: 8px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.8125rem;
-  font-weight: 600;
-}
-
-.node-cardinality {
-  background-color: rgba(255, 255, 255, 0.16);
-  padding: 2px 8px;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-}
-
-.node-cardinality.is-light {
-  background-color: #edfefc;
-  color: var(--slide-primary-ink);
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 700;
-}
-
-.general-objective-text {
-  margin: 0;
-  padding: 16px 20px;
-  font-size: 1rem;
-  line-height: 1.55;
-  color: var(--slide-text);
-  font-weight: 500;
-  text-align: center;
-}
-
-.tree-branches-svg {
-  width: 100%;
-}
-
-.pillars-grid {
-  width: 100%;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-}
-
-.pillar-card {
-  padding: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.pillar-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.pillar-code {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--slide-primary-ink);
-}
-
-.pillar-title {
-  margin: 0;
-  font-size: 0.9375rem;
-  font-weight: 700;
-  line-height: 1.3;
-  color: var(--slide-navy);
-}
-
-.pillar-list {
-  margin: 0;
-  padding-left: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 0.8125rem;
-  line-height: 1.45;
-  color: var(--slide-text-muted);
-}
-
-/* SLIDE 05: FUNDAMENTAÇÃO */
-.theory-tables-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
   gap: 18px;
 }
 
-.theory-detail-panel {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-}
-
-.theory-detail-left {
-  max-width: 68ch;
-}
-
-.theory-detail-title {
-  margin: 0 0 6px 0;
-  font-size: 1.125rem;
+.visao-card-title {
+  margin: 0;
+  font-size: 1.35rem;
   font-weight: 700;
   color: var(--slide-navy);
+  line-height: 1.25;
 }
 
-.theory-detail-summary {
-  margin: 0;
-  font-size: 0.9375rem;
-  line-height: 1.55;
-  color: var(--slide-text-muted);
-}
-
-.theory-tags {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.mono-chip {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem;
-  font-weight: 600;
-  background-color: #edfefc;
-  color: var(--slide-primary-ink);
-  border: 1px solid rgba(26, 186, 156, 0.35);
-  border-radius: 6px;
-  padding: 4px 10px;
-}
-
-.hint-interactive {
-  font-size: 0.75rem;
-  color: var(--slide-text-muted);
-}
-
-/* SLIDE 06: METODOLOGIA */
-.classification-grid {
+.sync-engine-visual {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
+  grid-template-columns: 1.15fr auto 1fr;
+  gap: 16px;
+  align-items: center;
+  padding: 8px 0;
 }
 
-.classification-cell {
-  background-color: var(--slide-surface);
-  border: 1px solid var(--slide-border);
-  border-radius: 10px;
+.sync-code-box {
+  background-color: #1C1C1C;
+  border-radius: 8px;
   padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.class-label {
-  font-size: 0.75rem;
-  color: var(--slide-text-muted);
-  font-weight: 500;
+.sync-der-box {
+  min-width: 0;
 }
 
-.class-value {
-  font-size: 1rem;
-  color: var(--slide-navy);
-  font-weight: 700;
-}
-
-.class-ref {
-  font-size: 0.75rem;
-  color: var(--slide-primary-ink);
-  font-weight: 600;
-}
-
-.method-steps-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-.method-step-card {
-  padding: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.step-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.step-num {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: var(--slide-primary-ink);
-  background-color: #edfefc;
-  padding: 2px 8px;
-  border-radius: 6px;
-}
-
-.step-artifact {
-  font-size: 0.75rem;
-  color: var(--slide-text-muted);
-  font-weight: 500;
-}
-
-.step-title {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--slide-navy);
-}
-
-.step-summary {
-  margin: 0;
-  font-size: 0.875rem;
-  line-height: 1.5;
-  color: var(--slide-text-muted);
-}
-
-/* SLIDE 07: UML */
-.uml-layout {
-  display: grid;
-  grid-template-columns: 1.2fr 0.85fr;
-  gap: 20px;
-  align-items: stretch;
-}
-
-.uml-canvas-card {
+.sync-engine-core {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 0 8px;
 }
 
-.uml-svg {
-  width: 100%;
-  height: auto;
-  max-height: 390px;
+.engine-arrows-svg {
+  width: 90px;
+  height: 36px;
 }
 
-.uml-image-diagram {
-  max-width: 100%;
-  max-height: 400px;
-  width: auto;
-  height: auto;
-  object-fit: contain;
-  border-radius: 6px;
-}
-
-.uml-details-col {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.uc-card {
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.uc-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.uc-icon {
-  color: var(--slide-primary-ink);
-}
-
-.uc-relation {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6875rem;
-  color: var(--slide-text-muted);
-}
-
-.uc-title {
-  margin: 0;
-  font-size: 0.9375rem;
-  font-weight: 700;
-  color: var(--slide-navy);
-}
-
-.uc-desc {
-  margin: 0;
-  font-size: 0.8125rem;
-  line-height: 1.45;
-  color: var(--slide-text-muted);
-}
-
-/* SLIDE 08: PROTOTIPAÇÃO */
-.proto-layout {
+.audience-row {
   display: grid;
-  grid-template-columns: 0.95fr 1.05fr;
-  gap: 20px;
-  align-items: stretch;
-}
-
-.proto-left {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.proto-evolution-card {
-  display: flex;
-  flex-direction: column;
+  grid-template-columns: 1fr 1fr;
   gap: 14px;
 }
 
-.proto-subtitle {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--slide-navy);
-}
-
-.wireframe-compare {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 10px;
-  align-items: center;
-}
-
-.wire-box {
-  background-color: #faf9f9;
+.audience-item {
   border: 1px solid var(--slide-border);
   border-radius: 8px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.wire-box.is-final {
-  background-color: #ffffff;
-  border-color: rgba(26, 186, 156, 0.45);
-}
-
-.wire-tag {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--slide-text-muted);
-}
-
-.wire-tag.is-teal {
-  color: var(--slide-primary-ink);
-}
-
-.wire-mini-layout {
-  height: 74px;
-  display: grid;
-  grid-template-columns: 0.42fr 0.58fr;
-  gap: 4px;
-}
-
-.wire-mini-layout.is-final {
-  display: flex;
-  flex-direction: column;
-}
-
-.wire-left,
-.wire-right {
-  background-color: #e5e7eb;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: #4b5563;
-}
-
-.wire-top-bar {
-  height: 16px;
-  background-color: #192747;
-  color: #ffffff;
-  border-radius: 4px;
-  font-size: 0.625rem;
-  display: flex;
-  align-items: center;
-  padding: 0 6px;
-}
-
-.wire-panes {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 0.34fr 0.44fr 0.22fr;
-  gap: 4px;
-}
-
-.wire-monaco {
-  background-color: #141414;
-  color: #e5e7eb;
-  border-radius: 4px;
-  font-size: 0.625rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.wire-svg-pane {
-  background-color: #edfefc;
-  border: 1px solid rgba(26, 186, 156, 0.4);
-  color: #0f766e;
-  border-radius: 4px;
-  font-size: 0.625rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.wire-assist {
-  background-color: #f3f4f6;
-  color: #4b5563;
-  border-radius: 4px;
-  font-size: 0.5625rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.wire-caption {
-  margin: 0;
-  font-size: 0.75rem;
-  line-height: 1.4;
-  color: var(--slide-text-muted);
-}
-
-.wire-arrow {
-  color: var(--slide-text-muted);
-}
-
-.dialects-card {
-  padding: 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.dialects-label {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--slide-navy);
-}
-
-.dialects-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.dialect-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--slide-border);
-  background-color: #faf9f9;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--slide-text);
-}
-
-.showcase-video-card {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 18px;
-}
-
-.showcase-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.cardinality-tab {
-  padding: 5px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--slide-border);
-  background-color: #faf9f9;
-  color: var(--slide-text-muted);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem;
-  font-weight: 600;
-  transition: all 0.15s ease;
-}
-
-.cardinality-tab.is-active {
-  background-color: var(--slide-navy);
-  border-color: var(--slide-navy);
-  color: #ffffff;
-}
-
-.video-viewport {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid var(--slide-border);
-  background-color: #141414;
-}
-
-.demo-video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.showcase-caption {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.caption-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.caption-title {
-  margin: 0;
-  font-size: 0.9375rem;
-  font-weight: 700;
-  color: var(--slide-navy);
-}
-
-.caption-desc {
-  margin: 0;
-  font-size: 0.8125rem;
-  line-height: 1.45;
-  color: var(--slide-text-muted);
-}
-
-.caption-sql {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem;
-  background-color: #141414;
-  color: #1aba9c;
-  padding: 6px 10px;
-  border-radius: 6px;
-}
-
-/* SLIDE 09: ARQUITETURA */
-.layers-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-.layer-card {
-  padding: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.layer-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.layer-tag {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--slide-primary-ink);
-}
-
-.layer-title {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--slide-navy);
-}
-
-.layer-desc {
-  margin: 0;
-  font-size: 0.8125rem;
-  line-height: 1.45;
-  color: var(--slide-text-muted);
-}
-
-.layer-stack-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-top: auto;
-  padding-top: 4px;
-}
-
-.stack-pill {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6875rem;
-  background-color: #faf9f9;
-  border: 1px solid var(--slide-border);
-  border-radius: 6px;
-  padding: 2px 8px;
-  color: var(--slide-text);
-}
-
-.sync-playground {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 18px 20px;
-}
-
-.playground-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.playground-title {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--slide-navy);
-}
-
-.playground-sub {
-  margin: 2px 0 0 0;
-  font-size: 0.8125rem;
-  color: var(--slide-text-muted);
-}
-
-.playground-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-}
-
-.action-btn {
-  padding: 6px 11px;
-  border-radius: 8px;
-  border: 1px solid var(--slide-border);
-  background-color: #faf9f9;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--slide-navy);
-  transition: all 0.15s ease;
-}
-
-.action-btn:hover {
-  background-color: #eff6ff;
-  border-color: rgba(59, 130, 246, 0.45);
-}
-
-.action-btn.is-on {
-  background-color: #edfefc;
-  border-color: rgba(26, 186, 156, 0.55);
-  color: var(--slide-primary-ink);
-}
-
-.action-btn.is-navy {
-  background-color: var(--slide-navy);
-  border-color: var(--slide-navy);
-  color: #ffffff;
-}
-
-.action-reset-btn {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  border: 1px solid var(--slide-border);
-  background-color: #ffffff;
-  color: var(--slide-text-muted);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.action-reset-btn:hover {
-  background-color: #f1f3f5;
-  color: var(--slide-navy);
-}
-
-.playground-split {
-  display: grid;
-  grid-template-columns: 1.15fr 0.75fr 1.2fr;
-  gap: 14px;
-  align-items: stretch;
-}
-
-.playground-sql,
-.playground-ast,
-.playground-der {
-  border: 1px solid var(--slide-border);
-  border-radius: 10px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.playground-sql {
-  background-color: #141414;
-}
-
-.playground-ast,
-.playground-der {
-  background-color: #faf9f9;
-}
-
-.pane-badge {
-  align-self: flex-start;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 6px;
-  background-color: rgba(255, 255, 255, 0.12);
-  color: #e5e7eb;
-}
-
-.pane-badge.is-teal {
-  background-color: #edfefc;
-  color: var(--slide-primary-ink);
-}
-
-.pane-badge.is-navy {
-  background-color: #eff6ff;
-  color: var(--slide-navy);
-}
-
-.ast-kv {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 6px 8px;
-  border-radius: 6px;
-  background-color: #ffffff;
-  border: 1px solid var(--slide-border);
-}
-
-.ast-k {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6875rem;
-  color: var(--slide-text-muted);
-}
-
-.ast-v {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--slide-navy);
-}
-
-.ast-v.is-accent {
-  color: var(--slide-primary-ink);
-}
-
-.der-pair {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-}
-
-.der-pair > :first-child,
-.der-pair > :last-child {
-  flex: 1;
-}
-
-.der-rel-indicator {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.rel-card-text {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  color: var(--slide-navy);
-}
-
-/* SLIDE 10: VALIDAÇÃO & CONCLUSÃO */
-.final-layout {
-  display: grid;
-  grid-template-columns: 0.95fr 1.05fr;
-  gap: 20px;
-  align-items: stretch;
-}
-
-.final-validation-card {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.final-card-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.final-card-head h3 {
-  margin: 0;
-  font-size: 1.0625rem;
-  font-weight: 700;
-  color: var(--slide-navy);
-}
-
-.final-note {
-  margin: 0;
-  font-size: 0.875rem;
-  color: var(--slide-text-muted);
-  line-height: 1.5;
-}
-
-.protocol-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.protocol-row {
-  background-color: #faf9f9;
-  border: 1px solid var(--slide-border);
-  border-radius: 10px;
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.protocol-tag {
-  align-self: flex-start;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: var(--slide-primary-ink);
-  background-color: #edfefc;
-  padding: 2px 8px;
-  border-radius: 6px;
-}
-
-.protocol-title {
-  margin: 2px 0;
-  font-size: 0.9375rem;
-  font-weight: 700;
+.audience-title-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
   color: var(--slide-navy);
 }
 
-.protocol-detail {
+.audience-item p {
   margin: 0;
   font-size: 0.8125rem;
-  line-height: 1.45;
+  line-height: 1.42;
   color: var(--slide-text-muted);
 }
 
-.final-right-col {
+.objetivo-callout-card {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  justify-content: space-between;
+  gap: 18px;
 }
 
-.final-conclusion-card {
-  background-color: #192747;
-  color: #ffffff;
-  border-color: #192747;
-}
-
-.conclusion-title {
-  margin: 0 0 8px 0;
-  font-size: 1.0625rem;
-  font-weight: 700;
-  color: #ffffff;
-}
-
-.conclusion-text {
+.objetivo-main-title {
   margin: 0;
-  font-size: 0.9375rem;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.86);
-}
-
-.final-roadmap-card {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.roadmap-title {
-  margin: 0;
-  font-size: 1rem;
+  font-size: 1.4rem;
   font-weight: 700;
   color: var(--slide-navy);
 }
 
-.final-cta-row {
+.objetivo-quote {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.62;
+  color: var(--slide-text);
+  font-style: italic;
+  padding: 4px 0 4px 14px;
+  border-left: 2px solid var(--slide-primary);
+  background: transparent;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+  border-radius: 0;
+}
+
+.objetivo-quote strong {
+  color: var(--slide-navy);
+  font-style: normal;
+}
+
+.research-scope-tags {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--slide-border);
+}
+
+.scope-tag {
+  background: transparent;
+  border: 1px solid var(--slide-border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scope-label {
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--slide-text-muted);
+}
+
+.scope-val {
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--slide-navy);
+}
+
+/* =========================================
+   SLIDE 02: CONTEXTO E RELEVÂNCIA (SPLIT AMPLO)
+   ========================================= */
+.context-split-grid {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 28px;
+  align-items: stretch;
+}
+
+.context-stat-hero {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 36px 32px;
+}
+
+.stat-content-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stat-number-hero {
+  font-size: 3.8rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--slide-navy);
+  line-height: 1;
+}
+
+.stat-desc-hero {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.5;
+  color: var(--slide-text);
+}
+
+.stat-source-hero {
+  font-size: 0.9rem;
+  color: var(--slide-text-muted);
+}
+
+.context-lehman-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 24px;
+  padding: 36px 36px;
+}
+
+.lehman-quote-hero {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-style: italic;
+  line-height: 1.4;
+  color: var(--slide-navy);
+  padding: 4px 0 4px 18px;
+  border-left: 3px solid var(--slide-primary);
+}
+
+.lehman-profile-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.lehman-avatar-lg {
+  width: 58px;
+  height: 58px;
+  border-radius: 9999px;
+  object-fit: cover;
+  border: 2px solid rgba(25, 39, 71, 0.16);
+  flex-shrink: 0;
+}
+
+.lehman-name-lg {
+  font-size: 1.15rem;
+  color: var(--slide-navy);
+}
+
+.lehman-role-lg {
+  font-size: 0.88rem;
+  color: var(--slide-primary-ink);
+  font-weight: 600;
+}
+
+.lehman-expl {
+  margin: 8px 0 0 0;
+  font-size: 0.96rem;
+  line-height: 1.55;
+  color: var(--slide-text-muted);
+}
+
+/* =========================================
+   SLIDE 03: PROBLEMA (DORES AMPLIADAS)
+   ========================================= */
+.problem-flow-item-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 18px 22px;
+  margin-bottom: 14px;
+}
+
+.flow-num-hero {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--slide-primary-ink);
+  background-color: #edfefc;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.flow-text-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.flow-title-hero {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--slide-navy);
+}
+
+.flow-desc-hero {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--slide-text-muted);
+}
+
+/* =========================================
+   SLIDE 04: A SOLUÇÃO (MOTOR + PÚBLICOS AMPLIADOS)
+   ========================================= */
+.visao-solution-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.sync-engine-hero-card {
+  padding: 24px 32px;
+}
+
+.sync-engine-visual-lg {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 32px;
+}
+
+.audience-grid-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+}
+
+.audience-card-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px 26px;
+}
+
+.audience-title-line-hero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.2rem;
+  color: var(--slide-navy);
+}
+
+.audience-card-hero p {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.55;
+  color: var(--slide-text-muted);
+}
+
+/* =========================================
+   SLIDE 05: OBJETIVO GERAL AMPLIADO
+   ========================================= */
+.objetivo-full-card {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding: 38px 44px;
+}
+
+.objetivo-quote-hero {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.68;
+  color: var(--slide-text);
+  font-style: italic;
+  padding: 4px 0 4px 22px;
+  border-left: 4px solid var(--slide-primary);
+}
+
+.objetivo-quote-hero strong {
+  color: var(--slide-navy);
+  font-style: normal;
+}
+
+.research-scope-tags-hero {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  padding-top: 24px;
+  border-top: 1px solid var(--slide-border);
+}
+
+.scope-tag-hero {
+  background: transparent;
+  border: 1px solid var(--slide-border);
+  border-radius: 10px;
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scope-label-hero {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--slide-text-muted);
+}
+
+.scope-val-hero {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--slide-navy);
+}
+
+.scope-sub-hero {
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--slide-text-muted);
+}
+.method-pipeline-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.pipeline-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px 22px;
+}
+
+.pipeline-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--slide-primary-ink);
+}
+
+.pipeline-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--slide-navy);
+  line-height: 1.3;
+}
+
+.pipeline-desc {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--slide-text-muted);
+}
+
+/* =========================================
+   SLIDE 04: FUNDAMENTAÇÃO TEÓRICA
+   ========================================= */
+/* =========================================
+   SLIDE 05: FUNDAMENTAÇÃO TEÓRICA
+   ========================================= */
+.fundamentacao-dual-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.concept-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+}
+
+.concept-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-bottom: 1px solid var(--slide-border);
+  padding-bottom: 12px;
+}
+
+.concept-tag {
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--slide-primary-ink);
+}
+
+.concept-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--slide-navy);
+}
+
+.concept-subtitle {
+  font-size: 0.82rem;
+  color: var(--slide-text-muted);
+}
+
+.concept-desc {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--slide-text);
+}
+
+.concept-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.concept-item-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+.concept-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background-color: var(--slide-primary-ink);
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+.concept-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.concept-item-text strong {
+  font-size: 0.95rem;
+  color: var(--slide-navy);
+}
+
+.concept-item-text span {
+  font-size: 0.85rem;
+  color: var(--slide-text-muted);
+}
+
+/* =========================================
+   SLIDE 06: ENGENHARIA DIRETA E REVERSA
+   ========================================= */
+.case-two-flows-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  align-items: stretch;
+}
+
+.case-flow-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+}
+
+.flow-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--slide-border);
+  padding-bottom: 12px;
+}
+
+.flow-card-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--slide-navy);
+}
+
+.flow-card-direction {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--slide-text-muted);
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
+.direction-icon {
+  flex-shrink: 0;
+  color: currentColor;
+}
+
+.flow-card-desc {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--slide-text-muted);
+}
+
+.flow-visual-duo {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 14px;
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+.flow-visual-box {
+  min-width: 0;
+}
+
+.flow-arrow-mid {
+  color: var(--slide-navy);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  flex-shrink: 0;
+  padding: 0 4px;
+}
+
+.flow-visual-box.is-sql {
+  background-color: #1c1c1c;
+  border-radius: 8px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.code-badge-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #5eead4;
+}
+
+.flow-code-pre {
+  margin: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: #f0f0f0;
+  white-space: pre-wrap;
+}
+
+/* =========================================
+   SLIDE 05: DESENVOLVIMENTO (PERSONA + ARQUITETURA)
+   ========================================= */
+.dev-top-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: auto;
+  gap: 16px;
 }
 
-.closing-authors {
-  font-size: 0.8125rem;
+.run-system-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background-color: var(--slide-navy);
+  color: #ffffff;
+  font-size: 0.92rem;
+  font-weight: 700;
+  padding: 11px 20px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.run-system-cta:hover {
+  background-color: #0f172a;
+}
+
+.pulse-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 9999px;
+  background-color: #1aba9c;
+}
+
+.dev-layout {
+  display: grid;
+  grid-template-columns: 0.42fr 1fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.persona-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.actor-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--slide-border);
+}
+
+.actor-avatar-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background-color: #edfefc;
+  color: var(--slide-primary-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.actor-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--slide-navy);
+}
+
+.actor-roles {
+  font-size: 0.8rem;
   color: var(--slide-text-muted);
   font-weight: 500;
 }
 
-.live-tool-link {
-  display: inline-flex;
+.actor-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.actor-action-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+.action-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background-color: var(--slide-primary-ink);
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+.actor-action-item div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.actor-action-item strong {
+  font-size: 0.92rem;
+  color: var(--slide-navy);
+}
+
+.actor-action-item span {
+  font-size: 0.82rem;
+  color: var(--slide-text-muted);
+}
+
+.persona-full-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.actor-hero-wide {
+  display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 9px 16px;
-  border-radius: 8px;
-  background-color: var(--slide-primary);
-  color: #0f172a;
-  font-size: 0.875rem;
+  gap: 16px;
+}
+
+.actor-avatar-box-lg {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background-color: #edfefc;
+  color: var(--slide-primary-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.actor-title-lg {
+  margin: 0;
+  font-size: 1.35rem;
   font-weight: 700;
-  text-decoration: none;
-  transition: background-color 0.15s ease;
+  color: var(--slide-navy);
 }
 
-.live-tool-link:hover {
-  background-color: #169e85;
+.actor-roles-lg {
+  font-size: 0.88rem;
+  color: var(--slide-text-muted);
+  font-weight: 500;
 }
 
-/* DRAWER DE NOTAS */
+.actor-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+}
+
+.user-action-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px 22px;
+}
+
+.action-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.action-card-header strong {
+  font-size: 1.05rem;
+  color: var(--slide-navy);
+}
+
+.user-action-card p {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--slide-text-muted);
+}
+
+/* =========================================
+   SLIDE 08: ARQUITETURA EM 3 CAMADAS DEDICADO
+   ========================================= */
+.slide-arch-dedicated {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.arch-top-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.arch-full-cover-stage {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+  border: 1px solid var(--slide-border);
+  border-radius: 12px;
+  padding: 14px 20px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.arch-hero-img {
+  width: 100%;
+  max-height: 520px;
+  object-fit: contain;
+  display: block;
+}
+
+/* =========================================
+   SLIDE 08: TESTE PRÁTICO COM ESTUDANTES
+   ========================================= */
+.beta-header-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.beta-sample-info {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.sample-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--slide-primary-ink);
+  line-height: 1;
+}
+
+.sample-text {
+  font-size: 0.88rem;
+  color: var(--slide-text-muted);
+}
+
+.beta-protocol-line {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 0;
+  flex-wrap: wrap;
+}
+
+.protocol-strip-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--slide-text-muted);
+}
+
+.protocol-steps-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 0.88rem;
+  color: var(--slide-navy);
+}
+
+.p-step {
+  font-weight: 500;
+}
+
+.p-arrow {
+  color: var(--slide-text-muted);
+  flex-shrink: 0;
+}
+
+.beta-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 10px;
+}
+
+.beta-metric-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 36px 30px;
+  background-color: var(--slide-surface);
+  border: 1px solid var(--slide-border);
+  border-radius: 12px;
+}
+
+.beta-big-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 4.2rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--slide-navy);
+  line-height: 1;
+}
+
+.beta-metric-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--slide-navy);
+}
+
+.beta-metric-desc {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--slide-text-muted);
+}
+
+/* =========================================
+   SLIDE 12: CONCLUSÃO E AGRADECIMENTOS
+   ========================================= */
+.conclusao-section-wrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 28px;
+}
+
+.conclusao-narrative-flow {
+  max-width: 960px;
+  margin: 12px 0;
+}
+
+.conclusao-lead-text {
+  margin: 0;
+  font-size: 1.45rem;
+  line-height: 1.68;
+  color: var(--slide-text);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.conclusao-lead-text strong {
+  color: var(--slide-navy);
+  font-weight: 700;
+}
+
+.thanks-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0 10px 0;
+  border: none;
+  background: transparent;
+}
+
+.thanks-title {
+  margin: 0;
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--slide-navy);
+  text-align: center;
+}
+
+/* =========================================
+   DRAWER DE NOTAS & MODAL DE VISÃO GERAL
+   ========================================= */
 .notes-drawer {
   position: fixed;
   left: 0;
@@ -3053,7 +2932,6 @@ onBeforeUnmount(() => {
   color: var(--slide-text);
 }
 
-/* MODAL DE VISÃO GERAL */
 .overview-backdrop {
   position: fixed;
   inset: 0;
@@ -3170,64 +3048,337 @@ onBeforeUnmount(() => {
   opacity: 0;
 }
 
-@media (max-width: 1024px) {
+.screen-hidden {
+  display: none !important;
+}
+
+@media screen and (max-width: 1024px) {
   .slides-stage {
     padding: 20px;
   }
 
   .slide-cover,
   .problem-layout,
-  .justification-grid,
-  .uml-layout,
-  .proto-layout,
-  .final-layout,
-  .playground-split {
+  .visao-layout,
+  .method-pipeline-grid,
+  .fundamentacao-triad,
+  .case-gap-banner,
+  .dev-layout,
+  .beta-metrics-grid,
+  .conclusao-grid {
     grid-template-columns: 1fr;
-  }
-
-  .pillars-grid,
-  .theory-tables-grid,
-  .method-steps-grid,
-  .layers-grid,
-  .classification-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .toolbar-progress,
-  .tree-branches-svg,
-  .theory-connectors-bar {
-    display: none;
   }
 }
 
-@media (max-width: 640px) {
-  .slides-toolbar {
-    padding: 0 12px;
+/* =========================================
+   ESTILOS DE IMPRESSÃO / EXPORTAÇÃO PARA PDF
+   (PADRÃO OFICIAL SLIDES POWERPOINT 16:9 WIDESCREEN: 33.867cm x 19.05cm)
+   ========================================= */
+@media print {
+  @page {
+    size: 33.867cm 19.05cm;
+    margin: 0;
   }
 
-  .toolbar-context {
-    display: none;
+  html,
+  body {
+    background-color: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 33.867cm !important;
+    height: 19.05cm !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    font-size: 14.5px !important;
   }
 
-  .pillars-grid,
-  .theory-tables-grid,
-  .method-steps-grid,
-  .layers-grid,
-  .classification-grid,
-  .cover-meta-grid,
-  .cover-cards-pair,
-  .desync-diagram,
-  .wireframe-compare {
-    grid-template-columns: 1fr;
+  /* Força a remoção de qualquer elemento web superior e flutuante */
+  .slides-toolbar,
+  header,
+  .progress-rail,
+  .notes-drawer,
+  .overview-backdrop,
+  .v-overlay-container,
+  .v-tooltip {
+    display: none !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
   }
 
-  .theory-detail-panel {
-    flex-direction: column;
-    align-items: flex-start;
+  .slides-shell {
+    background-color: #ffffff !important;
+    background-image: none !important;
+    width: 33.867cm !important;
+    min-height: auto !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    display: block !important;
   }
 
-  .theory-tags {
-    align-items: flex-start;
+  .slides-stage {
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+    width: 33.867cm !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Cada slide ocupa exatamente uma folha 16:9 Widescreen (33.867cm x 19.05cm) */
+  .slide-container {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 33.867cm !important;
+    height: 19.05cm !important;
+    max-width: 33.867cm !important;
+    max-height: 19.05cm !important;
+    box-sizing: border-box !important;
+    padding: 1.8cm 2.6cm !important;
+    position: relative !important;
+    page-break-before: auto !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    overflow: hidden !important;
+    transform: none !important;
+    visibility: visible !important;
+  }
+
+  .slide-container:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+
+  .screen-hidden {
+    display: flex !important;
+  }
+
+  .slide-grid,
+  .slide-stack {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Força colunas lado a lado no padrão Widescreen nativo */
+  .slide-cover {
+    display: grid !important;
+    grid-template-columns: 1.15fr 1fr !important;
+    gap: 36px !important;
+    align-items: center !important;
+  }
+
+  .cover-title {
+    font-size: 2.1rem !important;
+    line-height: 1.18 !important;
+  }
+
+  .cover-meta-grid {
+    gap: 20px !important;
+  }
+
+  .person-name-item {
+    font-size: 1.05rem !important;
+  }
+
+  .cover-canvas-clean {
+    max-width: 520px !important;
+  }
+
+  .sql-code-pre {
+    font-size: 0.78rem !important;
+    line-height: 1.45 !important;
+  }
+
+  .cover-sync-fork {
+    height: 72px !important;
+  }
+
+  .fork-svg {
+    height: 72px !important;
+  }
+
+  .cover-der-stage {
+    grid-template-columns: 1fr 64px 1fr !important;
+  }
+
+  .cover-der-rel {
+    width: 64px !important;
+    height: 120px !important;
+  }
+
+  /* Slide 02: Contexto */
+  .context-split-grid {
+    display: grid !important;
+    grid-template-columns: 0.9fr 1.1fr !important;
+    gap: 28px !important;
+  }
+
+  .stat-number-hero {
+    font-size: 3.6rem !important;
+  }
+
+  /* Slide 03: Problema */
+  .problem-layout {
+    display: grid !important;
+    grid-template-columns: 1fr 1.15fr !important;
+    gap: 26px !important;
+  }
+
+  /* Slide 04: Solução BrDiagrama */
+  .visao-solution-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 20px !important;
+  }
+
+  .sync-engine-visual-lg {
+    display: grid !important;
+    grid-template-columns: 1fr auto 1fr !important;
+    gap: 26px !important;
+  }
+
+  .audience-grid-split {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 20px !important;
+  }
+
+  /* Slide 05: Objetivo Geral */
+  .objetivo-full-card {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 28px !important;
+    padding: 32px 38px !important;
+  }
+
+  .objetivo-quote-hero {
+    font-size: 1.25rem !important;
+  }
+
+  /* Slide 06 */
+  .method-pipeline-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 18px !important;
+  }
+
+  .pipeline-card {
+    padding: 18px 20px !important;
+  }
+
+  /* Slide 07 */
+  .fundamentacao-dual-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 24px !important;
+  }
+
+  /* Slide 08 */
+  .case-two-flows-layout {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 24px !important;
+  }
+
+  .flow-code-pre {
+    font-size: 0.76rem !important;
+  }
+
+  /* Slide 09: Ações do Usuário */
+  .actor-actions-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 18px !important;
+  }
+
+  /* Slide 10: Arquitetura */
+  .arch-hero-img {
+    max-height: 480px !important;
+  }
+
+  /* Slide 11: Métricas Beta */
+  .beta-metrics-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 20px !important;
+  }
+
+  .beta-big-value {
+    font-size: 2.6rem !important;
+  }
+
+  /* Slide 12: Conclusão */
+  .thanks-title {
+    font-size: 3.2rem !important;
+  }
+
+  .slide-heading {
+    font-size: 1.95rem !important;
+    line-height: 1.2 !important;
+  }
+
+  /* Garante cores de fundo de editores, badges e cards em qualquer navegador */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  .cover-code-surface,
+  .evo-code-box,
+  .flow-visual-box.is-sql,
+  .sync-code-box {
+    background-color: #1c1c1c !important;
+    border: 1px solid #333333 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .sql-code-pre,
+  .flow-code-pre {
+    color: #f0f0f0 !important;
+  }
+
+  .sql-code-pre span,
+  .flow-code-pre span {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .surface-card,
+  .evo-der-card {
+    background-color: #ffffff !important;
+    border: 1px solid rgba(25, 39, 71, 0.16) !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .evo-der-header {
+    background-color: #192747 !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Garante que SVGs e conectores mantenham visibilidade sem cortes */
+  svg {
+    overflow: visible !important;
+  }
+
+  .slide-corner-logos {
+    position: absolute !important;
+    right: 28px !important;
+    bottom: 20px !important;
+    z-index: 50 !important;
   }
 }
 </style>
