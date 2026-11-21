@@ -6,6 +6,7 @@ const STORAGE_KEYS = {
   provider: 'brdiagrama-ai-provider',
   models: 'brdiagrama-ai-models',
   creativity: 'brdiagrama-ai-creativity',
+  canEditSql: 'brdiagrama-ai-can-edit-sql',
 }
 
 const CREATIVITY_LEVELS: Creativity[] = ['preciso', 'equilibrado', 'criativo']
@@ -52,6 +53,8 @@ export const useAiSettingsStore = defineStore('aiSettings', {
     provider: loadProvider(),
     modelByProvider: loadModels(),
     creativity: loadCreativity(),
+    // Começa desligado: a IA só altera o SQL do editor se o usuário permitir.
+    canEditSql: readStorage(STORAGE_KEYS.canEditSql) === 'true',
     apiKeys: {} as Partial<Record<ProviderId, string>>,
   }),
   getters: {
@@ -76,6 +79,10 @@ export const useAiSettingsStore = defineStore('aiSettings', {
     setCreativity(creativity: Creativity) {
       this.creativity = creativity
       writeStorage(STORAGE_KEYS.creativity, creativity)
+    },
+    setCanEditSql(value: boolean) {
+      this.canEditSql = value
+      writeStorage(STORAGE_KEYS.canEditSql, String(value))
     },
     setApiKey(key: string) {
       this.apiKeys[this.provider] = key

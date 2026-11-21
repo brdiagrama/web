@@ -21,6 +21,8 @@ export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
   error?: boolean
+  /** SQL do editor antes de a IA trocar (só na tela, para o "Desfazer"; não vai para a API). */
+  previousSql?: string
 }
 
 /** O que vai para a API: só papel e texto. */
@@ -55,7 +57,8 @@ export interface AiChatRequest {
   creativity: Creativity
   /** Já termina com a pergunta nova do usuário. */
   messages: ChatMessage[]
-  context: { sql: string; dialect: string }
+  /** canEditSql: o usuário deixou a IA alterar o SQL do editor. */
+  context: { sql: string; dialect: string; canEditSql: boolean }
   signal: AbortSignal
 }
 

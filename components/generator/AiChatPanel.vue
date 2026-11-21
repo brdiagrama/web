@@ -4,6 +4,7 @@ import { Bot, Send, X, Trash2, Square, Settings } from "lucide-vue-next";
 import { useDiagramStore } from "@/stores/diagram";
 import { useAiSettingsStore } from "@/ai/store/ai-settings.store";
 import { sendChatMessage } from "@/ai/controllers/ai.controller";
+import { extractEditorSql } from "@/ai/services/orchestrator.service";
 import { AiError, describeAiError } from "@/ai/shared/errors";
 import type { AiChatRequest, AiProviderConfig, ChatMessage } from "@/ai/types";
 import AiProviderSelector from "@/components/generator/AiProviderSelector.vue";
@@ -19,7 +20,32 @@ const loading = ref(false);
 const settingsOpen = ref(!settings.apiKey);
 const listRef = ref<HTMLElement | null>(null);
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
+const chatRef = ref<HTMLElement | null>(null);
+// Altura definida arrastando a barra do topo; null = altura padrão (45% do painel).
+const chatHeight = ref<number | null>(null);
 let controller: AbortController | null = null;
+
+const MIN_CHAT_HEIGHT = 240;
+const MIN_LIST_ABOVE = 120;
+
+function startChatResize(e: PointerEvent) {
+  const panel = chatRef.value?.parentElement;
+  if (!panel) return;
+  e.preventDefault();
+  const handle = e.currentTarget as HTMLElement;
+  handle.setPointerCapture(e.pointerId);
+  const panelBottom = panel.getBoundingClientRect().bottom;
+  const maxHeight = panel.clientHeight - MIN_LIST_ABOVE;
+  const onMove = (move: PointerEvent) => {
+    chatHeight.value = Math.min(maxHeight, Math.max(MIN_CHAT_HEIGHT, panelBottom - move.clientY));
+  };
+  const onUp = () => {
+    handle.removeEventListener("pointermove", onMove);
+    handle.removeEventListener("pointerup", onUp);
+  };
+  handle.addEventListener("pointermove", onMove);
+  handle.addEventListener("pointerup", onUp);
+}
 
 const hasKey = computed(() => Boolean(settings.apiKey));
 const canSend = computed(() => hasKey.value && Boolean(input.value.trim()) && !loading.value);
@@ -62,7 +88,8 @@ async function send() {
     apiKey: settings.apiKey,
     creativity: settings.creativity,
     messages: messages.value.slice(),
-    context: { sql: diagram.sqlCode, dialect: diagram.sqlDialect },
+    // O SQL atual do editor vai junto em toda mensagem, para a IA ter o contexto.
+    context: { sql: diagram.sqlCode, dialect: diagram.sqlDialect, canEditSql: settings.canEditSql },
     signal: controller.signal,
   };
   messages.value.push({ role: "assistant", content: "" });
@@ -76,6 +103,7 @@ async function send() {
       reply.content += piece;
       scrollToBottom();
     }
+    if (request.context.canEditSql) applyEditorSql(reply);
   } catch (error) {
     if (!request.signal.aborted) showError(reply, error, config);
   } finally {
@@ -87,6 +115,21 @@ async function send() {
     controller = null;
     scrollToBottom();
   }
+}
+
+/** Só com a resposta completa e a permissão ligada: troca o SQL do editor e tira o bloco do texto do chat. */
+function applyEditorSql(reply: ChatMessage) {
+  const { text, sql } = extractEditorSql(reply.content);
+  if (!sql) return;
+  reply.previousSql = diagram.sqlCode;
+  diagram.setSql(sql);
+  reply.content = `${text}\n\n[SQL do editor atualizado pela IA.]`.trim();
+}
+
+function undoEditorSql(message: ChatMessage) {
+  diagram.setSql(message.previousSql ?? "");
+  message.previousSql = undefined;
+  message.content += "\n[Alteração desfeita: o SQL anterior voltou para o editor.]";
 }
 
 function showError(reply: ChatMessage, error: unknown, config: AiProviderConfig) {
@@ -119,7 +162,19 @@ function onKeydown(e: KeyboardEvent) {
 </script>
 
 <template>
-  <section class="ai-chat" aria-label="Chat com IA">
+  <section
+    ref="chatRef"
+    class="ai-chat"
+    aria-label="Chat com IA"
+    :style="chatHeight ? { height: `${chatHeight}px` } : undefined"
+  >
+    <div
+      class="ai-chat-resizer"
+      role="separator"
+      aria-orientation="horizontal"
+      aria-label="Arraste para ajustar a altura do chat"
+      @pointerdown="startChatResize"
+    ></div>
     <header class="ai-chat-header">
       <div class="ai-chat-title">
         <Bot :size="16" />
@@ -159,6 +214,15 @@ function onKeydown(e: KeyboardEvent) {
       >
         <template v-if="msg.content">{{ msg.content }}</template>
         <span v-else-if="loading && i === messages.length - 1" class="ai-typing">Pensando…</span>
+        <button
+          v-if="msg.previousSql !== undefined"
+          type="button"
+          class="ai-undo-btn"
+          aria-label="Desfazer a alteração da IA no SQL do editor"
+          @click="undoEditorSql(msg)"
+        >
+          Desfazer
+        </button>
       </div>
     </div>
 
@@ -187,12 +251,27 @@ function onKeydown(e: KeyboardEvent) {
   container-type: inline-size;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
   height: 45%;
   min-height: 240px;
-  border-top: 1px solid var(--panel-border);
   background: var(--panel-bg);
   user-select: text;
   -webkit-user-select: text;
+}
+/* Mesma aparência das barras de redimensionar entre os painéis. */
+.ai-chat-resizer {
+  flex-shrink: 0;
+  height: 8px;
+  cursor: row-resize;
+  touch-action: none;
+  background-color: var(--panel-surface);
+  border-top: 1px solid var(--panel-border);
+  border-bottom: 1px solid var(--panel-border);
+  transition: background-color 0.2s ease;
+}
+.ai-chat-resizer:hover,
+.ai-chat-resizer:active {
+  background-color: #1aba9c;
 }
 .ai-chat-header {
   display: flex;
@@ -279,6 +358,21 @@ function onKeydown(e: KeyboardEvent) {
 .ai-msg-error {
   border: 1px solid rgba(229, 72, 77, 0.45);
   color: #e5484d;
+}
+.ai-undo-btn {
+  display: block;
+  margin-top: 8px;
+  padding: 4px 10px;
+  border: 1px solid #1aba9c;
+  border-radius: 6px;
+  background: transparent;
+  color: #1aba9c;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ai-undo-btn:hover {
+  background: rgba(26, 186, 156, 0.12);
 }
 .ai-typing {
   color: var(--panel-text-muted);

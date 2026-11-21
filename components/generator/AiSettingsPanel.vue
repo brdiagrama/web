@@ -53,6 +53,30 @@ function forgetKey() {
 
 <template>
   <section class="ai-settings" aria-label="Configurações da IA">
+    <div class="ai-settings-permission">
+      <div class="ai-settings-permission-text">
+        <span id="ai-edit-sql-label" class="ai-settings-label">Permitir que a IA altere o SQL</span>
+        <p class="ai-settings-note">
+          {{
+            settings.canEditSql
+              ? "Ligado: quando você pedir uma mudança, a IA troca o SQL do editor."
+              : "Desligado: a IA só lê o SQL do editor e sugere mudanças."
+          }}
+        </p>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        class="ai-settings-switch"
+        :class="{ 'is-on': settings.canEditSql }"
+        :aria-checked="settings.canEditSql"
+        aria-labelledby="ai-edit-sql-label"
+        @click="settings.setCanEditSql(!settings.canEditSql)"
+      >
+        <span class="ai-settings-switch-thumb"></span>
+      </button>
+    </div>
+
     <div class="ai-settings-row">
       <span class="ai-settings-label">Modelo</span>
       <DropdownSelect
@@ -155,6 +179,56 @@ function forgetKey() {
   border-bottom: 1px solid var(--panel-border);
   background: var(--panel-surface);
   font-size: 12px;
+}
+
+.ai-settings-permission {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.ai-settings-permission-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ai-settings-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 36px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  background: var(--panel-input-bg);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.ai-settings-switch.is-on {
+  border-color: #1aba9c;
+  background: #1aba9c;
+}
+
+.ai-settings-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--panel-text-muted);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.ai-settings-switch.is-on .ai-settings-switch-thumb {
+  transform: translateX(16px);
+  background: #0f0f0f;
 }
 
 .ai-settings-row {

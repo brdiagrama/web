@@ -24,6 +24,23 @@ const CREATIVITY_TEMPERATURES: Record<Creativity, number> = {
   criativo: 1.0,
 }
 
+/** Marca do bloco que a IA usa para devolver o SQL completo que vai para o editor. */
+const EDITOR_SQL_BLOCK = /```sql-brdiagrama\s*\n([\s\S]*?)```/
+
+const EDIT_PERMISSION_INSTRUCTIONS = {
+  allowed:
+    'Você tem permissão para alterar o SQL do editor. Quando o usuário pedir uma mudança no esquema, devolva o SQL COMPLETO já alterado (todas as tabelas, não só o trecho novo) dentro de um único bloco ```sql-brdiagrama e explique a mudança em poucas palavras. Esse bloco substitui o SQL do editor, então use-o só quando for para aplicar a mudança.',
+  denied:
+    'Você NÃO tem permissão para alterar o SQL do editor: só sugira mudanças em blocos ```sql comuns, e o usuário decide se copia.',
+}
+
+/** Separa a resposta em texto para mostrar e SQL para aplicar no editor (quando a IA mandou o bloco). */
+export function extractEditorSql(reply: string): { text: string; sql?: string } {
+  const match = reply.match(EDITOR_SQL_BLOCK)
+  if (!match) return { text: reply }
+  return { text: reply.replace(match[0], '').trim(), sql: match[1].trim() }
+}
+
 export function buildSystemPrompt(context: AiChatRequest['context'], creativity: Creativity): string {
   const instructions = [
     'Você é o assistente de IA do BrDiagrama, uma ferramenta brasileira que gera diagramas ER a partir de SQL.',
@@ -33,6 +50,7 @@ export function buildSystemPrompt(context: AiChatRequest['context'], creativity:
     `Escreva SQL no dialeto ${context.dialect}.`,
     'Se a pergunta não tiver relação com banco de dados ou com o diagrama, responda em poucas palavras e volte ao assunto.',
     CREATIVITY_INSTRUCTIONS[creativity],
+    EDIT_PERMISSION_INSTRUCTIONS[context.canEditSql ? 'allowed' : 'denied'],
   ].join(' ')
   const sql = context.sql.trim()
   const sqlSection = sql ? `SQL atual do editor do usuário:\n\`\`\`sql\n${sql}\n\`\`\`` : 'O editor está vazio.'

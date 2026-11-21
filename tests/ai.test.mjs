@@ -37,7 +37,7 @@ const { streamEndNotice } = await load('ai/shared/notices.ts');
 const { validateApiKey } = await load('ai/shared/api-key.ts');
 const { parseChatCompletionsEvent, chatCompletionsOutcome, streamChatCompletions } = await load('ai/shared/openai-compatible.ts');
 const { getProviderConfig, isProviderId } = await load('ai/catalog.ts');
-const { buildSystemPrompt, prepareHistory, orchestrateChat } = await load('ai/services/orchestrator.service.ts');
+const { buildSystemPrompt, prepareHistory, orchestrateChat, extractEditorSql } = await load('ai/services/orchestrator.service.ts');
 const { buildChatgptBody, refineChatgptError } = await load('ai/providers/chatgpt/chatgpt.ts');
 const { buildGeminiBody, parseGeminiEvent, geminiOutcome, refineGeminiError } = await load('ai/providers/gemini/gemini.ts');
 const { buildGrokBody, refineGrokError } = await load('ai/providers/grok/grok.ts');
@@ -436,6 +436,14 @@ test('buildSystemPrompt usa dialeto, SQL e a frase de criatividade', () => {
   assert.ok(prompt.includes('não invente tabelas'));
   assert.ok(buildSystemPrompt({ sql: '  ', dialect: 'MySQL' }, 'criativo').includes('O editor está vazio.'));
   assert.ok(buildSystemPrompt({ sql: '', dialect: 'MySQL' }, 'criativo').includes('prós e contras'));
+});
+
+test('permissão de alterar o SQL: instrução no prompt e leitura do bloco devolvido', () => {
+  assert.ok(buildSystemPrompt({ sql: '', dialect: 'MySQL', canEditSql: true }, 'equilibrado').includes('```sql-brdiagrama'));
+  assert.ok(buildSystemPrompt({ sql: '', dialect: 'MySQL', canEditSql: false }, 'equilibrado').includes('NÃO tem permissão'));
+  const reply = 'Adicionei a coluna.\n\n```sql-brdiagrama\nCREATE TABLE a (id INT, nome TEXT);\n```';
+  assert.deepEqual(extractEditorSql(reply), { text: 'Adicionei a coluna.', sql: 'CREATE TABLE a (id INT, nome TEXT);' });
+  assert.deepEqual(extractEditorSql('Só uma sugestão:\n```sql\nSELECT 1;\n```'), { text: 'Só uma sugestão:\n```sql\nSELECT 1;\n```' });
 });
 
 test('prepareHistory tira erros, fica com a última de mensagens seguidas, corta em 20 e começa pelo usuário', () => {
