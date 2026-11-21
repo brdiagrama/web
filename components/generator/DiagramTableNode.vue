@@ -279,7 +279,7 @@ const handleColumnBlur = (col: Column, colIndex: number) => {
             <span class="col-name-input-sizer" :class="{ 'is-pk': col.isPk, 'is-fk': !col.isPk && col.isFk }"
               :data-value="getColNameValue(col, colIndex)">
               <input :value="getColNameValue(col, colIndex)" type="text" class="col-name-input"
-                :class="{ 'is-col-error': isColInError(col) }" :style="{ fontWeight: col.isPk ? '600' : '500' }"
+                :class="{ 'is-col-error': isColInError(col) }"
                 @click.stop @pointerdown.stop @mousedown.stop
                 @focus="editingColIndex = colIndex; emit('selectTable', table.name)"
                 @input="handleColumnNameInput(col, colIndex, $event)" @blur="handleColumnBlur(col, colIndex)"
@@ -559,6 +559,11 @@ const handleColumnBlur = (col: Column, colIndex: number) => {
   padding: 1px 3px;
   box-sizing: border-box;
   white-space: pre;
+}
+
+.col-name-input-sizer.is-pk::after,
+.col-name-input-sizer.is-pk .col-name-input {
+  font-weight: 600;
 }
 
 .col-name-input-sizer::after,
