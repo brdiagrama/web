@@ -6,24 +6,62 @@ export function replaceTableNameInSql(
   sql: string,
   oldName: string,
   newName: string,
-  targetTableIndex?: number
+  targetTableIndex?: number,
+  originalTableName?: string
 ): string {
   if (!sql || oldName === newName) {
     return sql;
   }
 
   const escapeRegExp = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const targetRefs = Array.from(new Set([oldName, originalTableName].filter(Boolean)));
+  const refPattern = targetRefs.map(escapeRegExp).join('|');
 
   if (!oldName) {
     // Restaurando a partir do vazio sem duplicar espaços nem colar no parêntese "("
-    const emptyCreateRegex = /(\bCREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+)\s*(\()/i;
-    return sql.replace(emptyCreateRegex, `$1${newName} $2`);
+    let updatedSql = sql;
+    if (targetTableIndex !== undefined && targetTableIndex >= 0) {
+      let currentIdx = 0;
+      const anyCreateRegex = /(\bCREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+(?:[`"'\[]?[^\s(`"'\]]+\.)?[`"'\[]?)([^\s(`"'\].]*)([`"'\]?\s*[\(\s])/gi;
+      updatedSql = sql.replace(anyCreateRegex, (fullMatch, p1, p2, p3) => {
+        if (currentIdx++ === targetTableIndex) {
+          const cleanP1 = p1.endsWith('  ') ? p1.slice(0, -1) : p1;
+          const cleanP3 = p3.startsWith('(') ? ` ${p3}` : p3;
+          return `${cleanP1}${newName}${cleanP3}`;
+        }
+        return fullMatch;
+      });
+    } else {
+      const emptyCreateRegex = /(\bCREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+)\s*(\()/i;
+      updatedSql = sql.replace(emptyCreateRegex, `$1${newName} $2`);
+    }
+
+    if (newName && refPattern) {
+      const referencesRegex = new RegExp(
+        `(\\bREFERENCES\\s+(?:[\`"'\\\\[]?[^\\s(\`"'\\\\]]+\\.)?[\`"'\\\\[]?)(${refPattern})([\`"'\\\\]?\\s*\\()`,
+        'gi'
+      );
+      updatedSql = updatedSql.replace(referencesRegex, `$1${newName}$3`);
+    }
+
+    return updatedSql;
   }
 
   const escapedOld = escapeRegExp(oldName);
 
   if (!newName) {
     // Removendo o nome da tabela mantendo o espaçamento limpo antes do "("
+    if (targetTableIndex !== undefined && targetTableIndex >= 0) {
+      let currentIdx = 0;
+      const anyCreateRegex = /(\bCREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+(?:[`"'\[]?[^\s(`"'\]]+\.)?[`"'\[]?)([^\s(`"'\].]*)([`"'\]?\s*[\(\s])/gi;
+      return sql.replace(anyCreateRegex, (fullMatch, p1, p2, p3) => {
+        if (currentIdx++ === targetTableIndex) {
+          return `${p1}${p3}`;
+        }
+        return fullMatch;
+      });
+    }
+
     const removeTableRegex = new RegExp(
       `(\\bCREATE\\s+TABLE(?:\\s+IF\\s+NOT\\s+EXISTS)?\\s+(?:[\`"'\\[]?[^\\s(\`"'\\]]+\\.)?)[[\`"'\\[]?${escapedOld}[\`"'\\]]?\\s*([\\(\\s])`,
       'i'
@@ -34,18 +72,21 @@ export function replaceTableNameInSql(
   if (targetTableIndex !== undefined && targetTableIndex >= 0) {
     // Substitui especificamente o N-ésimo bloco CREATE TABLE para nunca colidir quando dois nomes ficam iguais temporariamente
     let currentIdx = 0;
-    const anyCreateRegex = /(\bCREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+(?:[\`"'\\[]?[^\s(\`"'\\]]+\.)?[\`"'\\[]?)([^\s(`"'\].]*)([\`"'\\]?\s*[\(\s])/gi;
+    const anyCreateRegex = /(\bCREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+(?:[`"'\[]?[^\s(`"'\]]+\.)?[`"'\[]?)([^\s(`"'\].]*)([`"'\]?\s*[\(\s])/gi;
     const updatedSql = sql.replace(anyCreateRegex, (fullMatch, p1, p2, p3) => {
       if (currentIdx++ === targetTableIndex) {
         return `${p1}${newName}${p3}`;
       }
       return fullMatch;
     });
-    const referencesRegex = new RegExp(
-      `(\\bREFERENCES\\s+(?:[\`"'\\[]?[^\\s(\`"'\\]]+\\.)?[\`"'\\[]?)(${escapedOld})([\`"'\\]]?\\s*\\()`,
-      'gi'
-    );
-    return updatedSql.replace(referencesRegex, `$1${newName}$3`);
+    if (newName && refPattern) {
+      const referencesRegex = new RegExp(
+        `(\\bREFERENCES\\s+(?:[\`"'\\\\[]?[^\\s(\`"'\\\\]]+\\.)?[\`"'\\\\[]?)(${refPattern})([\`"'\\\\]?\\s*\\()`,
+        'gi'
+      );
+      return updatedSql.replace(referencesRegex, `$1${newName}$3`);
+    }
+    return updatedSql;
   }
 
   const createTableRegex = new RegExp(
@@ -54,11 +95,13 @@ export function replaceTableNameInSql(
   );
   let updatedSql = sql.replace(createTableRegex, `$1${newName}$3`);
 
-  const referencesRegex = new RegExp(
-    `(\\bREFERENCES\\s+(?:[\`"'\\[]?[^\\s(\`"'\\]]+\\.)?[\`"'\\[]?)(${escapedOld})([\`"'\\]?\\s*\\()`,
-    'gi'
-  );
-  updatedSql = updatedSql.replace(referencesRegex, `$1${newName}$3`);
+  if (newName && refPattern) {
+    const referencesRegex = new RegExp(
+      `(\\bREFERENCES\\s+(?:[\`"'\\\\[]?[^\\s(\`"'\\\\]]+\\.)?[\`"'\\\\[]?)(${refPattern})([\`"'\\\\]?\\s*\\()`,
+      'gi'
+    );
+    updatedSql = updatedSql.replace(referencesRegex, `$1${newName}$3`);
+  }
 
   return updatedSql;
 }

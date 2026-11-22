@@ -371,7 +371,7 @@ export function getTableAtLine(sql: string, lineNumber?: number, offset?: number
 export function extractTableLineRanges(sql: string): TableBlockRange[] {
   if (!sql) return [];
   const ranges: TableBlockRange[] = [];
-  const createRegex = /\bCREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+(?:[`"\[]?([^\s(`"'\].]+)[`"\]]?\.)?[`"\[]?([^\s(`"'\].]+)[`"\]]?\s*\(/gi;
+  const createRegex = /\bCREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+(?:[`"\[]?([^\s(`"'\].]*)[`"\]]?\.)?[`"\[]?([^\s(`"'\].]*)[`"\]]?\s*\(/gi;
 
   let match: RegExpExecArray | null;
   while ((match = createRegex.exec(sql)) !== null) {

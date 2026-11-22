@@ -506,7 +506,7 @@ export const useDiagramStore = defineStore('diagram', {
         }
       }
 
-      const updatedSql = replaceTableNameInSql(this.sqlCode, oldSqlName, newSqlName, targetTableIndex);
+      const updatedSql = replaceTableNameInSql(this.sqlCode, oldSqlName, newSqlName, targetTableIndex, baseName);
       this.setSql(updatedSql, true);
       return true;
     },

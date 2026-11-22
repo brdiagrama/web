@@ -759,6 +759,50 @@ console.log('--- Iniciando Bateria 8: Edição de Nome de Tabela e Sincronizaç�
   }
   assertEqual(sim.errors.length, 0, '[Rename Table Final] SQL válido com FK atualizada');
   assertEqual(sim.sqlCode.includes('REFERENCES clientes_vip(id)'), true, '[Rename Table FK] FK aponta para clientes_vip');
+
+  // Caso Crítico: Apagar o nome da tabela até ficar 100% VAZIO ('') e digitar um nome totalmente novo ('empresas')
+  // Validar se as Foreign Keys continuam sincronizadas e não ficam presas na última letra apagada ('c')!
+  const fullEraseAndNewNameStrokes = generateKeystrokeSequence('clientes_vip', 'empresas');
+  for (const stroke of fullEraseAndNewNameStrokes) {
+    const prevName = sim.getCanvasTableName(Object.keys(sim.schema.tables)[0]);
+    const cleanVal = stroke.replace(/\s+/g, '');
+    const currentSchemaName = Object.keys(sim.schema.tables)[0];
+    sim.canvasState.editingTable = currentSchemaName;
+    sim.canvasState.localTableInput[currentSchemaName] = cleanVal;
+    if (prevName !== cleanVal) {
+      sim.storeRenameTable(prevName, cleanVal, currentSchemaName);
+    }
+
+    const updatedSchemaName = Object.keys(sim.schema.tables)[0];
+    sim.canvasState.editingTable = updatedSchemaName;
+    sim.canvasState.localTableInput[updatedSchemaName] = cleanVal;
+  }
+  assertEqual(sim.errors.length, 0, '[Rename Table Vazio->Novo Final] SQL válido após renomear de vazio para empresas');
+  assertEqual(sim.sqlCode.includes('REFERENCES empresas(id)'), true, '[Rename Table Vazio->Novo FK] FK em pedidos deve apontar para empresas(id)');
+
+  // Validação: ao apagar o nome da tabela (deixando vazio ''), o erro deve ser mapeado para tableErrors da tabela
+  sim.storeRenameTable('empresas', '', 'empresas');
+  assertEqual(sim.errors.length > 0, true, '[Table Empty Error] SQL deve conter erro de sintaxe ao apagar nome da tabela');
+  assertEqual(!!sim.tableErrors['empresas'], true, '[Table Empty Error] tableErrors deve conter erro mapeado para a tabela');
+  // Restaura para o estado válido
+  sim.storeRenameTable('', 'empresas', 'empresas');
+  assertEqual(sim.errors.length, 0, '[Table Empty Restore] SQL recuperado');
+
+  // Caso Crítico 2: Digitação rápida direta selecionando o texto (sem passar pelo vazio)
+  // Exemplo: 'empresas' -> 'a' -> 'as' -> 'asd' -> 'asda' -> 'asdasdsad'
+  let currentVal = 'empresas';
+  const fastTypingStrokes = ['a', 'as', 'asd', 'asda', 'asdas', 'asdasd', 'asdasds', 'asdasdsa', 'asdasdsad'];
+  for (const stroke of fastTypingStrokes) {
+    const prevName = currentVal;
+    currentVal = stroke;
+    const currentSchemaName = Object.keys(sim.schema.tables)[0];
+    sim.canvasState.editingTable = currentSchemaName;
+    sim.canvasState.localTableInput[currentSchemaName] = currentVal;
+    if (prevName !== currentVal) {
+      sim.storeRenameTable(prevName, currentVal, currentSchemaName);
+    }
+  }
+  assertEqual(sim.sqlCode.includes('REFERENCES asdasdsad(id)'), true, '[Fast Typing Rename FK] FK deve acompanhar digitação rápida "asdasdsad"');
 }
 
 // ----------------------------------------------------------------------------
